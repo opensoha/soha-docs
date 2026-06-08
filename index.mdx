@@ -1,0 +1,74 @@
+---
+id: index
+slug: /
+title: OpenSoha
+description: OpenSoha 项目介绍、自托管 Soha 文档入口、Soha Cloud SaaS 入口与公开 contracts 入口。
+---
+
+import LandingActions from '@site/src/components/LandingActions';
+
+<section className="soha-landing">
+  <div className="soha-landing-hero">
+    <div className="soha-landing-kicker">OpenSoha / Soha</div>
+    <h1>开源控制平面，保留通往托管 SaaS 的清晰入口</h1>
+    <div className="soha-landing-lead">
+      Soha 面向平台团队，把多集群管理、应用交付、可观测性、权限治理、AI Gateway、MCP / Skills、Agent Runtime 和插件市场放到同一个可审计的操作面里。开源 core 持续独立运行，Soha Cloud 作为托管 SaaS 层补充组织、计费、SSO、托管连接器和 Agent Fleet 能力。
+    </div>
+    <LandingActions />
+  </div>
+
+  <div className="soha-landing-map" aria-label="Soha product map">
+    <div className="soha-map-shell">
+      <div className="soha-map-header">
+        <span>Soha Control Plane</span>
+        <strong>default tenant</strong>
+      </div>
+      <div className="soha-map-grid">
+        <span>Platform</span>
+        <span>Delivery</span>
+        <span>Observability</span>
+        <span>AI Gateway</span>
+        <span>MCP / Skills</span>
+        <span>Governance</span>
+      </div>
+      <div className="soha-map-cloud">
+        <span>Soha Cloud</span>
+        <strong>SaaS IAM · Billing · Managed Fleet</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+## 这个站点现在承担什么
+
+`soha-docs` 不再只是从 core 仓库拆出来的一组内部文档。它是 OpenSoha 的公开文档站和产品入口：
+
+- 面向新用户解释 OpenSoha、Soha、自托管版本和 Soha Cloud 的关系。
+- 面向自托管用户提供部署、配置、Agent Runtime、AI Gateway、MCP 和治理文档。
+- 面向 SaaS 用户提供 Soha Cloud 登录入口；真实 Cloud 地址通过 `SOHA_CLOUD_LOGIN_URL` 在构建时注入。
+- 面向开发者提供 `soha-contracts`、OpenAPI、SDK、插件 manifest 和跨仓库边界说明。
+
+## 选择入口
+
+| 你要做什么 | 入口 | 说明 |
+| --- | --- | --- |
+| 了解产品边界 | [什么是 Soha](./product/what-is-soha.md) | OpenSoha、Soha、开源 core、Soha Cloud 的命名和职责。 |
+| 自己部署 | [自托管 Soha](./self-hosted/index.md) | 开源 core 的默认交付形态，保留单二进制和私有化部署体验。 |
+| 使用托管服务 | [Soha Cloud](./cloud/index.md) | SaaS 登录和托管能力入口，不把闭源实现写进开源 core。 |
+| 对接 API | [API 与 Contracts](./api/contracts.md) | OpenAPI、Agent protocol、MCP、Skill、Plugin、事件和鉴权 schema。 |
+| 安装扩展 | [插件市场](./marketplace/index.md) | Skills、MCP presets、connectors、agent profiles 和 policy packs。 |
+
+## 开源 / SaaS 边界
+
+开源 `soha` core 负责单租户或默认租户控制平面、Server API、Web 控制台集成点、Agent 协议、基础 AI Gateway、本地鉴权、RBAC、审计、资源管理和单二进制交付。
+
+Soha Cloud 负责多租户生命周期、组织、工作区、成员邀请、SaaS IAM、SSO、套餐、额度、计费、云端运营后台、托管连接器和托管 Agent Fleet。Cloud-only 逻辑保留在闭源 `soha-cloud`，通过公开 API、contracts、SDK、artifact 或扩展接口复用 core 能力。
+
+## 推荐阅读
+
+- [开源核心 vs Soha Cloud](./product/self-hosted-vs-cloud.md)
+- [架构入口](./architecture/index.md)
+- [权限模型](./architecture/authorization.md)
+- [AI Gateway](./architecture/ai-gateway.md)
+- [MCP 集成](./architecture/mcp-integration.md)
+- [本地开发](./development/local-development.md)

@@ -1,0 +1,32 @@
+name: docs-ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soha-docs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: soha-docs
+      - uses: actions/checkout@v4
+        with:
+          repository: opensoha/soha-contracts
+          path: soha-contracts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: soha-docs/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run screenshots:check

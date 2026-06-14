@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "opensoha.dev/docs-screenshot-baseline/v1",
+  "routeId": "operator-runbooks",
+  "routePath": "/zh/docs/operations/operator-runbooks/",
+  "source": "content/zh/operations/operator-runbooks.md",
+  "viewport": {
+    "name": "mobile",
+    "width": 390,
+    "height": 844
+  },
+  "htmlPath": ".next/server/app/zh/docs/operations/operator-runbooks.html",
+  "assertions": [
+    "navbar",
+    "sidebar",
+    "runbook-sections"
+  ],
+  "assertionCount": 3,
+  "renderedLengthFloor": 204000
+}

@@ -1,0 +1,16 @@
+export default {
+  configuration: 'Configuration',
+  deployment: 'Deployment',
+  'environment-variables': 'Environment Variables',
+  'agent-runtime': 'Agent Runtime',
+  'ai-gateway-examples': 'AI Gateway Examples',
+  mcp: 'MCP',
+  'mcp-configuration': 'MCP Configuration',
+  'role-authorization-assignment': 'Role Authorization Assignment',
+  'operator-runbooks': 'Operator Runbooks',
+  'virtualization-lab-runbook': 'Virtualization Lab Runbook',
+  'soha-cli': 'Soha CLI',
+  dependencies: 'Dependencies',
+  'docs-publishing': 'Docs Publishing',
+  'docs-publish-acceptance': 'Docs Publish Acceptance',
+}

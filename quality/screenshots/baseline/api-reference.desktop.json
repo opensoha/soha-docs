@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "opensoha.dev/docs-screenshot-baseline/v1",
+  "routeId": "api-reference",
+  "routePath": "/zh/docs/api/reference/",
+  "source": "content/zh/api/reference.md",
+  "viewport": {
+    "name": "desktop",
+    "width": 1440,
+    "height": 1000
+  },
+  "htmlPath": ".next/server/app/zh/docs/api/reference.html",
+  "assertions": [
+    "navbar",
+    "sidebar",
+    "generated-reference-link"
+  ],
+  "assertionCount": 3,
+  "renderedLengthFloor": 155000
+}

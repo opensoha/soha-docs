@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "opensoha.dev/docs-screenshot-baseline/v1",
+  "routeId": "docs-publish-acceptance",
+  "routePath": "/zh/docs/operations/docs-publish-acceptance/",
+  "source": "content/zh/operations/docs-publish-acceptance.md",
+  "viewport": {
+    "name": "mobile",
+    "width": 390,
+    "height": 844
+  },
+  "htmlPath": ".next/server/app/zh/docs/operations/docs-publish-acceptance.html",
+  "assertions": [
+    "navbar",
+    "sidebar",
+    "acceptance-record"
+  ],
+  "assertionCount": 3,
+  "renderedLengthFloor": 191000
+}

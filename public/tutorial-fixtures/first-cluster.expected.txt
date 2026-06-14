@@ -1,0 +1,8 @@
+POST "$SOHA_SERVER/api/v1/clusters"
+{"item": {"id": "local", "name": "Local", "connectionMode": "direct_kubeconfig"}}
+
+GET "$SOHA_SERVER/api/v1/clusters"
+{"items": [{"id": "local", "connectionMode": "direct_kubeconfig"}]}
+
+GET "$SOHA_SERVER/api/v1/clusters/local/namespaces"
+{"items": [{"name": "default", "status": "Active"}]}

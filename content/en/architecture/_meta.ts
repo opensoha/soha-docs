@@ -1,0 +1,16 @@
+export default {
+  index: 'Overview',
+  'application-delivery': 'Application Delivery',
+  'delivery-devops-workbench': 'Delivery DevOps Workbench',
+  'monitoring-and-alerting': 'Monitoring And Alerting',
+  authorization: 'Authorization',
+  'login-and-identity': 'Login And Identity',
+  'ai-copilot': 'AI Copilot',
+  'ai-gateway': 'AI Gateway',
+  'agent-protocol': 'Agent Protocol',
+  'multi-cluster-model': 'Multi-cluster Model',
+  'event-model': 'Event Model',
+  'audit-model': 'Audit Model',
+  'mcp-integration': 'MCP Integration',
+  'access-model': 'Access Model',
+}

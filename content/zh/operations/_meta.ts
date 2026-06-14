@@ -1,0 +1,16 @@
+export default {
+  configuration: '配置',
+  deployment: '部署',
+  'environment-variables': '环境变量',
+  'agent-runtime': 'Agent Runtime',
+  'ai-gateway-examples': 'AI Gateway 示例',
+  mcp: 'MCP',
+  'mcp-configuration': 'MCP 配置',
+  'role-authorization-assignment': '角色权限分配',
+  'operator-runbooks': '运维 Runbook',
+  'virtualization-lab-runbook': '虚拟化实验 Runbook',
+  'soha-cli': 'Soha CLI',
+  dependencies: '依赖',
+  'docs-publishing': '文档发布',
+  'docs-publish-acceptance': '文档发布验收',
+}

@@ -1,0 +1,16 @@
+export default {
+  index: '总览',
+  'application-delivery': '应用交付',
+  'delivery-devops-workbench': '交付 DevOps 工作台',
+  'monitoring-and-alerting': '监控与告警',
+  authorization: '权限模型',
+  'login-and-identity': '登录与身份',
+  'ai-copilot': 'AI Copilot',
+  'ai-gateway': 'AI Gateway',
+  'agent-protocol': 'Agent 协议',
+  'multi-cluster-model': '多集群模型',
+  'event-model': '事件模型',
+  'audit-model': '审计模型',
+  'mcp-integration': 'MCP 集成',
+  'access-model': '访问模型',
+}

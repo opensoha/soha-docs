@@ -1,0 +1,8 @@
+POST "$SOHA_SERVER/api/v1/applications"
+{"item": {"id": "app-1", "name": "billing-api", "ownerTeam": "platform"}}
+
+POST "$SOHA_SERVER/api/v1/builds/trigger"
+{"item": {"id": "task-1", "applicationId": "app-1", "status": "queued"}}
+
+GET "$SOHA_SERVER/api/v1/delivery/execution-tasks?applicationId=app-1&limit=20"
+{"items": [{"id": "task-1", "taskKind": "build", "status": "queued"}]}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "opensoha.dev/docs-screenshot-baseline/v1",
+  "routeId": "api-contracts",
+  "routePath": "/zh/docs/api/contracts/",
+  "source": "content/zh/api/contracts.md",
+  "viewport": {
+    "name": "mobile",
+    "width": 390,
+    "height": 844
+  },
+  "htmlPath": ".next/server/app/zh/docs/api/contracts.html",
+  "assertions": [
+    "navbar",
+    "sidebar",
+    "main-content",
+    "code-blocks"
+  ],
+  "assertionCount": 4,
+  "renderedLengthFloor": 261000
+}

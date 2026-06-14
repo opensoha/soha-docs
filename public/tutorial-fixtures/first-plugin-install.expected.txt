@@ -1,0 +1,14 @@
+soha plugin search
+id       name              version
+demo     Demo Plugin       0.1.0
+
+soha plugin show <id>
+manifest: reviewed
+
+soha plugin install <id>
+installed: demo
+
+soha plugin enable <id>
+enabled: demo
+
+GET /api/v1/plugins/installed

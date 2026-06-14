@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "opensoha.dev/docs-screenshot-regression/v1",
+  "baselineDir": "quality/screenshots/baseline",
+  "diffDir": "quality/screenshots/diff",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "path": "/zh/",
+      "source": "app/page.tsx",
+      "viewports": ["desktop", "mobile"],
+      "assertions": ["navbar", "homepage-actions", "main-content"]
+    },
+    {
+      "id": "api-contracts",
+      "path": "/zh/docs/api/contracts/",
+      "source": "content/zh/api/contracts.md",
+      "viewports": ["desktop", "mobile"],
+      "assertions": ["navbar", "sidebar", "main-content", "code-blocks"]
+    },
+    {
+      "id": "api-reference",
+      "path": "/zh/docs/api/reference/",
+      "source": "content/zh/api/reference.md",
+      "viewports": ["desktop", "mobile"],
+      "assertions": ["navbar", "sidebar", "generated-reference-link"]
+    },
+    {
+      "id": "operator-runbooks",
+      "path": "/zh/docs/operations/operator-runbooks/",
+      "source": "content/zh/operations/operator-runbooks.md",
+      "viewports": ["desktop", "mobile"],
+      "assertions": ["navbar", "sidebar", "runbook-sections"]
+    },
+    {
+      "id": "docs-publish-acceptance",
+      "path": "/zh/docs/operations/docs-publish-acceptance/",
+      "source": "content/zh/operations/docs-publish-acceptance.md",
+      "viewports": ["desktop", "mobile"],
+      "assertions": ["navbar", "sidebar", "acceptance-record"]
+    }
+  ]
+}

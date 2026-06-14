@@ -1,0 +1,1210 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/capabilities",
+      "status": "implemented",
+      "permissions": ["ai.gateway.view"],
+      "scopes": [
+        "caller principal",
+        "optional AI client context",
+        "optional skill context"
+      ],
+      "audit": "Records the caller, source, optional AI client, and skill context while returning only permission-filtered capabilities.",
+      "examples": [
+        {
+          "label": "Response fixture",
+          "kind": "contract-example",
+          "path": "../soha-contracts/examples/openapi/gateway-manifest-envelope.json"
+        },
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/capabilities"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/tools/:toolName/invoke",
+      "status": "implemented",
+      "permissions": [
+        "ai.gateway.invoke",
+        "owning tool business permission"
+      ],
+      "scopes": [
+        "tool grant or access policy",
+        "tool-required resource scope such as cluster or namespace",
+        "optional AI client and skill binding"
+      ],
+      "audit": "Writes the standard audit record and ai_gateway_audit_logs with actor, AI client, skill, tool, risk, redacted request/result, and related IDs.",
+      "examples": [
+        {
+          "label": "Request fixture",
+          "kind": "contract-example",
+          "path": "../soha-contracts/examples/openapi/tool-invocation-request.json"
+        },
+        {
+          "label": "Response fixture",
+          "kind": "contract-example",
+          "path": "../soha-contracts/examples/openapi/tool-invocation-result-envelope.json"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/resources/read",
+      "status": "implemented",
+      "permissions": [
+        "ai.gateway.invoke",
+        "associated capability business permission"
+      ],
+      "scopes": [
+        "manifest resource visibility",
+        "resource URI or name",
+        "resource context such as cluster, namespace, application, or environment",
+        "optional AI client and skill binding"
+      ],
+      "audit": "Writes Gateway audit for resource reads with caller, AI client, skill, resource identity, request context, and redacted related metadata; the local MCP process only proxies the backend boundary.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/resources/read"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/prompts/get",
+      "status": "implemented",
+      "permissions": [
+        "ai.gateway.invoke",
+        "associated prompt or tool business permission"
+      ],
+      "scopes": [
+        "prompt name",
+        "prompt arguments and context",
+        "optional AI client and skill binding"
+      ],
+      "audit": "Writes Gateway audit for prompt reads with caller, AI client, skill, prompt name, arguments/context, and redacted related metadata; prompt content is assembled by the backend.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/prompts/get"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/personal-access-tokens",
+      "status": "implemented",
+      "permissions": [
+        "authenticated Gateway principal",
+        "ai.gateway.manage for cross-subject queries"
+      ],
+      "scopes": [
+        "current user by default",
+        "optional scope filter",
+        "optional userId filter for privileged queries"
+      ],
+      "audit": "Returns token metadata and tokenPrefix only; token values and token hashes are never returned by the listing boundary.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/personal-access-tokens?scope=default"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/personal-access-tokens",
+      "status": "implemented",
+      "permissions": [
+        "authenticated Gateway principal",
+        "requested permissionKeys must be valid for the caller"
+      ],
+      "scopes": [
+        "token scopes",
+        "permissionKeys",
+        "optional expiresAt",
+        "optional metadata"
+      ],
+      "audit": "Creates an opaque personal Gateway token and returns the clear value once; persistent storage keeps only the hash and display prefix.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/personal-access-tokens"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/personal-access-tokens/:tokenID/revoke",
+      "status": "implemented",
+      "permissions": [
+        "token owner",
+        "ai.gateway.manage for delegated administration"
+      ],
+      "scopes": [
+        "personal access token id",
+        "current principal ownership or privileged administration"
+      ],
+      "audit": "Revokes a personal Gateway token by id, invalidating future bearer use while recording the token lifecycle action without exposing token values or hashes.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/personal-access-tokens/:tokenID/revoke"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/personal-access-tokens/:tokenID/rotate",
+      "status": "implemented",
+      "permissions": [
+        "token owner",
+        "ai.gateway.manage for delegated administration"
+      ],
+      "scopes": [
+        "personal access token id",
+        "replacement token scopes and permissionKeys",
+        "optional expiresAt and metadata"
+      ],
+      "audit": "Rotates a personal Gateway token and returns the replacement clear value once; storage keeps only the new hash/display prefix and audit records the lifecycle action.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/personal-access-tokens/:tokenID/rotate"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/service-accounts",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "service identity inventory",
+        "roleIds, teamIds, and scopeGrantIds visibility"
+      ],
+      "audit": "Returns service-account metadata and ownership boundaries without exposing service-account token values or hashes.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/service-accounts"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/service-accounts",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "service account id and status",
+        "roleIds",
+        "teamIds",
+        "scopeGrantIds",
+        "optional owner and metadata"
+      ],
+      "audit": "Creates a bounded service identity for automation use while keeping roles, teams, and scope grants explicit for later token evaluation.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/service-accounts"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/service-account-tokens",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "service-account token inventory",
+        "service account subject",
+        "token scopes and permissionKeys"
+      ],
+      "audit": "Returns service-account token metadata and tokenPrefix only; clear token values and hashes are excluded from list responses.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/service-account-tokens"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/service-accounts/:serviceAccountID/tokens",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "serviceAccountID",
+        "token scopes",
+        "permissionKeys",
+        "optional expiresAt",
+        "optional metadata"
+      ],
+      "audit": "Creates an opaque service-account Gateway token and returns the clear value once; persistent storage keeps only the hash and display prefix.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/service-accounts/:serviceAccountID/tokens"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/service-account-tokens/:tokenID/revoke",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "service-account token id",
+        "service account subject",
+        "automation token lifecycle administration"
+      ],
+      "audit": "Revokes a service-account Gateway token by id, invalidating future automation bearer use while recording the lifecycle action without exposing token values or hashes.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/service-account-tokens/:tokenID/revoke"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/service-account-tokens/:tokenID/rotate",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "service-account token id",
+        "replacement token scopes and permissionKeys",
+        "optional expiresAt and metadata"
+      ],
+      "audit": "Rotates a service-account Gateway token and returns the replacement clear value once; storage keeps only the new hash/display prefix and audit records the lifecycle action.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/service-account-tokens/:tokenID/rotate"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/audit-logs",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "actor, AI client, skill, tool, approval request, risk, result, and action filters",
+        "time range",
+        "result limit"
+      ],
+      "audit": "Reads the dedicated AI Gateway audit projection with redacted request/result metadata and without raw tool input, tokens, kubeconfigs, environment variables, or raw log bodies.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/audit-logs?riskLevel=high&limit=100"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/approval-requests",
+      "status": "implemented",
+      "permissions": [
+        "ai.gateway.manage",
+        "approval candidate or related actor visibility"
+      ],
+      "scopes": [
+        "approval id or status",
+        "actor, AI client, skill, tool, risk, and strategy filters",
+        "time range and limit"
+      ],
+      "audit": "Reads approval request summaries and backend-derived approvalTrace metadata without replaying tools or exposing unredacted tool input.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/approval-requests?status=pending&limit=100"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/approval-requests/:requestID/timeline",
+      "status": "implemented",
+      "permissions": [
+        "ai.gateway.manage",
+        "approval candidate or related actor visibility"
+      ],
+      "scopes": [
+        "approval request id",
+        "approval routing trace",
+        "related workflow or execution task ids",
+        "same-request Gateway audit events"
+      ],
+      "audit": "Reads the approval request, decision/stage trace, related workflow or task links, and same-request Gateway audit events without mutating approval state.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/approval-requests/:requestID/timeline"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai-gateway/approval-requests/:requestID/:action",
+      "status": "implemented",
+      "permissions": [
+        "approval candidate authorization",
+        "ai.gateway.manage for authorized Gateway administration"
+      ],
+      "scopes": [
+        "requestID",
+        "action approve, reject, or cancel",
+        "decision comment",
+        "approval routing quorum, stage, role, team, and change-window requirements",
+        "original grant, policy, skill binding, and business authorization during replay"
+      ],
+      "audit": "Records approval decisions and stage transitions; approvals that satisfy routing replay the original tool only after current Gateway and business authorization are rechecked.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/ai-gateway/approval-requests/:requestID/approve"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-gateway/governance/status",
+      "status": "implemented",
+      "permissions": ["ai.gateway.manage"],
+      "scopes": [
+        "Gateway administration surface",
+        "audit aggregation window from 1 to 168 hours"
+      ],
+      "audit": "Reads recent Gateway audit aggregates and returns redacted governance summaries, findings, coverage state, and recommendation actions without exposing raw tool input or token values.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/ai-gateway/governance/status?windowHours=24"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/mcp/capabilities",
+      "status": "implemented",
+      "permissions": [
+        "authenticated Gateway or MCP caller context",
+        "permission-filtered capability visibility"
+      ],
+      "scopes": [
+        "MCP adapter catalog",
+        "caller principal",
+        "optional AI client, source, and skill context"
+      ],
+      "audit": "Returns MCP-facing capability metadata for the caller without mutating state; downstream tool/resource/prompt calls perform their own Gateway audit and authorization checks.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/mcp/capabilities"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/healthz",
+      "status": "implemented",
+      "permissions": ["public health probe"],
+      "scopes": [
+        "process liveness",
+        "no workspace, cluster, or user scope"
+      ],
+      "audit": "Liveness probing is intentionally lightweight and does not emit per-request audit records; production exposure is controlled by deployment routing.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/healthz"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/readyz",
+      "status": "implemented",
+      "permissions": ["public readiness probe"],
+      "scopes": [
+        "service readiness",
+        "dependency readiness summary",
+        "no workspace, cluster, or user scope"
+      ],
+      "audit": "Readiness probing returns operational state for orchestrators and release gates without exposing secrets or emitting per-request audit records.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/readyz"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/providers",
+      "status": "implemented",
+      "permissions": ["public authentication discovery"],
+      "scopes": [
+        "configured login providers",
+        "provider display metadata",
+        "no authenticated user scope"
+      ],
+      "audit": "Returns configured authentication provider metadata for login discovery without exposing provider secrets or mutating session state.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/auth/providers"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/login-options",
+      "status": "implemented",
+      "permissions": ["public authentication discovery"],
+      "scopes": [
+        "enabled login methods",
+        "provider availability",
+        "no authenticated user scope"
+      ],
+      "audit": "Returns login option metadata used by clients before authentication; secret material and provider credentials are never returned.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/auth/login-options"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": "implemented",
+      "permissions": ["valid login credential"],
+      "scopes": [
+        "username/password credential exchange",
+        "session token issuance",
+        "principal profile bootstrap"
+      ],
+      "audit": "Authenticates a user and returns session tokens plus principal metadata; password values are never echoed and failed attempts should remain redacted in logs.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/auth/login"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "status": "implemented",
+      "permissions": ["valid refresh token"],
+      "scopes": [
+        "session refresh",
+        "token expiry and rotation policy",
+        "principal profile continuity"
+      ],
+      "audit": "Refreshes an authenticated session using a refresh token and returns updated token metadata without exposing stored token hashes.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/auth/refresh"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/oidc/login",
+      "status": "implemented",
+      "permissions": ["public OIDC login entry"],
+      "scopes": [
+        "legacy single-provider OIDC configuration",
+        "state generation",
+        "redirect to configured identity provider"
+      ],
+      "compatibility": [
+        "Legacy browser entry retained for deployments that still use the single-provider OIDC settings path",
+        "New multi-provider login buttons should prefer /api/v1/auth/login/:providerID/start when a provider id is available"
+      ],
+      "deprecation": "Compatibility route only; no removal date is scheduled for 0.1.x, but new clients should prefer the provider-specific start route.",
+      "audit": "Starts the browser OIDC login redirect flow without exposing client secrets; the callback and exchange steps perform state validation and session issuance.",
+      "examples": [
+        {
+          "label": "HTTP redirect",
+          "kind": "http",
+          "value": "GET /api/v1/auth/oidc/login"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/oidc/callback",
+      "status": "implemented",
+      "permissions": ["valid OIDC state and provider callback"],
+      "scopes": [
+        "authorization code",
+        "state parameter",
+        "legacy OIDC provider profile and local identity binding"
+      ],
+      "compatibility": [
+        "Legacy callback retained for existing OIDC provider redirect URLs",
+        "The backend still redirects to the same frontend exchange page as provider-specific callbacks"
+      ],
+      "deprecation": "Compatibility route only; no removal date is scheduled for 0.1.x, but new provider configurations should use /api/v1/auth/login/:providerID/callback.",
+      "audit": "Validates the OIDC callback, reconciles the provider identity with existing local roles and organizations, creates a session, and redirects to the console with a short-lived exchange code.",
+      "examples": [
+        {
+          "label": "HTTP redirect",
+          "kind": "http",
+          "value": "GET /api/v1/auth/oidc/callback?code=...&state=..."
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/oidc/exchange",
+      "status": "implemented",
+      "permissions": ["valid one-time OIDC or OAuth2 exchange code"],
+      "scopes": [
+        "frontend callback exchange code",
+        "session token issuance",
+        "principal profile bootstrap"
+      ],
+      "compatibility": [
+        "Despite the OIDC path name, this is the shared frontend session exchange endpoint for OIDC and OAuth2-style provider callbacks",
+        "The route returns the same AuthResultEnvelope as password login and refresh session flows"
+      ],
+      "audit": "Consumes the short-lived login exchange code and returns the final session tokens and principal metadata without returning provider credentials or stored token hashes.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/auth/oidc/exchange"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/login/:providerID/start",
+      "status": "implemented",
+      "permissions": ["public configured-provider login entry"],
+      "scopes": [
+        "providerID",
+        "enabled OIDC, OAuth2, Feishu, DingTalk, or WeCom provider",
+        "state generation and provider redirect URL"
+      ],
+      "compatibility": [
+        "Preferred multi-provider browser entry for new console integrations",
+        "Coexists with the legacy /api/v1/auth/oidc/login route during the 0.1.x compatibility line"
+      ],
+      "audit": "Starts the selected provider browser redirect flow after resolving configured provider metadata; provider secrets remain server-side and the callback handles local identity reconciliation.",
+      "examples": [
+        {
+          "label": "HTTP redirect",
+          "kind": "http",
+          "value": "GET /api/v1/auth/login/:providerID/start"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/login/:providerID/callback",
+      "status": "implemented",
+      "permissions": ["valid provider callback state"],
+      "scopes": [
+        "providerID",
+        "authorization code and state parameter",
+        "provider profile, mapped roles, mapped organizations, and local session"
+      ],
+      "compatibility": [
+        "Preferred callback route for multi-provider OIDC, OAuth2, Feishu, DingTalk, and WeCom login providers",
+        "Uses the same frontend exchange-code handoff as the legacy OIDC callback"
+      ],
+      "audit": "Handles the selected provider callback, matches or creates the local user identity, applies configured login-time role or organization enrichment, creates a session, and redirects with a short-lived exchange code.",
+      "examples": [
+        {
+          "label": "HTTP redirect",
+          "kind": "http",
+          "value": "GET /api/v1/auth/login/:providerID/callback?code=...&state=..."
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "status": "implemented",
+      "permissions": ["authenticated principal"],
+      "scopes": [
+        "current principal identity",
+        "roles and permissions visible to the caller"
+      ],
+      "audit": "Returns the current authenticated principal summary without mutating state or exposing bearer token contents.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/auth/me"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/profile",
+      "status": "implemented",
+      "permissions": ["authenticated principal"],
+      "scopes": [
+        "current user profile",
+        "workspace and UI bootstrap context"
+      ],
+      "audit": "Returns current user profile metadata for console bootstrap without exposing token, password, or provider secret material.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/auth/profile"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/bootstrap",
+      "status": "implemented",
+      "permissions": ["authenticated principal"],
+      "scopes": [
+        "current principal",
+        "workspace/menu bootstrap",
+        "client feature and authorization context"
+      ],
+      "audit": "Returns authenticated bootstrap state used by clients to initialize navigation and permissions without performing mutations.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/auth/bootstrap"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "status": "implemented",
+      "permissions": ["authenticated session or refresh token context"],
+      "scopes": [
+        "session termination",
+        "refresh token invalidation where applicable"
+      ],
+      "audit": "Terminates the current session or refresh context without returning secret material; clients should discard local bearer state after success.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/auth/logout"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/stream-ticket",
+      "status": "implemented",
+      "permissions": ["authenticated principal"],
+      "scopes": [
+        "short-lived stream access",
+        "requested stream target",
+        "caller authorization for the target stream"
+      ],
+      "audit": "Issues a short-lived stream ticket for authorized streaming clients without exposing long-lived bearer tokens to stream URLs.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/auth/stream-ticket"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/delivery/execution-tasks/claim",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "delivery.execution-tasks.manage when using service-account tokens"
+      ],
+      "scopes": [
+        "runner providerKinds",
+        "agentID and optional runtimeEndpoint",
+        "queued delivery execution tasks visible to the runner"
+      ],
+      "audit": "Claims one delivery execution task for an authorized runner and records runner identity, provider kind, runtime endpoint, and heartbeat context without granting access outside the task boundary.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/delivery/execution-tasks/claim"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/delivery/execution-tasks/:taskID/runner-status",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "delivery.execution-tasks.manage when using service-account tokens"
+      ],
+      "scopes": [
+        "execution task id",
+        "runner-visible task state",
+        "cancellation, timeout, and terminal status polling"
+      ],
+      "audit": "Returns runner-visible task state so long-running agents can observe cancellation or timeout decisions without mutating the task.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/delivery/execution-tasks/:taskID/runner-status"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/delivery/execution-callbacks",
+      "status": "implemented",
+      "permissions": ["valid execution task callback token"],
+      "scopes": [
+        "task-scoped callback token",
+        "execution status and heartbeat",
+        "logs, artifacts, and build or deploy backfill metadata"
+      ],
+      "audit": "Persists delivery execution callbacks, updates task state, and backfills related build, deploy, release-bundle, log, and artifact records while rejecting stale task-scoped callback ownership.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/delivery/execution-callbacks"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/docker/operations/claim",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "docker.operations.manage when using service-account tokens"
+      ],
+      "scopes": [
+        "Docker runner operation kinds",
+        "worker id and runtime endpoint",
+        "queued Docker operations visible to the runner"
+      ],
+      "audit": "Claims one Docker operation for an authorized runner so Docker Engine or Compose work stays outside API handlers and returns only the operation payload needed by that runner.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/docker/operations/claim"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/docker/operations/:operationID/runner-status",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "docker.operations.manage when using service-account tokens"
+      ],
+      "scopes": [
+        "Docker operation id",
+        "runner-visible operation state",
+        "cancellation, timeout, and terminal status polling"
+      ],
+      "audit": "Returns runner-visible Docker operation state so agents can stop local Docker or Compose work when the control plane has already reached a terminal state.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/docker/operations/:operationID/runner-status"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/docker/operation-callbacks",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "operation-scoped callback token"
+      ],
+      "scopes": [
+        "Docker operation id",
+        "operation-scoped callback token",
+        "status, logs, runtime service state, and output metadata"
+      ],
+      "audit": "Records Docker runner callbacks and normalizes status, logs, service state, and failure evidence without allowing the runner token to expand Docker operation scope.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/docker/operation-callbacks"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/copilot/agent-runs/claim",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "ai.gateway.invoke or observe.ai.chat when using service-account tokens"
+      ],
+      "scopes": [
+        "Agent Runtime provider id or provider kind",
+        "runner worker id",
+        "queued AgentRun records matching the provider"
+      ],
+      "audit": "Claims an AgentRun for an authorized provider runner and returns the run contract, toolBindings, skillBindings, scope, and task-scoped callback token needed for controlled execution.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/copilot/agent-runs/claim"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/copilot/agent-runs/callback",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "AgentRun callback token"
+      ],
+      "scopes": [
+        "AgentRun id and callback token",
+        "running, completed, failed, canceled, or timeout status",
+        "analysis artifacts, tool executions, usage, and data-source snapshots"
+      ],
+      "audit": "Records Agent Runtime callbacks, heartbeats, provider usage, tool execution summaries, and normalized AnalysisArtifact output while redacting provider secrets and raw credential material.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/copilot/agent-runs/callback"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/copilot/agent-runs/tool-call",
+      "status": "implemented",
+      "permissions": [
+        "runtime execution runner token",
+        "AgentRun callback token",
+        "read-only tool binding captured on the AgentRun"
+      ],
+      "scopes": [
+        "AgentRun id and callback token",
+        "toolBindings snapshot",
+        "read-only tool input, scope, and result redaction policy"
+      ],
+      "audit": "Executes only read-only tools from the AgentRun toolBindings snapshot, records each ToolExecution, and prevents external providers from bypassing Soha data-source credentials, resource scopes, or Gateway redaction.",
+      "examples": [
+        {
+          "label": "Request fixture",
+          "kind": "contract-example",
+          "path": "../soha-contracts/examples/openapi/agent-run-tool-call-request.json"
+        },
+        {
+          "label": "Response fixture",
+          "kind": "contract-example",
+          "path": "../soha-contracts/examples/openapi/agent-tool-call-result-envelope.json"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/copilot/agent-runs",
+      "status": "implemented",
+      "permissions": ["observe.ai.chat"],
+      "scopes": [
+        "current user or authorized AI workbench visibility",
+        "AgentRun status and provider filters where supported",
+        "redacted output and artifact summaries"
+      ],
+      "audit": "Lists AgentRun records visible to the current user for AI Workbench operations without exposing runner callback tokens or provider credentials.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/copilot/agent-runs"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/clusters/capabilities",
+      "status": "implemented",
+      "permissions": ["authenticated platform principal"],
+      "scopes": [
+        "cluster runtime capability matrix",
+        "Direct and Agent connection mode support metadata",
+        "risk, approval, required scopes, and documentation links"
+      ],
+      "audit": "Returns platform capability metadata only; callers use it to explain Direct and Agent support, risk, approval requirements, required scopes, and documentation links without executing cluster operations.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/clusters/capabilities"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plugins/marketplace",
+      "status": "implemented",
+      "permissions": ["plugin.view"],
+      "scopes": [
+        "marketplace catalog visibility",
+        "optional query, type, and publisher filters",
+        "current principal plugin discovery permissions"
+      ],
+      "audit": "Returns marketplace plugin metadata visible to the caller without installing assets, granting permissions, or exposing marketplace credentials.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/plugins/marketplace?type=connector"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plugins/marketplace/:pluginID",
+      "status": "implemented",
+      "permissions": ["plugin.view"],
+      "scopes": [
+        "marketplace plugin id",
+        "publisher and version metadata",
+        "requested permissions and secret requirements preview"
+      ],
+      "audit": "Reads marketplace plugin detail for review before installation; requested permissions and secret requirements are descriptive and do not grant access.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/plugins/marketplace/:pluginID"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plugins/installed",
+      "status": "implemented",
+      "permissions": ["plugin.view"],
+      "scopes": [
+        "installed plugin inventory",
+        "workspace or control-plane plugin visibility",
+        "enabled, disabled, and configuration state"
+      ],
+      "audit": "Returns installed plugin records and status summaries without exposing secret values referenced by plugin configuration.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/plugins/installed"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plugins/install",
+      "status": "implemented",
+      "permissions": [
+        "plugin.install",
+        "approval where required by requested permissions or risk"
+      ],
+      "scopes": [
+        "marketplace plugin id and version",
+        "manifest snapshot",
+        "requested permissions, secret requirements, and compatibility metadata"
+      ],
+      "audit": "Installs a plugin by snapshotting its manifest, source metadata, checksum or signature status, requested permissions, and risk review outcome; installation does not grant the requested permissions by itself.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/plugins/install"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plugins/:pluginID",
+      "status": "implemented",
+      "permissions": ["plugin.view"],
+      "scopes": [
+        "installed plugin id",
+        "installation status and enabled state",
+        "installed version and manifest snapshot metadata"
+      ],
+      "audit": "Reads an installed plugin record without returning secret values, mutable authorization grants, or marketplace credentials.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/plugins/:pluginID"
+        }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/plugins/:pluginID",
+      "status": "implemented",
+      "permissions": ["plugin.manage"],
+      "scopes": [
+        "installed plugin id",
+        "plugin-owned asset cleanup or detachment",
+        "preserved installation and audit history"
+      ],
+      "audit": "Removes an installed plugin record while preserving lifecycle audit evidence and ensuring plugin-owned assets are cleaned up or detached through controlled paths.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "DELETE /api/v1/plugins/:pluginID"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/plugins/:pluginID/manifest",
+      "status": "implemented",
+      "permissions": ["plugin.view"],
+      "scopes": [
+        "installed plugin id",
+        "snapshotted plugin manifest",
+        "requested permissions, capability refs, and secret requirements"
+      ],
+      "audit": "Reads the installed manifest snapshot used for review, drift checks, and upgrade decisions without re-fetching mutable marketplace content as source of truth.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "GET /api/v1/plugins/:pluginID/manifest"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plugins/:pluginID/enable",
+      "status": "implemented",
+      "permissions": ["plugin.manage"],
+      "scopes": [
+        "installed plugin id",
+        "enabled state transition",
+        "current compatibility, policy, and secret reference readiness"
+      ],
+      "audit": "Enables an installed plugin only after current policy and readiness checks; plugin-declared permissions remain subject to RBAC, grants, access policies, skill bindings, approvals, and scopes.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/plugins/:pluginID/enable"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plugins/:pluginID/disable",
+      "status": "implemented",
+      "permissions": ["plugin.manage"],
+      "scopes": [
+        "installed plugin id",
+        "disabled state transition",
+        "dependent assets and capability exposure"
+      ],
+      "audit": "Disables an installed plugin and records the state transition without deleting the manifest snapshot, lifecycle history, or required audit trail.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/plugins/:pluginID/disable"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/plugins/:pluginID/upgrade",
+      "status": "implemented",
+      "permissions": [
+        "plugin.manage",
+        "approval where required by new permissions or risk"
+      ],
+      "scopes": [
+        "installed plugin id",
+        "target marketplace version or default latest compatible version",
+        "refreshed manifest snapshot, checksum or signature status, and compatibility metadata"
+      ],
+      "audit": "Upgrades an installed plugin by taking a fresh target-version manifest snapshot and recording changed permissions, secret requirements, compatibility, and risk review outcome.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "POST /api/v1/plugins/:pluginID/upgrade"
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/plugins/:pluginID/config",
+      "status": "implemented",
+      "permissions": ["plugin.configure_secrets"],
+      "scopes": [
+        "installed plugin id",
+        "configuration fields and secret reference bindings",
+        "redacted config update summary"
+      ],
+      "audit": "Updates plugin configuration and secret references while redacting secret values from responses, logs, and audit records.",
+      "examples": [
+        {
+          "label": "HTTP request",
+          "kind": "http",
+          "value": "PUT /api/v1/plugins/:pluginID/config"
+        }
+      ]
+    }
+  ]
+}

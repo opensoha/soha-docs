@@ -1,0 +1,37 @@
+---
+title: OpenSoha 文档
+description: OpenSoha 自托管控制平面、AI Gateway、MCP、Skills、Agent Runtime 和 API contracts 文档入口。
+---
+
+# OpenSoha 文档
+
+这个站点是 OpenSoha 的公开文档和产品入口：
+
+`soha-docs` 不再只是从 core 仓库拆出来的一组内部文档。它是 OpenSoha 的公开文档站和产品入口：
+
+- 面向新用户解释 OpenSoha、Soha、自托管版本和公开能力边界。
+- 面向自托管用户提供部署、配置、Agent Runtime、AI Gateway、MCP 和治理文档。
+- 面向开发者提供 `soha-contracts`、OpenAPI、SDK、插件 manifest 和跨仓库边界说明。
+
+## 选择入口
+
+| 你要做什么 | 入口 | 说明 |
+| --- | --- | --- |
+| 了解产品边界 | [什么是 Soha](./product/what-is-soha.md) | OpenSoha、Soha、开源发行版和公开能力边界。 |
+| 自己部署 | [自托管 Soha](./self-hosted/index.md) | 开源发行版的默认交付形态，保留单二进制和私有化部署体验。 |
+| 对接 API | [API 与 Contracts](./api/contracts.md) | OpenAPI、Agent protocol、MCP、Skill、Plugin、事件和鉴权 schema。 |
+| 安装扩展 | [插件市场](./marketplace/index.md) | Skills、MCP presets、connectors、agent profiles 和 policy packs。 |
+
+## 公开能力边界
+
+当前公开文档聚焦开源、自托管发行版：Server API、Agent 协议、AI Gateway、MCP / Skills、插件扩展接口、本地鉴权、RBAC、审计、资源管理和单二进制交付。
+
+文档内容以公开 API、contracts、SDK、artifact 和扩展接口为准。
+
+## 推荐阅读
+
+- [架构入口](./architecture/index.md)
+- [权限模型](./architecture/authorization.md)
+- [AI Gateway](./architecture/ai-gateway.md)
+- [MCP 集成](./architecture/mcp-integration.md)
+- [本地开发](./development/local-development.md)

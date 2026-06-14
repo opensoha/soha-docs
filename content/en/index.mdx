@@ -1,0 +1,37 @@
+---
+title: OpenSoha Docs
+description: Documentation entry for the OpenSoha self-hosted control plane, AI Gateway, MCP, Skills, Agent Runtime, and API contracts.
+---
+
+# OpenSoha Docs
+
+This site is the public documentation and product entry for OpenSoha.
+
+`soha-docs` is no longer just a set of internal notes split out from the core repository. It is the public documentation site for OpenSoha:
+
+- Explain OpenSoha, Soha, the self-hosted edition, and public capability boundaries for new users.
+- Provide deployment, configuration, Agent Runtime, AI Gateway, MCP, and governance documentation for self-hosted users.
+- Provide `soha-contracts`, OpenAPI, SDK, plugin manifest, and cross-repository boundary references for developers.
+
+## Choose an entry point
+
+| What you want to do | Entry | Notes |
+| --- | --- | --- |
+| Understand product boundaries | [What is Soha](./product/what-is-soha.md) | OpenSoha, Soha, the open-source distribution, and public capability boundaries. |
+| Deploy it yourself | [Self-hosted Soha](./self-hosted/index.md) | The default delivery shape of the open-source distribution, including single-binary and private deployment workflows. |
+| Integrate with the API | [API and Contracts](./api/contracts.md) | OpenAPI, Agent protocol, MCP, Skill, Plugin, event, and authorization schemas. |
+| Install extensions | [Marketplace](./marketplace/index.md) | Skills, MCP presets, connectors, agent profiles, and policy packs. |
+
+## Public capability boundary
+
+The public docs focus on the open-source, self-hosted distribution: Server API, Agent protocol, AI Gateway, MCP / Skills, plugin extension interfaces, local authentication, RBAC, audit, resource management, and single-binary delivery.
+
+Documentation content is limited to public APIs, contracts, SDKs, artifacts, and extension interfaces.
+
+## Recommended reading
+
+- [Architecture entry](./architecture/index.md)
+- [Authorization model](./architecture/authorization.md)
+- [AI Gateway](./architecture/ai-gateway.md)
+- [MCP integration](./architecture/mcp-integration.md)
+- [Local development](./development/local-development.md)

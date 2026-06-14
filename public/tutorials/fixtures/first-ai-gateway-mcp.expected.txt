@@ -1,0 +1,12 @@
+soha login
+profile: gateway-admin
+
+soha capabilities --profile gateway-admin --output names
+delivery.actions.trigger
+k8s.pods.list
+
+soha resource read soha://delivery/applications --profile gateway-admin
+resource: soha://delivery/applications
+
+soha prompt get soha.delivery.plan_release --profile gateway-admin
+prompt: soha.delivery.plan_release

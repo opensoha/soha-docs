@@ -307,6 +307,25 @@
 
 如果上述任一项未通过，不应把本次授权变更视为完成。
 
+## Application Delivery Workbench Role Matrix
+
+The application delivery workbench uses `workspace.application.view` for the top-level workbench and `delivery.*` permission keys for menus, pages, and buttons. The default role expectations are:
+
+| Role | Visible Entries | Allowed Actions | Disallowed Actions |
+| --- | --- | --- | --- |
+| `admin` | Applications, onboarding, build and release, testing, issue analysis, release bundles, execution tasks, workflow templates, build templates, environment bindings, registries | Full management of delivery configuration, templates, bindings, registries, and delivery actions | No default delivery restriction, but approvals, audit, and scope policies still apply |
+| `ops` | Applications, build and release, templates, environment bindings, registries, and execution records | Manage delivery platform configuration, environment bindings, templates, registries, and trigger build, workflow, and release actions | Must not bypass approval or scope policies for unauthorized environments |
+| `developer` | Applications, onboarding, build and release, testing, issue analysis, release bundles, and execution tasks | Maintain application profiles and services, trigger non-production delivery actions, and inspect delivery evidence | Does not manage global templates, registries, or resources outside the assigned scope by default |
+| `tester` | Applications, testing, issue analysis, release bundles, execution tasks, and evidence views | View applications, candidate versions, execution tasks, and verification evidence | Cannot enter build and release, onboarding, templates, environment binding, or registry maintenance; cannot trigger build, release, rollback, or save configuration |
+| `readonly` | Applications, testing, issue analysis, release bundles, execution tasks, workflow runs, and release records | Read-only inspection of delivery objects, run history, and evidence | Cannot trigger build, release, rollback, or workflow runs; cannot save templates, bindings, registries, or application configuration |
+
+Button-level acceptance should cover these boundaries:
+
+- When `readonly` opens an application detail page, `Build`, `Deploy`, `Build & Deploy`, and `Run Verification` must be disabled and must not call the delivery action API.
+- When `readonly` opens build templates, workflow templates, environment bindings, or registries, create, save, copy, delete, edit, and enable switches must be hidden or disabled.
+- The `tester` menu and route set should include only applications, testing, issue analysis, release bundles, execution tasks, and evidence-oriented entries.
+- Every new delivery page, button, or menu must add the matching `permissionKey`, menu seed, route metadata, and page-level button tests.
+
 ## 操作建议
 
 - 默认先维护 `permissionKeys`，不要把显式菜单绑定当成常规步骤

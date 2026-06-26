@@ -136,6 +136,170 @@ If the CI job only needs MCP, point the client at:
 soha mcp start --profile ci --ai-client-id ci-github-actions --ai-client "GitHub Actions" --skill-id delivery-developer
 ```
 
+## 模型中转示例
+
+以下示例对应 OpenAPI 中的 relay 契约。截至 2026-06-25，后端 domain model、权限键、token metadata、repository interface 和配置默认值已经出现在代码库中，relay HTTP handler 与 route 注册仍由并行后端 worker 完成。SDK 和 curl 调用应在 relay route 落地后执行；在此之前，以 OpenAPI 的 `x-soha-implementation-status` 标注判断接口状态。
+
+创建 relay 专用 PAT 或 SAT，不要复用旧的 MCP-only token。关键边界有两层：`ai.gateway.relay.invoke` 授权模型中转调用，`metadata.purpose=llm-relay` 或 `metadata.scopes` 中的 `relay` 防止旧 Gateway key 被意外用于模型中转。
+
+```bash
+curl -sS -X POST "$SOHA_SERVER/api/v1/ai-gateway/personal-access-tokens" \
+  -H "Authorization: Bearer $SOHA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "local-relay-dev",
+    "scopes": ["ai_gateway", "relay"],
+    "permissionKeys": ["ai.gateway.relay.invoke"],
+    "metadata": {
+      "purpose": "llm-relay",
+      "scopes": ["relay"],
+      "allowedModels": ["gpt-4.1", "claude-sonnet-4-5"],
+      "allowedProviderKinds": ["openai", "anthropic"],
+      "allowedUpstreamIds": [],
+      "allowedIPCIDRs": ["10.0.0.0/8"]
+    },
+    "expiresAt": "2026-12-31T00:00:00Z"
+  }'
+```
+
+上游 key 应来自环境变量或 Secret 管理系统。不要把 provider key 粘贴进工单、终端记录、文档或 AI 对话。
+
+```bash
+curl -sS -X POST "$SOHA_SERVER/api/v1/ai-gateway/relay/upstreams" \
+  -H "Authorization: Bearer $SOHA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "openai-primary",
+    "name": "OpenAI primary",
+    "providerKind": "openai",
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "'"$OPENAI_UPSTREAM_API_KEY"'",
+    "status": "active",
+    "priority": 10,
+    "weight": 100,
+    "timeoutSeconds": 120,
+    "streamTimeoutSeconds": 300,
+    "maxConcurrency": 20,
+    "supportedModels": ["gpt-4.1"]
+  }'
+
+curl -sS -X POST "$SOHA_SERVER/api/v1/ai-gateway/relay/model-routes" \
+  -H "Authorization: Bearer $SOHA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "route-gpt-4-1",
+    "publicModel": "gpt-4.1",
+    "providerKind": "openai",
+    "upstreamId": "openai-primary",
+    "upstreamModel": "gpt-4.1",
+    "routeGroup": "default",
+    "priority": 10,
+    "weight": 100,
+    "enabled": true
+  }'
+```
+
+OpenAI SDK Responses 示例：
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.SOHA_RELAY_TOKEN,
+  baseURL: `${process.env.SOHA_SERVER}/api/v1/ai-gateway/llm/openai/v1`,
+});
+
+const response = await client.responses.create({
+  model: "gpt-4.1",
+  input: "Return one sentence describing the relay smoke test.",
+});
+
+console.log(response.output_text);
+```
+
+OpenAI SDK Chat Completions 流式示例：
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.SOHA_RELAY_TOKEN,
+  baseURL: `${process.env.SOHA_SERVER}/api/v1/ai-gateway/llm/openai/v1`,
+});
+
+const stream = await client.chat.completions.create({
+  model: "gpt-4.1",
+  messages: [{ role: "user", content: "Stream three short words." }],
+  stream: true,
+  stream_options: { include_usage: true },
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+}
+```
+
+Anthropic SDK Messages 示例：
+
+```ts
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  apiKey: process.env.SOHA_RELAY_TOKEN,
+  baseURL: `${process.env.SOHA_SERVER}/api/v1/ai-gateway/llm/anthropic`,
+});
+
+const message = await client.messages.create({
+  model: "claude-sonnet-4-5",
+  max_tokens: 256,
+  messages: [{ role: "user", content: "Return one sentence describing the relay smoke test." }],
+});
+
+console.log(message.content);
+```
+
+curl 原生兼容端点示例：
+
+```bash
+curl -sS "$SOHA_SERVER/api/v1/ai-gateway/llm/openai/v1/models" \
+  -H "Authorization: Bearer $SOHA_RELAY_TOKEN"
+
+curl -sS "$SOHA_SERVER/api/v1/ai-gateway/llm/openai/v1/responses" \
+  -H "Authorization: Bearer $SOHA_RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-4.1","input":"Say ok."}'
+
+curl -sS "$SOHA_SERVER/api/v1/ai-gateway/llm/anthropic/v1/messages" \
+  -H "x-api-key: $SOHA_RELAY_TOKEN" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"claude-sonnet-4-5","max_tokens":64,"messages":[{"role":"user","content":"Say ok."}]}'
+```
+
+relay 安全检查项：
+
+- 上游 key 加密保存，读 API 只返回 `apiKeyPrefix`。
+- PAT/SAT 明文只展示一次；日志、审计、model-call metadata、错误响应和前端状态只使用 token prefix。
+- 原生模型流量必须具备 `ai.gateway.relay.invoke`，并且 token metadata 必须显式标识 relay purpose 或 scope。
+- `metadata.allowedModels`、`allowedProviderKinds`、`allowedUpstreamIds`、`allowedIPCIDRs` 和 rate-limit profile 只能收窄 relay 使用范围。
+- model-call 日志只保留 model、upstream、endpoint、status、latency、usage count、cache token 和脱敏 metadata；不保存 prompt 正文、完整 header、Authorization 值、provider key 或 provider 原始 payload。
+- 运维人员只能配置自己已获授权使用的上游账号，并遵守 provider 条款和内部数据处理要求。
+
+## P0 模型中转 Smoke Checklist
+
+后端 relay route worker 完成 HTTP handler 后，按此清单验收：
+
+- OpenAPI 可解析，并包含 relay upstream、model-route、model-call、metrics、cache、OpenAI-compatible 和 Anthropic-compatible 路径。
+- 带 `ai.gateway.relay.invoke` 与 `metadata.purpose=llm-relay` 的 relay PAT/SAT 可以通过 Soha base URL 完成 OpenAI SDK 非流式和流式请求。
+- 同一个 relay token 可以通过 Soha base URL 完成 Anthropic SDK 非流式和流式 Messages 请求。
+- 缺少 `ai.gateway.relay.invoke` 或 relay metadata 的 token 返回 `403`。
+- disabled、expired、revoked 的 PAT/SAT 都不能调用 relay endpoint。
+- 上游 API key 不出现在 Console/API 读响应、model-call logs、audit logs、应用日志或错误响应中。
+- 成功调用后，`GET /api/v1/ai-gateway/relay/model-calls` 能看到 model、upstream、status、TTFB、duration、prompt/completion/total tokens 和 cache-token 字段。
+- 流式请求客户端断开时取消上游请求，并记录 `client_cancelled`。
+- 修改 upstream 或 model route 后，下一次路由请求前 relay config cache 已失效。
+- 现有 MCP `POST /api/v1/ai-gateway/tools/:toolName/invoke` 使用普通 Gateway token 仍可工作。
+
 ## Console Field Mapping
 
 The Console management page is `/ai-gateway`. It is the operator surface for the same Gateway API objects used by `soha` and MCP. `ai.gateway.view` can inspect the page, `ai.gateway.invoke` can create personal tokens, and `ai.gateway.manage` is required for AI clients, service accounts, grants, policies, bindings, and approval decisions.

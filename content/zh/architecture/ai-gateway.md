@@ -101,6 +101,55 @@ AI Gateway 采用四层授权：
    - `ai_gateway_skill_bindings` 控制主体、角色和 AI client 可使用哪些 soha Skills 以及每个 skill 可引用的 capability refs。
    - skill binding 只能收窄 manifest 和 tool invocation，不能赋予新权限。
 
+## 模型中转边界
+
+模型中转属于 AI Gateway，不属于 AI 工作台。AI 工作台继续承担内部会话、巡检、RCA 和聊天分析；模型中转负责外部 OpenAI/Anthropic 兼容流量、上游账号、模型路由、模型调用日志、运行指标、缓存统计和 relay 专属策略校验。现有 AI provider 设置可以作为导入来源，但中转运行态配置应落在 AI Gateway 的 upstream 和 model-route 对象中。
+
+截至 2026-06-25，当前代码库里已经包含 P0 relay 所需的权限常量、token metadata 结构、domain model、repository interface、运行配置默认值、HTTP handler 和 route 注册。OpenAPI 使用 `x-soha-implementation-status` 标注各接口状态，方便 SDK、文档和测试把已实现路由与后续 cache、embeddings 工作区分开。
+
+relay 管理 API 继续使用 OpenSoha envelope：
+
+```http
+GET  /api/v1/ai-gateway/relay/upstreams
+POST /api/v1/ai-gateway/relay/upstreams
+PUT  /api/v1/ai-gateway/relay/upstreams/:upstreamID
+POST /api/v1/ai-gateway/relay/upstreams/:upstreamID/test
+
+GET    /api/v1/ai-gateway/relay/model-routes
+POST   /api/v1/ai-gateway/relay/model-routes
+PUT    /api/v1/ai-gateway/relay/model-routes/:routeID
+DELETE /api/v1/ai-gateway/relay/model-routes/:routeID
+
+GET  /api/v1/ai-gateway/relay/model-calls
+GET  /api/v1/ai-gateway/relay/metrics
+GET  /api/v1/ai-gateway/relay/cache/stats
+POST /api/v1/ai-gateway/relay/cache/purge
+```
+
+面向 SDK 的原生兼容端点不包 OpenSoha `data` envelope，并尽量透传未知字段：
+
+```http
+GET  /api/v1/ai-gateway/llm/openai/v1/models
+POST /api/v1/ai-gateway/llm/openai/v1/chat/completions
+POST /api/v1/ai-gateway/llm/openai/v1/responses
+POST /api/v1/ai-gateway/llm/openai/v1/embeddings
+
+GET  /api/v1/ai-gateway/llm/anthropic/v1/models
+POST /api/v1/ai-gateway/llm/anthropic/v1/messages
+```
+
+relay 调用复用现有 opaque `soha_pat_` 和 `soha_sat_` 凭证。目标权限键为 `ai.gateway.relay.view`、`ai.gateway.relay.invoke` 和 `ai.gateway.relay.manage`；过渡实现可以把管理操作映射到 `ai.gateway.manage`，但模型调用仍必须通过 token metadata 显式开启 relay。用于中转的 token 应携带 `metadata.purpose=llm-relay` 或在 `metadata.scopes` 中包含 `relay`，并可用 `allowedModels`、`allowedProviderKinds`、`allowedUpstreamIds`、`allowedIPCIDRs` 和 `rateLimitProfileId` 收窄范围。token metadata 只能收窄权限，不能扩大角色解析出的 permission keys。
+
+relay 安全要求：
+
+- 上游 provider key 只能通过写接口提交，必须加密保存；读接口只返回 `apiKeyPrefix`。
+- PAT/SAT 明文只返回一次，持久化只保存 hash 与展示 prefix，不能出现在日志、审计、model-call metadata、错误响应或前端状态中。
+- OpenAI 风格客户端使用 `Authorization: Bearer soha_pat_...`；Anthropic 风格客户端可使用 `x-api-key: soha_pat_...`。两者都进入同一 Gateway principal parser 和权限上下文。
+- relay 日志记录 model、upstream、endpoint、status、latency、token usage、cache token、source 和脱敏 metadata；不保存 prompt 正文、完整请求头、上游 key、Authorization header 或 provider 原始 payload。
+- 上游 base URL 默认应拒绝不安全协议和私网/metadata service 目标，除非部署显式打开开发 allowlist。
+- 运维人员只能配置自己已获授权使用的上游账号，并遵守 provider 条款和内部数据处理政策；账号池只允许用于合法授权账号，不能用于绕过 provider 限制。
+- 缓存内容不得包含凭证或敏感 header，response cache 只能通过 route、token 或 header 显式 opt-in。
+
 ## 当前 API
 
 ```http

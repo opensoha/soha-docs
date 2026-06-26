@@ -101,6 +101,55 @@ AI Gateway 采用四层授权：
    - `ai_gateway_skill_bindings` 控制主体、角色和 AI client 可使用哪些 soha Skills 以及每个 skill 可引用的 capability refs。
    - skill binding 只能收窄 manifest 和 tool invocation，不能赋予新权限。
 
+## LLM Relay Boundary
+
+The LLM relay is part of AI Gateway, not AI Workbench. AI Workbench remains the internal investigation and chat surface; relay owns external OpenAI/Anthropic-compatible traffic, upstream accounts, model routes, model-call logs, runtime metrics, cache statistics, and relay-specific policy checks. Existing AI provider settings may be used as an import source, but relay runtime state should live under AI Gateway upstream and model-route objects.
+
+Current repository state on 2026-06-25: relay permission constants, token metadata shape, domain models, repository interface, runtime config defaults, HTTP handlers, and route registration are present in `soha` for the P0 relay surface. OpenAPI marks each operation with `x-soha-implementation-status` so SDK and docs consumers can distinguish implemented routes from planned cache and embeddings follow-up work.
+
+Relay management APIs keep the normal OpenSoha response style:
+
+```http
+GET  /api/v1/ai-gateway/relay/upstreams
+POST /api/v1/ai-gateway/relay/upstreams
+PUT  /api/v1/ai-gateway/relay/upstreams/:upstreamID
+POST /api/v1/ai-gateway/relay/upstreams/:upstreamID/test
+
+GET    /api/v1/ai-gateway/relay/model-routes
+POST   /api/v1/ai-gateway/relay/model-routes
+PUT    /api/v1/ai-gateway/relay/model-routes/:routeID
+DELETE /api/v1/ai-gateway/relay/model-routes/:routeID
+
+GET  /api/v1/ai-gateway/relay/model-calls
+GET  /api/v1/ai-gateway/relay/metrics
+GET  /api/v1/ai-gateway/relay/cache/stats
+POST /api/v1/ai-gateway/relay/cache/purge
+```
+
+Native SDK-compatible endpoints intentionally do not use the OpenSoha `data` envelope. Unknown request and response fields are preserved whenever possible:
+
+```http
+GET  /api/v1/ai-gateway/llm/openai/v1/models
+POST /api/v1/ai-gateway/llm/openai/v1/chat/completions
+POST /api/v1/ai-gateway/llm/openai/v1/responses
+POST /api/v1/ai-gateway/llm/openai/v1/embeddings
+
+GET  /api/v1/ai-gateway/llm/anthropic/v1/models
+POST /api/v1/ai-gateway/llm/anthropic/v1/messages
+```
+
+Relay invocation uses existing opaque `soha_pat_` and `soha_sat_` credentials. The target permission keys are `ai.gateway.relay.view`, `ai.gateway.relay.invoke`, and `ai.gateway.relay.manage`; transition builds may map management to `ai.gateway.manage`, but model invocation must still require explicit relay enablement in token metadata. A token intended for relay should carry `metadata.purpose=llm-relay` or `metadata.scopes` containing `relay`, plus optional `allowedModels`, `allowedProviderKinds`, `allowedUpstreamIds`, `allowedIPCIDRs`, and `rateLimitProfileId`. Token metadata can narrow access, never expand role-derived permission keys.
+
+Security requirements for relay:
+
+- Upstream provider keys are accepted only through write APIs, encrypted at rest, and represented in reads by `apiKeyPrefix` only.
+- PAT/SAT values are returned once, stored only as hashes plus display prefixes, and must never appear in logs, audit records, model-call metadata, errors, or frontend state.
+- OpenAI-style clients use `Authorization: Bearer soha_pat_...`; Anthropic-style clients may use `x-api-key: soha_pat_...`. Both resolve through the same Gateway principal parser and permission context.
+- Relay logs record model, upstream, endpoint, status, latency, token usage, cache-token counts, source, and redacted metadata. Prompt bodies, full request headers, upstream keys, Authorization headers, and raw provider payloads are not stored.
+- Upstream base URLs should reject insecure or private-network targets by default unless a deployment explicitly enables a development allowlist.
+- Operators must only configure upstream accounts they are authorized to use under the upstream provider terms and internal data-handling policy. Account pooling is only for legitimate provider accounts and must not be used to bypass provider restrictions.
+- Cache entries must not contain credentials or sensitive headers, and response cache remains opt-in by route, token, or header.
+
 ## 当前 API
 
 ```http

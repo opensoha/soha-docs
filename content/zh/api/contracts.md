@@ -7,7 +7,7 @@
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.0`
+- OpenAPI version: `0.1.1`
 - Source artifact: `openapi/soha-api.yaml`
 - npm package: `@opensoha/contracts`
 

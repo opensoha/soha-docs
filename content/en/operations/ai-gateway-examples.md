@@ -136,6 +136,170 @@ If the CI job only needs MCP, point the client at:
 soha mcp start --profile ci --ai-client-id ci-github-actions --ai-client "GitHub Actions" --skill-id delivery-developer
 ```
 
+## LLM Relay Examples
+
+These examples target the relay OpenAPI contract. As of 2026-06-25, the backend domain models, permission keys, token metadata, repository interface, and config defaults are present, while relay HTTP handlers and routes are still being completed in parallel. Run the SDK and curl calls only after the relay routes are registered; before that point, use the OpenAPI `x-soha-implementation-status` markers as the source of truth.
+
+Create a relay-scoped PAT or SAT instead of reusing an old MCP-only token. The important boundary is both permission and metadata: `ai.gateway.relay.invoke` allows relay invocation, while `metadata.purpose=llm-relay` or `metadata.scopes` containing `relay` prevents legacy Gateway keys from becoming relay keys by accident.
+
+```bash
+curl -sS -X POST "$SOHA_SERVER/api/v1/ai-gateway/personal-access-tokens" \
+  -H "Authorization: Bearer $SOHA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "local-relay-dev",
+    "scopes": ["ai_gateway", "relay"],
+    "permissionKeys": ["ai.gateway.relay.invoke"],
+    "metadata": {
+      "purpose": "llm-relay",
+      "scopes": ["relay"],
+      "allowedModels": ["gpt-4.1", "claude-sonnet-4-5"],
+      "allowedProviderKinds": ["openai", "anthropic"],
+      "allowedUpstreamIds": [],
+      "allowedIPCIDRs": ["10.0.0.0/8"]
+    },
+    "expiresAt": "2026-12-31T00:00:00Z"
+  }'
+```
+
+Configure upstreams with environment variables or a secret manager. Do not paste provider keys into tickets, shell transcripts, docs, or AI conversations.
+
+```bash
+curl -sS -X POST "$SOHA_SERVER/api/v1/ai-gateway/relay/upstreams" \
+  -H "Authorization: Bearer $SOHA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "openai-primary",
+    "name": "OpenAI primary",
+    "providerKind": "openai",
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "'"$OPENAI_UPSTREAM_API_KEY"'",
+    "status": "active",
+    "priority": 10,
+    "weight": 100,
+    "timeoutSeconds": 120,
+    "streamTimeoutSeconds": 300,
+    "maxConcurrency": 20,
+    "supportedModels": ["gpt-4.1"]
+  }'
+
+curl -sS -X POST "$SOHA_SERVER/api/v1/ai-gateway/relay/model-routes" \
+  -H "Authorization: Bearer $SOHA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "route-gpt-4-1",
+    "publicModel": "gpt-4.1",
+    "providerKind": "openai",
+    "upstreamId": "openai-primary",
+    "upstreamModel": "gpt-4.1",
+    "routeGroup": "default",
+    "priority": 10,
+    "weight": 100,
+    "enabled": true
+  }'
+```
+
+OpenAI SDK with the Responses API:
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.SOHA_RELAY_TOKEN,
+  baseURL: `${process.env.SOHA_SERVER}/api/v1/ai-gateway/llm/openai/v1`,
+});
+
+const response = await client.responses.create({
+  model: "gpt-4.1",
+  input: "Return one sentence describing the relay smoke test.",
+});
+
+console.log(response.output_text);
+```
+
+OpenAI SDK with Chat Completions streaming:
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.SOHA_RELAY_TOKEN,
+  baseURL: `${process.env.SOHA_SERVER}/api/v1/ai-gateway/llm/openai/v1`,
+});
+
+const stream = await client.chat.completions.create({
+  model: "gpt-4.1",
+  messages: [{ role: "user", content: "Stream three short words." }],
+  stream: true,
+  stream_options: { include_usage: true },
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+}
+```
+
+Anthropic SDK with Messages:
+
+```ts
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  apiKey: process.env.SOHA_RELAY_TOKEN,
+  baseURL: `${process.env.SOHA_SERVER}/api/v1/ai-gateway/llm/anthropic`,
+});
+
+const message = await client.messages.create({
+  model: "claude-sonnet-4-5",
+  max_tokens: 256,
+  messages: [{ role: "user", content: "Return one sentence describing the relay smoke test." }],
+});
+
+console.log(message.content);
+```
+
+curl against native compatible endpoints:
+
+```bash
+curl -sS "$SOHA_SERVER/api/v1/ai-gateway/llm/openai/v1/models" \
+  -H "Authorization: Bearer $SOHA_RELAY_TOKEN"
+
+curl -sS "$SOHA_SERVER/api/v1/ai-gateway/llm/openai/v1/responses" \
+  -H "Authorization: Bearer $SOHA_RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-4.1","input":"Say ok."}'
+
+curl -sS "$SOHA_SERVER/api/v1/ai-gateway/llm/anthropic/v1/messages" \
+  -H "x-api-key: $SOHA_RELAY_TOKEN" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"claude-sonnet-4-5","max_tokens":64,"messages":[{"role":"user","content":"Say ok."}]}'
+```
+
+Relay security checklist:
+
+- Upstream keys are encrypted at rest and read APIs return only `apiKeyPrefix`.
+- PAT/SAT plaintext values are shown once; logs, audits, model-call metadata, errors, and frontend state use token prefixes only.
+- `ai.gateway.relay.invoke` is required for native model traffic, and token metadata must explicitly identify relay purpose or scope.
+- `metadata.allowedModels`, `allowedProviderKinds`, `allowedUpstreamIds`, `allowedIPCIDRs`, and rate-limit profile ids narrow relay use.
+- Model-call logs keep model, upstream, endpoint, status, latency, usage counts, cache-token counts, and redacted metadata; they do not store prompt bodies, full headers, Authorization values, provider keys, or raw provider payloads.
+- Operators must configure only upstream accounts they are authorized to use and must follow provider and internal data-handling requirements.
+
+## P0 Relay Smoke Checklist
+
+Use this checklist after the backend relay route worker lands the HTTP handlers:
+
+- OpenAPI parses and contains relay upstream, model-route, model-call, metrics, cache, OpenAI-compatible, and Anthropic-compatible paths.
+- A relay PAT or SAT with `ai.gateway.relay.invoke` and `metadata.purpose=llm-relay` can call OpenAI SDK non-streaming and streaming requests through the Soha base URL.
+- The same relay token can call Anthropic SDK non-streaming and streaming Messages requests through the Soha base URL.
+- A token without `ai.gateway.relay.invoke` or relay metadata receives `403`.
+- Disabled, expired, or revoked PAT/SAT credentials cannot invoke relay endpoints.
+- Upstream API keys do not appear in Console/API read responses, model-call logs, audit logs, application logs, or error responses.
+- `GET /api/v1/ai-gateway/relay/model-calls` shows model, upstream, status, TTFB, duration, prompt/completion/total tokens, and cache-token fields after successful calls.
+- Streaming client disconnect cancels the upstream request and records `client_cancelled`.
+- Updating an upstream or model route invalidates relay config cache before the next routed request.
+- Existing MCP `POST /api/v1/ai-gateway/tools/:toolName/invoke` behavior still works with a normal Gateway token.
+
 ## Console Field Mapping
 
 The Console management page is `/ai-gateway`. It is the operator surface for the same Gateway API objects used by `soha` and MCP. `ai.gateway.view` can inspect the page, `ai.gateway.invoke` can create personal tokens, and `ai.gateway.manage` is required for AI clients, service accounts, grants, policies, bindings, and approval decisions.

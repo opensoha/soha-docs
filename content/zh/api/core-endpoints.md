@@ -161,7 +161,28 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 - `POST /api/v1/ai-gateway/approval-requests/:requestID/reject`
 - `POST /api/v1/ai-gateway/approval-requests/:requestID/cancel`
 - `GET /api/v1/ai-gateway/governance/status`
+- `GET /api/v1/ai-gateway/relay/upstreams`
+- `POST /api/v1/ai-gateway/relay/upstreams`
+- `PUT /api/v1/ai-gateway/relay/upstreams/:upstreamID`
+- `POST /api/v1/ai-gateway/relay/upstreams/:upstreamID/test`
+- `GET /api/v1/ai-gateway/relay/model-routes`
+- `POST /api/v1/ai-gateway/relay/model-routes`
+- `PUT /api/v1/ai-gateway/relay/model-routes/:routeID`
+- `DELETE /api/v1/ai-gateway/relay/model-routes/:routeID`
+- `GET /api/v1/ai-gateway/relay/model-calls`
+- `GET /api/v1/ai-gateway/relay/metrics`
+- `GET /api/v1/ai-gateway/llm/openai/v1/models`
+- `POST /api/v1/ai-gateway/llm/openai/v1/chat/completions`
+- `POST /api/v1/ai-gateway/llm/openai/v1/responses`
+- `GET /api/v1/ai-gateway/llm/anthropic/v1/models`
+- `POST /api/v1/ai-gateway/llm/anthropic/v1/messages`
 - `GET /api/v1/mcp/capabilities`
+
+Planned relay contracts in the same OpenAPI artifact, not routed by the backend yet:
+
+- `GET /api/v1/ai-gateway/relay/cache/stats`
+- `POST /api/v1/ai-gateway/relay/cache/purge`
+- `POST /api/v1/ai-gateway/llm/openai/v1/embeddings`
 
 `/ai-gateway/capabilities` returns the current caller's AI-native tools, resources, prompts, and skills after backend permission filtering. AI clients should send `X-Soha-AI-Client-ID`, `X-Soha-AI-Client`, and `X-Soha-Skill-ID` when available so audit records can distinguish human, service, client, skill, and tool context.
 
@@ -172,6 +193,10 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 `/ai-gateway/governance/status` is the read-only Gateway operations endpoint. It summarizes recent audit data, pending approvals, token/client findings, policy coverage, high-risk guardrail findings, redaction coverage, and resource-scope coverage.
 
 `/ai-gateway/approval-requests/:requestID/:action` accepts `approve`, `reject`, and `cancel`. The concrete action URLs are documented above for CLI and operator runbook use. Approval replay still happens inside the Gateway application service after it re-checks the original grant, access policy, skill binding, current permissions, and business service authorization.
+
+`/ai-gateway/relay/*` manages model relay upstreams, model routes, model-call logs, and metrics. Response cache stats and purge contracts are planned for the response-cache phase. Management responses use the OpenSoha response envelope and require relay view or manage permissions.
+
+`/ai-gateway/llm/*` exposes OpenAI- and Anthropic-compatible model APIs for SDKs. P0 includes OpenAI models, chat completions, responses, and Anthropic models/messages; OpenAI embeddings are planned. These endpoints accept existing `soha_pat_` and `soha_sat_` credentials through bearer auth or `x-api-key`, require explicit relay token metadata, and return native provider-shaped JSON or streaming responses without an OpenSoha envelope.
 
 Public OpenAPI contract status:
 

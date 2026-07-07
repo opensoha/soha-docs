@@ -13,14 +13,14 @@ jobs:
       run:
         working-directory: soha-docs
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: soha-docs
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: opensoha/soha-contracts
           path: soha-contracts
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm

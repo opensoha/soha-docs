@@ -84,22 +84,21 @@ OIDC、OAuth2、飞书、钉钉、企业微信这几类可运行 provider 现在
 - `entityId`
 - `certificate`
 
-## 向后兼容
+## 配置来源
 
-历史单 OIDC 配置仍保留在 `identity.oidc`。
+登录源的唯一设置中心配置源是 `identity.login_providers`。
 
-当前兼容规则：
+当前规则：
 
-- 多 provider 设置是新的配置源
-- 运行时解析 OIDC 时，优先从多 provider 中选默认或首个可用 `oidc`
-- 更新多 provider 时，会回写兼容态 `identity.oidc`
-- 如果库里还只有旧 OIDC 配置，设置服务会在读取时投影出一个默认 `oidc` provider
+- 设置中心通过 `/settings/identity/providers` 维护登录源
+- 不再读写旧单 OIDC 设置键
+- 不再从旧 OIDC 配置投影默认登录源
+- 删除登录源后，已有账号关联记录保留，但该入口不再可登录
 
 这样做的原因是：
 
-- 不破坏旧配置文件和已有数据库内容
-- 不要求一次性迁移所有现网部署
-- 允许现有 OIDC 浏览器回调链路继续工作
+- 避免空配置生成 `default` OIDC 登录源
+- 让登录 Soha 的登录源与 Provider 工作台保持边界清晰
 
 ## 运行链路
 

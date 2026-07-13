@@ -11,6 +11,18 @@
 - username: `pgsql`
 - password: `pgsql`
 
+### 初始化管理员
+
+- 用户名：`opensoha`
+- 邮箱：`opensoha@soha.local`
+- 密码：`opensoha`
+
+这是 Soha 在所有部署方式中的标准初始凭据。只有安装需要不同凭据时才覆盖对应值。
+
+### 系统密钥
+
+JWT、runner、webhook 和 credential encryption 默认均使用 `soha-123456789012345678901234567890`。本地启动不会创建或锁定 SecretStore 文件。需要测试自定义值时可通过配置或环境变量覆盖。已有加密测试数据后，不要直接修改 credential encryption key；除非先迁移这些数据，或确认可以丢弃。
+
 ## Initialize Local Development Dependencies
 
 ```bash

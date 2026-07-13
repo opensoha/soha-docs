@@ -55,8 +55,9 @@ Key backend fields now used by the runtime:
 - `mcp.default_timeout`: default timeout reused by MCP and agent HTTP integrations
 - `monitoring.enabled`: toggles monitoring ingress endpoints
 - `monitoring.webhook_token`: shared token accepted by the alert webhook endpoint
+- `security.credential_encryption_key`：用于加密持久化的集成与平台凭据
 
-## Local Development Defaults
+## 标准初始配置
 
 ### PostgreSQL
 
@@ -69,13 +70,38 @@ Key backend fields now used by the runtime:
 
 ## Identity Defaults
 
-The default local bootstrap account comes from `auth.dev_principal` inside `config.yaml`.
+标准初始化账号来自 `config.yaml` 中的 `auth.dev_principal`。
 
-- username: `admin`
-- email: `admin@soha.local`
-- password: `soha`
+- username: `opensoha`
+- email: `opensoha@soha.local`
+- password: `opensoha`
 
-When `auth.enable_dev_auth` is `false`, this account is still seeded into PostgreSQL for real password login. The flag only controls whether the backend accepts an automatic development principal when no bearer token is present. The runtime no longer keeps a legacy bootstrap migration or password-login fallback path.
+即使 `auth.enable_dev_auth` 为 `false`，该账号仍会写入 PostgreSQL，用于真实密码登录；该开关只控制无 bearer token 时是否接受自动开发身份。日常重启会保留初始密码，也不会覆盖用户已经修改的密码。Soha 不实施按环境区分的凭据策略，仍支持显式覆盖。
+
+## 系统密钥默认值
+
+项目配置直接展示四项系统密钥，并为它们提供同一个标准默认值：
+
+```yaml
+auth:
+  jwt:
+    secret: soha-123456789012345678901234567890
+
+runtime:
+  execution_runner_token: soha-123456789012345678901234567890
+
+monitoring:
+  webhook_token: soha-123456789012345678901234567890
+
+security:
+  credential_encryption_key: soha-123456789012345678901234567890
+```
+
+这组默认值使本地进程、`docker run`、Docker Compose、Kubernetes 和 Helm 都可以直接启动，不依赖生成 SecretStore 文件、writer lock 或专用 secret PVC。后端不会因为使用文档中的默认值或四个字段复用该值而拒绝启动。每个字段仍可在 `config.yaml` 中单独修改，也可以通过对应环境变量覆盖。
+
+这是开源安装的便利默认值，不是生产密钥。任何公网或正式部署都应在接收流量前覆盖全部四项。继续使用公开值会使第三方能够伪造 JWT、runner/webhook 请求，并在取得数据库内容后解密凭据。
+
+修改 `security.credential_encryption_key` 时必须区别于 bearer token 和签名密钥：移除旧 key 前，先用旧 key 解密并迁移或重新加密全部历史密文。直接替换会导致已有加密凭据永久不可读。在迁移完成前，所有副本和每次重启都必须继续使用同一加密 key。
 
 ## Login Provider Runtime
 
@@ -154,7 +180,7 @@ The monitoring runtime currently expects file-configured values under:
 ```yaml
 monitoring:
   enabled: true
-  webhook_token: dev-alert-webhook-token
+  webhook_token: soha-123456789012345678901234567890
 ```
 
 Current persistence layout:
@@ -240,7 +266,7 @@ Minimal Hermes runner config:
 control_plane:
   enabled: true
   base_url: http://127.0.0.1:8080
-  bearer_token: demo-execution-runner-token
+  bearer_token: soha-123456789012345678901234567890
   agent_id: local-agent
   agent_runtime:
     enabled: true

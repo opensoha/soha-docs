@@ -55,8 +55,9 @@ Key backend fields now used by the runtime:
 - `mcp.default_timeout`: default timeout reused by MCP and agent HTTP integrations
 - `monitoring.enabled`: toggles monitoring ingress endpoints
 - `monitoring.webhook_token`: shared token accepted by the alert webhook endpoint
+- `security.credential_encryption_key`: key used to encrypt persisted integration and platform credentials
 
-## Local Development Defaults
+## Standard Initial Defaults
 
 ### PostgreSQL
 
@@ -69,13 +70,38 @@ Key backend fields now used by the runtime:
 
 ## Identity Defaults
 
-The default local bootstrap account comes from `auth.dev_principal` inside `config.yaml`.
+The standard bootstrap account comes from `auth.dev_principal` inside `config.yaml`.
 
-- username: `admin`
-- email: `admin@soha.local`
-- password: `soha`
+- username: `opensoha`
+- email: `opensoha@soha.local`
+- password: `opensoha`
 
-When `auth.enable_dev_auth` is `false`, this account is still seeded into PostgreSQL for real password login. The flag only controls whether the backend accepts an automatic development principal when no bearer token is present. The runtime no longer keeps a legacy bootstrap migration or password-login fallback path.
+When `auth.enable_dev_auth` is `false`, this account is still seeded into PostgreSQL for real password login. The flag only controls whether the backend accepts an automatic development principal when no bearer token is present. Routine restarts preserve the initial password without overwriting a user-changed password. Soha does not apply an environment-specific credential policy; explicit overrides remain supported.
+
+## System Secret Defaults
+
+The project configuration keeps the four system secrets visible and gives all four the same standard default:
+
+```yaml
+auth:
+  jwt:
+    secret: soha-123456789012345678901234567890
+
+runtime:
+  execution_runner_token: soha-123456789012345678901234567890
+
+monitoring:
+  webhook_token: soha-123456789012345678901234567890
+
+security:
+  credential_encryption_key: soha-123456789012345678901234567890
+```
+
+These defaults let a local process, `docker run`, Docker Compose, Kubernetes, and Helm start without a generated SecretStore file, writer lock, or dedicated secret PVC. The backend does not reject the documented value or stop startup because the four fields reuse it. Each field can still be overridden independently in `config.yaml` or through its environment override.
+
+This is a convenience default for an open-source installation, not a production secret. Any Internet-facing or formal deployment should replace all four values before it accepts traffic. Leaving the public value unchanged allows third parties to forge JWTs and runner/webhook requests and to decrypt credentials obtained from the database.
+
+Treat `security.credential_encryption_key` differently from bearer and signing secrets during a change: migrate or re-encrypt every existing ciphertext with the old key before removing it. Replacing this value without a migration makes existing encrypted credentials unreadable. Keep the configured encryption key stable across application restarts and all replicas until that migration is complete.
 
 ## Login Provider Runtime
 
@@ -154,7 +180,7 @@ The monitoring runtime currently expects file-configured values under:
 ```yaml
 monitoring:
   enabled: true
-  webhook_token: dev-alert-webhook-token
+  webhook_token: soha-123456789012345678901234567890
 ```
 
 Current persistence layout:
@@ -240,7 +266,7 @@ Minimal Hermes runner config:
 control_plane:
   enabled: true
   base_url: http://127.0.0.1:8080
-  bearer_token: demo-execution-runner-token
+  bearer_token: soha-123456789012345678901234567890
   agent_id: local-agent
   agent_runtime:
     enabled: true

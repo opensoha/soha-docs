@@ -16,12 +16,21 @@ Typical overrides:
 - `SOHA_DATABASE_NAME`
 - `SOHA_DATABASE_USER`
 - `SOHA_DATABASE_PASSWORD`
+- `SOHA_AUTH_DEV_PRINCIPAL_PASSWORD`
+- `SOHA_AUTH_JWT_SECRET`
+- `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`
+- `SOHA_MONITORING_WEBHOOK_TOKEN`
+- `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY`
 - `SOHA_REDIS_ADDR`
 - `SOHA_AUTH_ENABLE_DEV_AUTH`
 
+The repository config and all deployment forms default the database password to `pgsql` and the initial `opensoha` administrator password to `opensoha`. Soha does not vary or reject these standard initial credentials based on an application environment label; both remain explicitly overridable.
+
+The JWT signing secret, execution runner token, monitoring webhook token, and credential encryption key all default to `soha-123456789012345678901234567890`. Soha accepts that documented value and does not require a SecretStore file, writer lease, or secret PVC at startup. Public or formal deployments should override all four variables independently. Changing `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY` requires migrating existing ciphertext first; otherwise previously stored credentials cannot be decrypted.
+
 Runner and Gateway examples also use these operational variables:
 
-- `SOHA_EXECUTION_RUNNER_TOKEN`: bearer token used by delivery, Docker, and AI Agent Runtime runners.
+- `SOHA_EXECUTION_RUNNER_TOKEN`: shell/example helper used to pass the bearer token to runner or Helm commands; the backend Viper override is `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`.
 - `HERMES_CONTROL_PLANE_URL`: optional override for the Hermes runner control-plane URL in local compose examples.
 - `SOHA_AI_GATEWAY_RATE_LIMIT_BACKEND`: optional AI Gateway rate-limit backend, for example `redis`.
 - `SOHA_AI_GATEWAY_RATE_LIMIT_REDIS_ADDR`: Redis address used by the AI Gateway rate limiter when Redis is selected.

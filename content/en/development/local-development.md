@@ -11,6 +11,18 @@
 - username: `pgsql`
 - password: `pgsql`
 
+### Initial Administrator
+
+- username: `opensoha`
+- email: `opensoha@soha.local`
+- password: `opensoha`
+
+These are Soha's standard initial credentials in every deployment form. Override either value only when the installation needs different credentials.
+
+### System Secrets
+
+JWT, runner, webhook, and credential encryption all use `soha-123456789012345678901234567890` by default. Local startup does not create or lock a SecretStore file. Use config or environment overrides when testing custom values. Do not change the credential encryption key after encrypted test data exists unless that data is migrated or can be discarded.
+
 ## Initialize Local Development Dependencies
 
 ```bash

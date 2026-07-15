@@ -32,6 +32,12 @@
 - `POST /api/v1/notification-channels`
 - `PUT /api/v1/notification-channels/:channelID`
 
+## AI Settings APIs
+
+- `GET /api/v1/settings/ai`
+- `PUT /api/v1/settings/ai/workbench-model`
+- `PUT /api/v1/settings/ai/skills`
+
 ## Virtualization APIs
 
 - `GET /api/v1/virtualization/overview`
@@ -57,12 +63,37 @@
 
 PVE credentials are accepted only on create or update payloads and are never returned by API responses. Responses expose only `credentialConfigured`.
 
+## Compute APIs
+
+- `GET /api/v1/compute/capabilities`
+- `GET /api/v1/compute/overview`
+- `GET /api/v1/compute/access-sources`
+- `GET /api/v1/compute/providers`
+- `GET /api/v1/compute/provider-instances`
+- `GET /api/v1/compute/provider-instances/:domain/:providerKey/:instanceRef`
+- `POST /api/v1/compute/provider-instances/:domain/:providerKey/:instanceRef/health-checks`
+- `POST /api/v1/compute/provider-instances/:domain/:providerKey/:instanceRef/discoveries`
+- `GET /api/v1/compute/resources/:domain/:kind/:id`
+- `GET /api/v1/compute/resources/:domain/:kind/:id/relations`
+- `POST /api/v1/compute/resources/:domain/:kind/:id/actions/:action`
+- `GET /api/v1/compute/tasks`
+- `GET /api/v1/compute/tasks/:domain/:id`
+- `POST /api/v1/compute/tasks/:domain/:id/cancel`
+- `POST /api/v1/compute/tasks/:domain/:id/retry`
+
 ## Application APIs
 
 - `GET /api/v1/applications?search=<optional>&limit=100`
 - `POST /api/v1/applications`
 - `GET /api/v1/applications/:applicationID`
 - `GET /api/v1/applications/:applicationID/detail`
+- `GET /api/v1/applications/:applicationID/runtime`
+- `GET /api/v1/applications/:applicationID/services`
+- `POST /api/v1/applications/:applicationID/services`
+- `GET /api/v1/applications/:applicationID/services/:serviceID`
+- `PUT /api/v1/applications/:applicationID/services/:serviceID`
+- `DELETE /api/v1/applications/:applicationID/services/:serviceID`
+- `POST /api/v1/applications/:applicationID/delivery-actions`
 - `PUT /api/v1/applications/:applicationID`
 - `DELETE /api/v1/applications/:applicationID`
 - `GET /api/v1/build-templates`
@@ -70,15 +101,27 @@ PVE credentials are accepted only on create or update payloads and are never ret
 - `PUT /api/v1/build-templates/:buildTemplateID`
 - `DELETE /api/v1/build-templates/:buildTemplateID`
 - `GET /api/v1/application-environments`
+- `POST /api/v1/application-environments`
 - `GET /api/v1/application-environments/:applicationEnvironmentID`
+- `PUT /api/v1/application-environments/:applicationEnvironmentID`
+- `DELETE /api/v1/application-environments/:applicationEnvironmentID`
 - `GET /api/v1/application-environments/:applicationEnvironmentID/detail`
 - `GET /api/v1/application-environments/target-candidates?clusterId=<required>&namespace=<required>&search=<optional>`
 - `GET /api/v1/workflow-templates`
+- `POST /api/v1/workflow-templates`
+- `PUT /api/v1/workflow-templates/:workflowTemplateID`
+- `DELETE /api/v1/workflow-templates/:workflowTemplateID`
+- `POST /api/v1/delivery/plans`
+- `GET /api/v1/delivery/plans/:planID`
+- `POST /api/v1/delivery/plans/:planID/confirm`
 - `GET /api/v1/delivery/release-board`
 - `GET /api/v1/delivery/release-bundles?applicationId=<optional>&applicationEnvironmentId=<optional>&limit=50`
 - `GET /api/v1/delivery/release-bundles/:bundleID`
+- `GET /api/v1/delivery/release-bundles/:bundleID/artifacts`
 - `GET /api/v1/delivery/execution-tasks?applicationId=<optional>&applicationEnvironmentId=<optional>&releaseBundleId=<optional>&status=<optional>&providerKind=<optional>&limit=50`
 - `GET /api/v1/delivery/execution-tasks/:taskID`
+- `GET /api/v1/delivery/execution-tasks/:taskID/artifacts`
+- `GET /api/v1/delivery/artifacts`
 - `POST /api/v1/delivery/execution-tasks/:taskID/cancel`
 - `POST /api/v1/delivery/execution-tasks/:taskID/retry`
 - `POST /api/v1/delivery/execution-callbacks`
@@ -105,6 +148,8 @@ PVE credentials are accepted only on create or update payloads and are never ret
 - `DELETE /api/v1/copilot/sessions/:sessionID`
 - `GET /api/v1/copilot/sessions/:sessionID/messages`
 - `POST /api/v1/copilot/sessions/:sessionID/messages`
+- `POST /api/v1/copilot/sessions/:sessionID/messages/stream`
+- `POST /api/v1/copilot/global-assistant/events`
 - `POST /api/v1/copilot/sessions/:sessionID/analyze`
 - `GET /api/v1/copilot/root-cause/runs`
 - `POST /api/v1/copilot/root-cause/runs`
@@ -164,6 +209,7 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 - `GET /api/v1/ai-gateway/relay/upstreams`
 - `POST /api/v1/ai-gateway/relay/upstreams`
 - `PUT /api/v1/ai-gateway/relay/upstreams/:upstreamID`
+- `POST /api/v1/ai-gateway/relay/upstreams/health-checks/run`
 - `POST /api/v1/ai-gateway/relay/upstreams/:upstreamID/test`
 - `GET /api/v1/ai-gateway/relay/model-routes`
 - `POST /api/v1/ai-gateway/relay/model-routes`
@@ -174,15 +220,41 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 - `GET /api/v1/ai-gateway/llm/openai/v1/models`
 - `POST /api/v1/ai-gateway/llm/openai/v1/chat/completions`
 - `POST /api/v1/ai-gateway/llm/openai/v1/responses`
+- `POST /api/v1/ai-gateway/llm/openai/v1/embeddings`
+- `POST /api/v1/ai-gateway/llm/openai/v1/images/generations`
+- `POST /api/v1/ai-gateway/llm/openai/v1/images/edits`
+- `POST /api/v1/ai-gateway/llm/openai/v1/images/variations`
+- `POST /api/v1/ai-gateway/llm/openai/v1/audio/speech`
+- `POST /api/v1/ai-gateway/llm/openai/v1/audio/transcriptions`
+- `POST /api/v1/ai-gateway/llm/openai/v1/audio/translations`
+- `GET /api/v1/ai-gateway/llm/openai/v1/realtime`
+- `GET /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/models`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/chat/completions`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/responses`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/embeddings`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/images/generations`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/images/edits`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/images/variations`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/audio/speech`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/audio/transcriptions`
+- `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/audio/translations`
+- `GET /api/v1/ai-gateway/llm/gemini/v1beta/models`
+- `POST /api/v1/ai-gateway/llm/gemini/v1beta/models`
+- `POST /api/v1/ai-gateway/llm/gemini/v1beta/interactions`
+- `POST /api/v1/ai-gateway/llm/cohere/v2/rerank`
 - `GET /api/v1/ai-gateway/llm/anthropic/v1/models`
 - `POST /api/v1/ai-gateway/llm/anthropic/v1/messages`
 - `GET /api/v1/mcp/capabilities`
+
+## Marketplace APIs
+
+- `GET /api/v1/marketplace/index.json`
+- `GET /api/v1/marketplace/plugins/:pluginID/:version/plugin.manifest.json`
 
 Planned relay contracts in the same OpenAPI artifact, not routed by the backend yet:
 
 - `GET /api/v1/ai-gateway/relay/cache/stats`
 - `POST /api/v1/ai-gateway/relay/cache/purge`
-- `POST /api/v1/ai-gateway/llm/openai/v1/embeddings`
 
 `/ai-gateway/capabilities` returns the current caller's AI-native tools, resources, prompts, and skills after backend permission filtering. AI clients should send `X-Soha-AI-Client-ID`, `X-Soha-AI-Client`, and `X-Soha-Skill-ID` when available so audit records can distinguish human, service, client, skill, and tool context.
 
@@ -196,7 +268,7 @@ Planned relay contracts in the same OpenAPI artifact, not routed by the backend 
 
 `/ai-gateway/relay/*` manages model relay upstreams, model routes, model-call logs, and metrics. Response cache stats and purge contracts are planned for the response-cache phase. Management responses use the OpenSoha response envelope and require relay view or manage permissions.
 
-`/ai-gateway/llm/*` exposes OpenAI- and Anthropic-compatible model APIs for SDKs. P0 includes OpenAI models, chat completions, responses, and Anthropic models/messages; OpenAI embeddings are planned. These endpoints accept existing `soha_pat_` and `soha_sat_` credentials through bearer auth or `x-api-key`, require explicit relay token metadata, and return native provider-shaped JSON or streaming responses without an OpenSoha envelope.
+`/ai-gateway/llm/*` exposes OpenAI-, Anthropic-, Gemini-, Cohere-, and OpenAI-compatible provider APIs for SDKs. These endpoints cover model discovery, chat/responses, embeddings, image and audio operations, realtime access, and reranking where the provider supports them. They accept existing `soha_pat_` and `soha_sat_` credentials through bearer auth or `x-api-key`, require explicit relay token metadata, and return native provider-shaped JSON or streaming responses without an OpenSoha envelope.
 
 Public OpenAPI contract status:
 

@@ -9,7 +9,7 @@
 - `soha-agent` builds the remote cluster agent and optional Hermes provider runner independently
 - `cmd/server` serves the HTTP API and SPA, and redirects `/docs/` to the configured docs URL by default
 - PostgreSQL is the durable system of record
-- deployment assets pin PostgreSQL 18.4 for fresh local, manifest, and Helm installs
+- deployment assets pin pgvector 0.8.5 on PostgreSQL 18.4 for fresh local, manifest, and Helm installs
 - cluster credentials are provided by environment configuration or future secret providers
 
 ## Repo Deployment Assets
@@ -21,7 +21,7 @@ Deployment assets now live under `deploy/`.
 - `configs/config.yaml`
 - `configs/config.compose.yaml`
 - `deploy/deployment.yaml`
-- `deploy/chart/`
+- sibling repository `../soha-helm/charts/soha/`
 
 Use these paths as the default baseline for image build, local stack startup, raw Kubernetes rollout, and Helm packaging. The optional Hermes provider runner is built from sibling repository `../soha-agent`. `configs/config.compose.yaml` is the app-container config for compose; it points the database host at the `postgres` service and does not seed host-local kubeconfig paths.
 
@@ -42,7 +42,7 @@ docker compose -f deploy/docker-compose.yaml up -d --build
 Lint the Helm chart:
 
 ```bash
-helm lint deploy/chart
+helm lint ../soha-helm/charts/soha
 ```
 
 Run Hermes as the first external Agent Runtime provider:
@@ -98,9 +98,13 @@ curl -s http://localhost:8080/api/v1/copilot/agent-runs
 
 Do not commit real provider keys or runner tokens. Store Hermes model credentials in the mounted Hermes data volume through the `hermes-setup` compose profile or inject them through your runtime secret manager.
 
-## PostgreSQL 18.4 Upgrade Note
+## PostgreSQL 18.4 and pgvector 0.8.5
 
-New local volumes and fresh cluster installs use PostgreSQL 18.4. PostgreSQL 18 stores its default `PGDATA` below `/var/lib/postgresql/18/docker`, so compose, raw Kubernetes, and Helm mounts keep the persistent volume at `/var/lib/postgresql`. If an existing environment already has a PostgreSQL 16 data directory, do not point the 18.4 image at the same volume directly. Use `pg_dump`/`pg_restore`, logical backup restore, or a controlled `pg_upgrade` path. For disposable local development data, remove the old PostgreSQL volume and recreate the stack. Current compose pins `soha-postgres-data`.
+New local volumes and fresh cluster installs use `pgvector/pgvector:0.8.5-pg18-trixie`, currently based on PostgreSQL 18.4 and the same Debian generation as the standard PostgreSQL 18.4 image. Application migrations enable `vector` and `pg_trgm`; bundled deployments also preload and create `pg_stat_statements`. External PostgreSQL 18 servers must provide pgvector and `pg_trgm` before startup. If the migration user cannot create extensions, an administrator must create them first. Keep the database image's libc collation version compatible with the image that initialized an existing data volume.
+
+`pg_stat_statements` is optional for external PostgreSQL. To enable it, add `pg_stat_statements` to `shared_preload_libraries`, set `compute_query_id=on`, restart PostgreSQL, and create the extension in the Soha database. Leaving it disabled does not block Soha startup.
+
+PostgreSQL 18 stores its default `PGDATA` below `/var/lib/postgresql/18/docker`, so compose, raw Kubernetes, and Helm mounts keep the persistent volume at `/var/lib/postgresql`. If an existing environment already has a PostgreSQL 16 data directory, do not point the PostgreSQL 18 pgvector image at the same volume directly. Use `pg_dump`/`pg_restore`, logical backup restore, or a controlled `pg_upgrade` path. For disposable local development data, remove the old PostgreSQL volume and recreate the stack. Current compose pins `soha-postgres-data`.
 
 ## Virtualization Runtime Notes
 

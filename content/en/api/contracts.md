@@ -7,7 +7,7 @@
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.1`
+- OpenAPI version: `0.1.2`
 - Source artifact: `openapi/soha-api.yaml`
 - npm package: `@opensoha/contracts`
 
@@ -33,10 +33,12 @@ soha-contracts/
   runner/
     operation-lifecycle.schema.json
   mcp/
+    gateway-capability-baseline.schema.json
     gateway-manifest.schema.json
   skills/
     skill-manifest.schema.json
   plugins/
+    marketplace-catalog.schema.json
     plugin-manifest.schema.json
   events/
     event-envelope.schema.json
@@ -56,8 +58,10 @@ The npm package exports these artifact paths:
 - `governance/audit-log.schema.json`
 - `agent/agent-protocol.schema.json`
 - `runner/operation-lifecycle.schema.json`
+- `mcp/gateway-capability-baseline.schema.json`
 - `mcp/gateway-manifest.schema.json`
 - `skills/skill-manifest.schema.json`
+- `plugins/marketplace-catalog.schema.json`
 - `plugins/plugin-manifest.schema.json`
 - `events/event-envelope.schema.json`
 - `auth/token-claims.schema.json`
@@ -128,6 +132,14 @@ The npm package exports these artifact paths:
 - Required fields: `name`, `version`, `generatedAt`, `principal`, `caller`, `permissionKeys`, `tools`, `summary`
 - Scope: permission-filtered tools, resources, prompts, skills, caller context, and manifest summary consumed by CLI, MCP clients, AI agents, and console surfaces.
 
+### AI Gateway Capability Baseline
+
+- File: `mcp/gateway-capability-baseline.schema.json`
+- Title: `Soha AI Gateway Capability Baseline`
+- `$id`: `https://contracts.opensoha.dev/mcp/gateway-capability-baseline.schema.json`
+- Required fields: `schemaVersion`, `version`, `source`, `tools`
+- Scope: versioned AI Gateway tool capability baseline shared by core, CLI, agents, skills, and compatibility checks.
+
 ### Skill Manifest
 
 - File: `skills/skill-manifest.schema.json`
@@ -143,6 +155,14 @@ The npm package exports these artifact paths:
 - `$id`: `https://contracts.opensoha.dev/plugins/plugin-manifest.schema.json`
 - Required fields: `id`, `name`, `version`, `publisher`, `type`
 - Scope: plugin identity, package source, permissions, dependencies, entry points, and optional skills.
+
+### Marketplace Catalog
+
+- File: `plugins/marketplace-catalog.schema.json`
+- Title: `OpenSoha Marketplace Catalog`
+- `$id`: `https://contracts.opensoha.dev/plugins/marketplace-catalog.schema.json`
+- Required fields: `schemaVersion`, `generatedAt`, `sourceId`, `plugins`
+- Scope: public marketplace catalog metadata and versioned plugin entries consumed by extension discovery clients.
 
 ### Event Envelope
 

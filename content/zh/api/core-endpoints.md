@@ -180,6 +180,79 @@ PVE credentials are accepted only on create or update payloads and are never ret
 
 `POST /copilot/root-cause/runs` accepts `agentProviderId`, `analysisProfileId`, and `triggerType`. `agentProviderId=internal` runs the built-in analyzer synchronously; external providers such as `hermes` create a queued root-cause business run plus a linked `AgentRun`, then backfill the business run from the runner callback.
 
+## AI Platform APIs
+
+- `GET /api/v1/ai/agent-providers/catalog`
+- `GET /api/v1/ai/agent-providers/runtime-status`
+- `GET /api/v1/ai/agent-providers/registry-snapshot`
+- `POST /api/v1/ai/agent-providers/registry-acks`
+- `GET /api/v1/ai/agent-providers/rollouts`
+- `POST /api/v1/ai/agent-providers/rollouts`
+- `POST /api/v1/ai/agent-providers/rollouts/:rolloutID/:rolloutAction`
+- `GET /api/v1/ai/agent-providers/conformance-runs`
+- `POST /api/v1/ai/agent-providers/conformance-runs`
+- `GET /api/v1/ai/agent-runs/multi-agent`
+- `POST /api/v1/ai/agent-runs/multi-agent`
+- `POST /api/v1/ai/agent-runs/multi-agent/:planID/subtasks/:subtaskID/complete`
+- `POST /api/v1/ai/agent-runs/multi-agent/:planID/cancel`
+- `GET /api/v1/ai/knowledge-bases`
+- `POST /api/v1/ai/knowledge-bases`
+- `GET /api/v1/ai/knowledge-bases/:baseID`
+- `PATCH /api/v1/ai/knowledge-bases/:baseID`
+- `DELETE /api/v1/ai/knowledge-bases/:baseID`
+- `GET /api/v1/ai/knowledge-bases/:baseID/sources`
+- `POST /api/v1/ai/knowledge-bases/:baseID/sources`
+- `POST /api/v1/ai/knowledge-bases/:baseID/sources/:sourceID/sync`
+- `GET /api/v1/ai/knowledge-bases/:baseID/documents`
+- `GET /api/v1/ai/knowledge-bases/:baseID/sync-runs`
+- `GET /api/v1/ai/knowledge-bases/:baseID/index-revisions`
+- `GET /api/v1/ai/knowledge-bases/:baseID/graph-revisions`
+- `POST /api/v1/ai/knowledge-bases/:baseID/graph-revisions`
+- `POST /api/v1/ai/knowledge-bases/:baseID/graph-revisions/:revisionID/publish`
+- `POST /api/v1/ai/knowledge-bases/:baseID/graph-revisions/:revisionID/query`
+- `POST /api/v1/ai/knowledge-bases/:baseID/rebuild`
+- `POST /api/v1/ai/knowledge/search`
+- `POST /api/v1/ai/context/inspect`
+- `GET /api/v1/ai/knowledge/connectors`
+- `POST /api/v1/ai/knowledge/connectors`
+- `POST /api/v1/ai/knowledge/connectors/:connectorID/validate`
+- `POST /api/v1/ai/knowledge-bases/:baseID/sync-jobs`
+- `GET /api/v1/ai/knowledge/sync-jobs/:jobID`
+- `POST /api/v1/ai/knowledge/sync-jobs/:jobID/cancel`
+- `POST /api/v1/ai/knowledge/sync-jobs/:jobID/retry`
+- `GET /api/v1/ai/evaluations/datasets`
+- `POST /api/v1/ai/evaluations/datasets`
+- `GET /api/v1/ai/evaluations/runs`
+- `POST /api/v1/ai/evaluations/runs`
+- `GET /api/v1/ai/evaluations/runs/:runID`
+- `GET /api/v1/ai/evaluations/runs/:runID/results`
+- `POST /api/v1/ai/evaluations/runs/:runID/complete`
+- `GET /api/v1/ai/evaluations/executor-profiles`
+- `POST /api/v1/ai/evaluations/executor-profiles`
+- `POST /api/v1/ai/evaluations/runs/:runID/execute`
+- `GET /api/v1/ai/evaluations/runs/:runID/attempts`
+- `GET /api/v1/ai/evaluations/replays`
+- `POST /api/v1/ai/evaluations/replays`
+- `GET /api/v1/ai/evaluations/gate-policies`
+- `POST /api/v1/ai/evaluations/gate-policies`
+- `GET /api/v1/ai/evaluations/gate-decisions`
+- `POST /api/v1/ai/evaluations/gates/evaluate`
+- `GET /api/v1/ai/evaluations/feedback`
+- `POST /api/v1/ai/evaluations/feedback`
+- `GET /api/v1/ai/memory/policies`
+- `POST /api/v1/ai/memory/policies`
+- `GET /api/v1/ai/memory`
+- `POST /api/v1/ai/memory`
+- `DELETE /api/v1/ai/memory/:memoryID`
+- `GET /api/v1/ai/environments/templates`
+- `POST /api/v1/ai/environments/templates`
+- `GET /api/v1/ai/environments/leases`
+- `POST /api/v1/ai/environments/leases/:leaseID/release`
+- `POST /api/v1/ai/environments/gc`
+- `GET /api/v1/ai/operations`
+- `POST /api/v1/ai/operations`
+- `GET /api/v1/ai/operations/runbook-evidence`
+
 ## AI Gateway APIs
 
 The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` currently covers the Gateway, token, audit, approval, governance, and MCP capability boundaries below:

@@ -2,9 +2,9 @@
 
 ## Source Of Truth
 
-Backend configuration is file-first.
+Startup configuration remains file-baselined; product settings and connection instances are persisted by the database-backed settings center.
 
-- primary file: `configs/config.yaml`
+- startup baseline: `configs/config.yaml`
 - loader: `internal/infrastructure/config`
 - override mechanism: environment variables through Viper when needed
 
@@ -20,6 +20,30 @@ Docs runtime is independent.
 - docs source lives in `soha-docs`
 - published docs should use an external URL, such as `https://docs.opensoha.dev/`
 - `assets.docs.external_url` controls where `soha` redirects `/docs/`
+
+## Configuration Ownership
+
+`config.yaml` is not the write surface for every product setting. Configuration is split by lifecycle and scope:
+
+| Layer | Owns | Typical entry point |
+| --- | --- | --- |
+| Deployment/startup | Listener, database, worker and queue topology, JWT/runner/webhook/encryption keys, bootstrap settings | `config.yaml`, environment variables, Docker/Kubernetes/Helm Secrets |
+| Settings center | Login providers, the current global code-source integration, login policy, and safely reloadable product policy | Login settings, Code Sources, and Runtime Configuration pages |
+| Cluster settings | kubeconfig/Agent connection plus that cluster's Prometheus, Grafana, and resource-query parameters | Cluster detail/edit page |
+| Runtime configuration | Soha module switches and runtime parameters that can be validated and atomically reloaded | Settings-center Runtime Configuration page |
+
+The Runtime Configuration page shows effective values; it is not an editor for every configuration value. Externally managed or cluster-scoped values should show their owner and a link to the owning page instead of creating a second write path.
+
+### Code-source integration
+
+The settings center currently exposes the system-integration backend through the Code Sources pages:
+
+- The list and detail pages currently manage GitLab connections only. Identity providers remain under Login Settings, while alert integrations remain in the Monitoring Workbench.
+- A GitLab detail page owns the endpoint, write-only credential, enablement, and connection test.
+- GitLab is a global code source, not a delivery-workbench-only setting. Delivery, virtualization, container-runtime, and other features that read Dockerfiles, YAML, Helm charts, or scripts use the same connection.
+- Workbenches store only a reference to the Provider (for example provider ID, project/repository, branch, and path); they do not copy GitLab tokens.
+
+Integration credentials must be encrypted at rest and support connection testing. They are not ordinary flat runtime keys, and the browser must not call third-party systems directly.
 
 ## Backend Config Shape
 
@@ -44,7 +68,7 @@ Key backend fields now used by the runtime:
 - `auth.jwt.secret`, `auth.jwt.access_ttl`, `auth.jwt.refresh_ttl`
 - `auth.dev_principal.*`: bootstrap local account seed and, when enabled, the no-token development principal
 - `auth.oidc.*`: legacy runtime OIDC fallback only; it does not create settings-center login sources
-- `gitlab.enabled`, `gitlab.base_url`, `gitlab.token`, `gitlab.group_id`, `gitlab.per_page`, `gitlab.timeout`
+- `gitlab.*`: legacy startup-compatibility fields; the target source is the encrypted settings-center Code Source Provider
 - `runtime.workflow_workers`, `runtime.workflow_queue_size`, `runtime.workflow_node_parallelism`
 - `runtime.cluster_sync_parallelism`, `runtime.copilot_inspection_parallelism`, `runtime.alert_upsert_batch_size`
 - `runtime.execution_runner_token`: shared bearer token for delivery, Docker, and AI Agent Runtime runner claim/callback APIs
@@ -173,15 +197,31 @@ Relevant routes:
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/restart`
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/scale`
 
+### Cluster Resource-Monitoring Connections
+
+Prometheus and Grafana connections belong to a cluster, not to Soha's global runtime configuration. A cluster record may store:
+
+- Prometheus URL and bearer token
+- Prometheus cluster label
+- Grafana base URL
+
+Resource and virtualization pages must send `clusterId`; the backend then selects that cluster's connection. The server currently uses a 60-minute query range and 60-second step as query defaults. This allows different clusters to use different monitoring stacks and lets the UI distinguish not configured, no data, and query failure. The global Runtime Configuration page must not display these connection fields.
+
+The API does not return the bearer token after it is saved, but the current cluster implementation stores it in database-backed cluster connection metadata without field-level encryption. Protect database access, backups, replicas, and diagnostic exports accordingly. Do not assume `security.credential_encryption_key` protects this field.
+
 ## Monitoring Runtime
 
-The monitoring runtime currently expects file-configured values under:
+Alert ingestion and alert governance belong to the Monitoring Workbench. Alertmanager, Grafana Alerting, and Generic Webhook integrations, tokens, routing, notifications, silences, healing, and on-call settings are maintained under `/monitoring-workbench/integrations` and their detail pages.
+
+Soha keeps only the system-level switch and secret required by its monitoring ingress in startup configuration:
 
 ```yaml
 monitoring:
   enabled: true
   webhook_token: soha-123456789012345678901234567890
 ```
+
+Prometheus/Grafana resource connections do not belong here. They are cluster-scoped because each cluster may use a different Prometheus/Grafana. Resource pages select the connection by `clusterId`; do not place cluster Prometheus URLs, bearer tokens, default query ranges, or Grafana URLs in the global Runtime Configuration page.
 
 Current persistence layout:
 
@@ -212,7 +252,7 @@ Application management now uses one PostgreSQL-backed registry table:
 - `ai_automation_policies`
 - `ai_agent_runs`
 
-GitLab integration is configured in `config.yaml`:
+GitLab is a global code-source/system integration, not a delivery-workbench-only setting. The current settings model uses the Code Sources list and a GitLab detail page:
 
 ```yaml
 gitlab:
@@ -223,6 +263,10 @@ gitlab:
   per_page: 50
   timeout: 10s
 ```
+
+The YAML block above is only the current startup-compatibility baseline. New deployments should create a GitLab Provider in the settings center. When no GitLab connection exists, the server imports the legacy YAML into an encrypted integration record. After migration, Docker, Kubernetes, and Helm examples should no longer require a GitLab token.
+
+An integration record includes a display name, GitLab URL, encrypted token, default group, timeout, enablement, connection-test status, and audit metadata. Delivery and other workbenches reference the Provider ID and repository coordinates.
 
 When enabled, soha serves these routes from the backend:
 
@@ -254,7 +298,18 @@ Build and AI routes now also exist:
 - `POST /api/v1/copilot/agent-runs/callback`
 - `POST /api/v1/copilot/agent-runs/tool-call`
 
-The browser never talks to GitLab directly. Tokens stay in backend configuration.
+The browser never talks to GitLab directly. Tokens stay in encrypted backend-managed integration records.
+
+## YAML Compatibility And Migration Boundary
+
+Move configuration with an import, deprecation, then deletion sequence:
+
+1. Legacy `auth.oidc.*` remains a YAML/runtime compatibility path where supported. It is not imported into the settings-center database and does not create a Login Settings provider; recreate the provider there before removing the YAML values.
+2. Legacy `gitlab.*` is imported once when no GitLab connection exists. After import, use the Code Sources page as the write surface and retain YAML only as the documented startup fallback during the compatibility window.
+3. Old global Prometheus/Grafana Helm values are no longer rendered. Before upgrading, record the non-secret connection settings through the existing secure operational process, then configure each target cluster through its cluster settings/API and enter credentials there. A global connection cannot be assigned automatically in a multi-cluster installation.
+4. Do not add new features that depend on legacy YAML or Helm fields. Remove remaining compatibility fields only after their documented migration path has been verified.
+
+Do not delete fields before migration records, encryption-key handling, and multi-replica consistency are in place. Startup topology, network trust boundaries, system secrets, and infrastructure backends remain deployment-managed.
 
 ## Agent Runner Config
 

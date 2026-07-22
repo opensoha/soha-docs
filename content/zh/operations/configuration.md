@@ -2,9 +2,9 @@
 
 ## Source Of Truth
 
-Backend configuration is file-first.
+启动配置仍以文件为基线；业务设置和连接实例由数据库设置中心持久化。
 
-- primary file: `configs/config.yaml`
+- startup baseline: `configs/config.yaml`
 - loader: `internal/infrastructure/config`
 - override mechanism: environment variables through Viper when needed
 
@@ -20,6 +20,30 @@ Docs runtime is independent.
 - docs source lives in `soha-docs`
 - published docs should use an external URL, such as `https://docs.opensoha.dev/`
 - `assets.docs.external_url` controls where `soha` redirects `/docs/`
+
+## 配置归属
+
+`config.yaml` 不是所有业务配置的唯一入口。配置按生命周期和作用域分为四层：
+
+| 层级 | 负责内容 | 典型入口 |
+| --- | --- | --- |
+| 部署/启动配置 | 监听地址、数据库、线程与队列拓扑、JWT/Runner/Webhook/凭据加密密钥、首次启动参数 | `config.yaml`、环境变量、Docker/Kubernetes/Helm Secret |
+| 设置中心 | 登录 Provider、当前已开放的全局代码源集成、登录策略和可安全热加载的产品策略 | 登录设置、代码源和运行时配置页面 |
+| 集群配置 | kubeconfig/Agent 连接，以及该集群的 Prometheus、Grafana 和资源指标查询参数 | 集群详情/编辑页 |
+| 运行时配置 | Soha 自身可原子校验并热加载的模块开关和运行参数 | 设置中心的“运行时配置”页 |
+
+运行时配置页展示的是“有效值”，不等于所有配置都可以在那里编辑。外部托管或集群托管的值应显示来源和跳转入口，避免同一个字段出现两个写入入口。
+
+### 代码源集成
+
+设置中心目前通过“代码源”页面提供系统集成能力：
+
+- 当前列表和详情页只管理 GitLab 连接。身份 Provider 仍由“登录设置”管理，告警接入仍由监控工作台管理。
+- GitLab 详情页负责端点、只写凭据、启停和连接测试。
+- GitLab 是全局代码源，不归属于交付工作台。交付、虚拟化、容器运行时和其他需要读取 Dockerfile、YAML、Helm 或脚本的能力都通过同一个连接使用。
+- 业务工作台只保存资源或任务对代码源的引用（例如 provider ID、项目/仓库、分支和路径），不复制 GitLab Token。
+
+集成凭据必须加密保存并支持连接测试。它们不应作为普通的扁平运行时键，也不应让浏览器直接访问第三方系统。
 
 ## Backend Config Shape
 
@@ -44,7 +68,7 @@ Key backend fields now used by the runtime:
 - `auth.jwt.secret`, `auth.jwt.access_ttl`, `auth.jwt.refresh_ttl`
 - `auth.dev_principal.*`: bootstrap local account seed and, when enabled, the no-token development principal
 - `auth.oidc.*`: legacy runtime OIDC fallback only; it does not create settings-center login sources
-- `gitlab.enabled`, `gitlab.base_url`, `gitlab.token`, `gitlab.group_id`, `gitlab.per_page`, `gitlab.timeout`
+- `gitlab.*`: legacy startup compatibility fields; the target source is the encrypted settings-center Code Source Provider
 - `runtime.workflow_workers`, `runtime.workflow_queue_size`, `runtime.workflow_node_parallelism`
 - `runtime.cluster_sync_parallelism`, `runtime.copilot_inspection_parallelism`, `runtime.alert_upsert_batch_size`
 - `runtime.execution_runner_token`: shared bearer token for delivery, Docker, and AI Agent Runtime runner claim/callback APIs
@@ -173,15 +197,31 @@ Relevant routes:
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/restart`
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/scale`
 
+### 集群资源监控连接
+
+Prometheus 和 Grafana 连接属于集群，而不是 Soha 全局运行时配置。集群记录可以保存：
+
+- Prometheus URL 和 Bearer Token
+- Prometheus cluster label
+- Grafana Base URL
+
+资源和虚拟化页面查询指标时必须携带 `clusterId`，由后端选择对应集群连接。服务端当前使用 60 分钟查询范围和 60 秒 step 作为查询默认值。这样多个集群可以使用不同的监控栈，未配置、暂无数据和查询失败也可以被清晰区分。全局运行时配置页不再展示这些连接字段。
+
+Bearer Token 保存后不会通过 API 回显，但当前集群实现会将它写入数据库中的集群连接 metadata，未做字段级加密。应将数据库访问、备份、副本和诊断导出都视为敏感边界；不要假定 `security.credential_encryption_key` 会保护该字段。
+
 ## Monitoring Runtime
 
-The monitoring runtime currently expects file-configured values under:
+监控告警接入属于监控工作台。Alertmanager、Grafana Alerting 和 Generic Webhook 的集成、Token、路由、通知、静默、自愈和值班配置，应在 `/monitoring-workbench/integrations` 及其详情页维护。
+
+Soha 自身只在启动配置中保留监控告警入口所需的系统级开关和密钥：
 
 ```yaml
 monitoring:
   enabled: true
   webhook_token: soha-123456789012345678901234567890
 ```
+
+Prometheus/Grafana 资源监控连接不属于这里。它们是集群级配置：每个集群可以使用不同的 Prometheus/Grafana，资源页面按 `clusterId` 选择对应连接。不要把集群 Prometheus URL、Bearer Token、默认查询范围或 Grafana 地址放入全局运行时配置页。
 
 Current persistence layout:
 
@@ -212,7 +252,7 @@ Application management now uses one PostgreSQL-backed registry table:
 - `ai_automation_policies`
 - `ai_agent_runs`
 
-GitLab integration is configured in `config.yaml`:
+GitLab 是全局代码源/系统集成，而不是交付工作台专属配置。当前设置模型由“代码源”列表和 GitLab 详情页管理：
 
 ```yaml
 gitlab:
@@ -223,6 +263,10 @@ gitlab:
   per_page: 50
   timeout: 10s
 ```
+
+上面的 YAML 仅代表当前版本的启动兼容基线。新部署应优先在设置中心创建 GitLab Provider；数据库不存在 GitLab 连接时，服务端会将旧 YAML 配置导入加密的集成记录。完成迁移后，Docker、Kubernetes 和 Helm 示例中不再要求填写 GitLab Token。
+
+集成记录包含：实例名称、GitLab 地址、加密 Token、默认组织/Group、超时、启用状态、连接测试结果和审计信息。交付和其他工作台只引用 Provider ID 及仓库定位信息。
 
 When enabled, soha serves these routes from the backend:
 
@@ -254,7 +298,18 @@ Build and AI routes now also exist:
 - `POST /api/v1/copilot/agent-runs/callback`
 - `POST /api/v1/copilot/agent-runs/tool-call`
 
-The browser never talks to GitLab directly. Tokens stay in backend configuration.
+The browser never talks to GitLab directly. Tokens stay in encrypted backend-managed integration records.
+
+## YAML 兼容与迁移边界
+
+配置迁移按“先导入、再废弃、最后删除”进行：
+
+1. 旧 `auth.oidc.*` 在仍受支持的场景中只是 YAML/运行时兼容路径；服务不会把它导入设置中心数据库，也不会创建“登录设置” Provider。删除 YAML values 前，应先在登录设置中重新创建对应 Provider。
+2. 旧 `gitlab.*` 只在数据库不存在 GitLab 连接时执行一次性导入。导入后通过“代码源”页面维护，兼容期内 YAML 仅作为文档明确的启动回退。
+3. Helm 已不再渲染旧的全局 Prometheus/Grafana values。升级前应按现有安全运维流程记录非敏感连接信息，再通过集群设置/API 为每个目标集群配置连接并重新录入凭据；多集群环境不能自动判断旧全局连接的归属。
+4. 不再新增依赖旧 YAML/Helm 字段的功能；只有在迁移路径完成验证后才删除剩余兼容字段。
+
+不要在没有迁移记录、加密密钥和多副本一致性保障的情况下直接删除配置字段。启动拓扑、网络信任边界、系统密钥和基础设施后端仍必须由部署配置管理。
 
 ## Agent Runner Config
 

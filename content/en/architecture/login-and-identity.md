@@ -114,6 +114,19 @@ OIDC、OAuth2、飞书、钉钉、企业微信这几类可运行 provider 现在
 
 页面刷新后如果内存态 `accessToken` 不存在，受保护路由会先尝试调用 refresh 接口恢复会话。恢复失败才跳转登录页。
 
+## OIDC Provider sessions
+
+The OIDC Provider in the internal workbench is the protocol surface through which Soha issues identities to downstream applications. It is separate from external login providers managed in Settings. It supports:
+
+- `authorization_code` and `refresh_token` grants
+- opaque Refresh Tokens when the client enables `refresh_token` and the authorization request includes `offline_access`
+- one-time Refresh Token rotation; reuse revokes the complete token family and OIDC Session
+- binding Access Token, UserInfo, Introspection, and Proxy Session validity to the originating Soha Session
+- effective Access Token and Refresh Token revocation through `/oauth2/revoke`
+- RP-initiated logout through `/oauth2/logout` with `id_token_hint`, `post_logout_redirect_uri`, and `state`
+
+Only Refresh Token hashes are persisted. A `post_logout_redirect_uri` must exactly match a Redirect URI registered for the client.
+
 浏览器不能给原生 `WebSocket`、`EventSource` 和 noVNC 连接稳定附加 `Authorization` header。Console 需要打开 Pod logs stream、Pod terminal、虚拟化 operation stream 或 VNC/noVNC 时，必须先用当前 session access token 调用 `POST /api/v1/auth/stream-ticket` 换取短期一次性票据，再把 `stream_ticket` 放到同源 stream URL query。服务端只接受白名单路径，票据 60 秒过期、精确绑定 path，并在第一次校验时从 PostgreSQL 消费删除；票据消费后还会校验 session 状态和 `authz_version`，所以角色、组织和账号状态变更仍能让后续流式连接失效。
 
 ## 机器调用与 runner 令牌

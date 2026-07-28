@@ -1,10 +1,8 @@
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 
 const repoRoot = new URL('../', import.meta.url)
-const docsRoot = new URL('../content/zh/', import.meta.url)
 const contractsRoot = new URL('../../soha-contracts/', import.meta.url)
-const outputUrl = new URL('api/reference/generated/index.md', docsRoot)
-const routeMetadataOverlayUrl = new URL('api/reference/route-metadata.overlay.json', docsRoot)
+const locales = ['en', 'zh']
 const checkMode = process.argv.includes('--check')
 
 async function readContracts(file) {
@@ -178,7 +176,7 @@ async function validateExample(example, label) {
   throw new Error(`${label}.kind must be contract-example or http`)
 }
 
-async function loadRouteMetadataOverlay(operations) {
+async function loadRouteMetadataOverlay(operations, routeMetadataOverlayUrl) {
   const overlay = JSON.parse(await readFile(routeMetadataOverlayUrl, 'utf8'))
   if (overlay.version !== 1) {
     throw new Error('route metadata overlay version must be 1')
@@ -294,7 +292,7 @@ function renderReference({ metadata, operations, routeMetadata, schemas }) {
     }
   }
   lines.push('')
-  return `${lines.join('\n')}\n`
+  return `${lines.join('\n').trimEnd()}\n`
 }
 
 async function main() {
@@ -305,23 +303,32 @@ async function main() {
     throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.yaml')
   }
 
-  const next = renderReference({
-    metadata: parseOpenAPIMetadata(openapiRaw),
-    operations,
-    routeMetadata: await loadRouteMetadataOverlay(operations),
-    schemas: await schemaArtifacts(),
-  })
+  const metadata = parseOpenAPIMetadata(openapiRaw)
+  const schemas = await schemaArtifacts()
+  for (const locale of locales) {
+    const docsRoot = new URL(`../content/${locale}/`, import.meta.url)
+    const outputUrl = new URL('api/reference/generated/index.md', docsRoot)
+    const routeMetadataOverlayUrl = new URL('api/reference/route-metadata.overlay.json', docsRoot)
+    const next = renderReference({
+      metadata,
+      operations,
+      routeMetadata: await loadRouteMetadataOverlay(operations, routeMetadataOverlayUrl),
+      schemas,
+    })
 
-  if (checkMode) {
-    const current = await readFile(outputUrl, 'utf8')
-    if (current !== next) {
-      throw new Error('api/reference/generated/index.md is stale; run npm run api:reference:generate')
+    if (checkMode) {
+      const current = await readFile(outputUrl, 'utf8')
+      if (current !== next) {
+        throw new Error(
+          `${locale}/api/reference/generated/index.md is stale; run npm run api:reference:generate`,
+        )
+      }
+      continue
     }
-    return
-  }
 
-  await mkdir(new URL('api/reference/generated/', docsRoot), { recursive: true })
-  await writeFile(outputUrl, next)
+    await mkdir(new URL('api/reference/generated/', docsRoot), { recursive: true })
+    await writeFile(outputUrl, next)
+  }
 }
 
 await main()

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Soha Docs"
+  short_description: "Nextra docs, i18n, and generated API references"
+  default_prompt: "Use $soha-docs to update and verify localized or generated Soha documentation."

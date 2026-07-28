@@ -99,11 +99,10 @@ function compact(value) {
 
 await ensureContractsAvailable()
 
-const [openapiRaw, apiCore, apiAuth, apiContracts, apiGenerated, docsPublishing, envDocs, configTs, ciWorkflow] =
+const [openapiRaw, apiCore, apiContracts, apiGenerated, docsPublishing, envDocs, configTs, ciWorkflow] =
   await Promise.all([
     readContracts('openapi/soha-api.yaml'),
     readDocs('api/core-endpoints.md'),
-    readDocs('api/auth-and-errors.md'),
     readDocs('api/contracts.md'),
     readDocs('api/reference/generated/index.md'),
     readDocs('operations/docs-publishing.md'),
@@ -123,12 +122,6 @@ if (operations.length === 0) {
   throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.yaml')
 }
 
-const apiReferenceText = compact([apiCore, apiAuth, apiContracts].join('\n'))
-requireIncludes(
-  'API docs OpenAPI operation coverage',
-  apiReferenceText,
-  operations.map(formatOperation),
-)
 requireIncludes(
   'Generated API reference OpenAPI operation coverage',
   compact(apiGenerated),
@@ -155,7 +148,6 @@ const exportedArtifacts = Object.values(contractsPackage.exports)
   .map((value) => value.replace(/^\.\//, ''))
   .filter((value) => value.startsWith('openapi/') || value.endsWith('.schema.json'))
 
-requireIncludes('contracts package exports', apiContracts, exportedArtifacts)
 requireIncludes('OpenAPI metadata docs', apiContracts, [
   `OpenAPI title: \`${openapiTitle}\``,
   `OpenAPI version: \`${openapiVersion}\``,
@@ -166,10 +158,8 @@ const schemaArtifacts = exportedArtifacts.filter((value) => value.endsWith('.sch
 
 for (const schemaFile of schemaArtifacts) {
   const schema = JSON.parse(await readContracts(schemaFile))
-  requireIncludes(`${schemaFile} docs`, apiContracts, [schemaFile, schema.title, schema.$id])
   requireIncludes(`${schemaFile} generated API reference`, apiGenerated, [schemaFile, schema.title, schema.$id])
   if (Array.isArray(schema.required) && schema.required.length > 0) {
-    requireIncludes(`${schemaFile} required fields`, apiContracts, schema.required)
     requireIncludes(`${schemaFile} generated required fields`, apiGenerated, schema.required)
   }
 }

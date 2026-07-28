@@ -2,7 +2,9 @@
 
 > **🚧 Translation in Progress**: This page is being translated from Chinese. Some sections may still contain Chinese text.
 
-Repository-level engineering memory, architecture execution baseline, frontend and backend technical solutions, and feature designs have now been consolidated into `agents.md` at the repository root.
+Repository-specific engineering rules live with each code repository under
+`.agents/skills/`. Cross-repository ownership and dependency rules live in the
+OpenSoha workspace `AGENTS.md`.
 
 This directory only retains public architecture documentation focused on domains and topics, and no longer duplicates the following engineering memory content:
 
@@ -29,7 +31,9 @@ This retains:
 - Audit model
 - MCP integration
 
-During engineering implementation, please prioritize `agents.md` at the repository root; for topic design and domain constraints, refer to the corresponding documents in this directory.
+During implementation, use the affected repository's skill as the execution
+rule and the corresponding documents in this directory for public domain
+design and constraints.
 
 Additional conventions:
 

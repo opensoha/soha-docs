@@ -1,5 +1,9 @@
 # Core Endpoints
 
+This page highlights commonly used API groups. Use the
+[generated API reference](./reference/generated/index.md) for the exhaustive
+operation and schema index.
+
 ## Cluster APIs
 
 - `GET /api/v1/clusters`

@@ -2,18 +2,18 @@
 
 `soha-contracts` 是跨仓库共享契约源头。任何影响公开行为、wire shape、Agent protocol、MCP manifest、Skill manifest、Plugin manifest、事件 envelope 或鉴权 claims 的变更，都应先进入 contracts，再更新消费者仓库。
 
-当前 docs CI 会读取 sibling checkout `../soha-contracts`，校验本页和 API 页面是否覆盖真实 OpenAPI 与 JSON Schema artifact。缺少 sibling 仓库时，`npm test` 会失败并提示先 checkout `soha-contracts`。
+当前 docs CI 会读取 sibling checkout `../soha-contracts`。本页维护契约版本和重点说明；完整 operation 与 JSON Schema 覆盖由生成的 [API reference](./reference/generated/index.md) 校验。缺少 sibling 仓库时，`npm test` 会失败并提示先 checkout `soha-contracts`。
 
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.2`
+- OpenAPI version: `0.1.3`
 - Source artifact: `openapi/soha-api.yaml`
 - npm package: `@opensoha/contracts`
 
 ## 契约目录
 
-当前公开 artifact：
+代表性公开 artifact；完整清单以生成的 [API reference](./reference/generated/index.md) 和 `soha-contracts/package.json` 为准：
 
 ```text
 soha-contracts/
@@ -48,7 +48,7 @@ soha-contracts/
     connector-event-envelope.schema.json
 ```
 
-The npm package exports these artifact paths:
+The foundational npm exports include:
 
 - `openapi/soha-api.yaml`
 - `capabilities/cluster-capability-matrix.schema.json`
@@ -67,7 +67,7 @@ The npm package exports these artifact paths:
 - `auth/token-claims.schema.json`
 - `connectors/connector-event-envelope.schema.json`
 
-## JSON Schema Artifact
+## JSON Schema Artifact Highlights
 
 ### Cluster Capability Matrix
 

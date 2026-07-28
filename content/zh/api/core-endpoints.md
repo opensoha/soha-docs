@@ -1,5 +1,8 @@
 # Core Endpoints
 
+本页列出常用 API 分组；完整 operation 与 schema 索引以
+[生成 API reference](./reference/generated/index.md) 为准。
+
 ## Cluster APIs
 
 - `GET /api/v1/clusters`

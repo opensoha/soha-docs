@@ -27,12 +27,14 @@ Docs runtime is independent.
 
 | 层级 | 负责内容 | 典型入口 |
 | --- | --- | --- |
-| 部署/启动配置 | 监听地址、数据库、线程与队列拓扑、JWT/Runner/Webhook/凭据加密密钥、首次启动参数 | `config.yaml`、环境变量、Docker/Kubernetes/Helm Secret |
+| 部署/启动配置 | 监听地址、数据库、进程拓扑、JWT/Runner/Webhook/凭据加密密钥、首次启动参数 | `config.yaml`、环境变量、Docker/Kubernetes/Helm Secret |
 | 设置中心 | 登录 Provider、当前已开放的全局代码源集成、登录策略和可安全热加载的产品策略 | 登录设置、代码源和运行时配置页面 |
 | 集群配置 | kubeconfig/Agent 连接，以及该集群的 Prometheus、Grafana 和资源指标查询参数 | 集群详情/编辑页 |
-| 运行时配置 | Soha 自身可原子校验并热加载的模块开关和运行参数 | 设置中心的“运行时配置”页 |
+| 运行时配置 | Soha 自身可版本化校验，并按即时、重配或重启方式生效的模块开关和运行参数 | 设置中心的“运行时配置”页 |
 
 运行时配置页展示的是“有效值”，不等于所有配置都可以在那里编辑。外部托管或集群托管的值应显示来源和跳转入口，避免同一个字段出现两个写入入口。
+
+工作流 Worker/队列/节点并行度、集群同步、AI 巡检、告警批量、虚拟化 Worker、执行任务默认值、MCP 超时和 AI Gateway 中继限制均由运行时配置页持久化，不再要求写入 `config.yaml`。
 
 ### 代码源集成
 
@@ -54,7 +56,6 @@ logger:
 runtime:
 database:
 auth:
-gitlab:
 swagger:
 mcp:
 bootstrap:
@@ -68,9 +69,6 @@ Key backend fields now used by the runtime:
 - `auth.jwt.secret`, `auth.jwt.access_ttl`, `auth.jwt.refresh_ttl`
 - `auth.dev_principal.*`: bootstrap local account seed and, when enabled, the no-token development principal
 - `auth.oidc.*`: legacy runtime OIDC fallback only; it does not create settings-center login sources
-- `gitlab.*`: legacy startup compatibility fields; the target source is the encrypted settings-center Code Source Provider
-- `runtime.workflow_workers`, `runtime.workflow_queue_size`, `runtime.workflow_node_parallelism`
-- `runtime.cluster_sync_parallelism`, `runtime.copilot_inspection_parallelism`, `runtime.alert_upsert_batch_size`
 - `runtime.execution_runner_token`: shared bearer token for delivery, Docker, and AI Agent Runtime runner claim/callback APIs
 - `database.migration_path`: migration root directory (runtime resolves `migrations/<driver>/0001_init.sql`)
 - `database.migration_file`: explicit SQL bootstrap file override; the current repo baseline points at the consolidated PostgreSQL bootstrap file
@@ -252,19 +250,7 @@ Application management now uses one PostgreSQL-backed registry table:
 - `ai_automation_policies`
 - `ai_agent_runs`
 
-GitLab 是全局代码源/系统集成，而不是交付工作台专属配置。当前设置模型由“代码源”列表和 GitLab 详情页管理：
-
-```yaml
-gitlab:
-  enabled: false
-  base_url: https://gitlab.com/api/v4
-  token: ""
-  group_id: ""
-  per_page: 50
-  timeout: 10s
-```
-
-上面的 YAML 仅代表当前版本的启动兼容基线。新部署应优先在设置中心创建 GitLab Provider；数据库不存在 GitLab 连接时，服务端会将旧 YAML 配置导入加密的集成记录。完成迁移后，Docker、Kubernetes 和 Helm 示例中不再要求填写 GitLab Token。
+GitLab 是全局代码源/系统集成，而不是交付工作台专属配置。当前设置模型仅由“代码源”列表和 GitLab 详情页管理，不再读取或导入 `config.yaml` 中的 `gitlab` 配置。
 
 集成记录包含：实例名称、GitLab 地址、加密 Token、默认组织/Group、超时、启用状态、连接测试结果和审计信息。交付和其他工作台只引用 Provider ID 及仓库定位信息。
 

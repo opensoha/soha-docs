@@ -27,12 +27,14 @@ Docs runtime is independent.
 
 | Layer | Owns | Typical entry point |
 | --- | --- | --- |
-| Deployment/startup | Listener, database, worker and queue topology, JWT/runner/webhook/encryption keys, bootstrap settings | `config.yaml`, environment variables, Docker/Kubernetes/Helm Secrets |
+| Deployment/startup | Listener, database, process topology, JWT/runner/webhook/encryption keys, bootstrap settings | `config.yaml`, environment variables, Docker/Kubernetes/Helm Secrets |
 | Settings center | Login providers, the current global code-source integration, login policy, and safely reloadable product policy | Login settings, Code Sources, and Runtime Configuration pages |
 | Cluster settings | kubeconfig/Agent connection plus that cluster's Prometheus, Grafana, and resource-query parameters | Cluster detail/edit page |
-| Runtime configuration | Soha module switches and runtime parameters that can be validated and atomically reloaded | Settings-center Runtime Configuration page |
+| Runtime configuration | Versioned Soha module switches and runtime parameters applied immediately, by reconfiguration, or after restart | Settings-center Runtime Configuration page |
 
 The Runtime Configuration page shows effective values; it is not an editor for every configuration value. Externally managed or cluster-scoped values should show their owner and a link to the owning page instead of creating a second write path.
+
+Workflow workers, queue sizing, node parallelism, cluster synchronization, AI inspection, alert batching, virtualization workers, execution-job defaults, MCP timeout, and AI Gateway relay limits are persisted through Runtime Configuration and no longer need entries in `config.yaml`.
 
 ### Code-source integration
 
@@ -54,7 +56,6 @@ logger:
 runtime:
 database:
 auth:
-gitlab:
 swagger:
 mcp:
 bootstrap:
@@ -68,9 +69,6 @@ Key backend fields now used by the runtime:
 - `auth.jwt.secret`, `auth.jwt.access_ttl`, `auth.jwt.refresh_ttl`
 - `auth.dev_principal.*`: bootstrap local account seed and, when enabled, the no-token development principal
 - `auth.oidc.*`: legacy runtime OIDC fallback only; it does not create settings-center login sources
-- `gitlab.*`: legacy startup-compatibility fields; the target source is the encrypted settings-center Code Source Provider
-- `runtime.workflow_workers`, `runtime.workflow_queue_size`, `runtime.workflow_node_parallelism`
-- `runtime.cluster_sync_parallelism`, `runtime.copilot_inspection_parallelism`, `runtime.alert_upsert_batch_size`
 - `runtime.execution_runner_token`: shared bearer token for delivery, Docker, and AI Agent Runtime runner claim/callback APIs
 - `database.migration_path`: migration root directory (runtime resolves `migrations/<driver>/0001_init.sql`)
 - `database.migration_file`: explicit SQL bootstrap file override; the current repo baseline points at the consolidated PostgreSQL bootstrap file
@@ -252,19 +250,7 @@ Application management now uses one PostgreSQL-backed registry table:
 - `ai_automation_policies`
 - `ai_agent_runs`
 
-GitLab is a global code-source/system integration, not a delivery-workbench-only setting. The current settings model uses the Code Sources list and a GitLab detail page:
-
-```yaml
-gitlab:
-  enabled: false
-  base_url: https://gitlab.com/api/v4
-  token: ""
-  group_id: ""
-  per_page: 50
-  timeout: 10s
-```
-
-The YAML block above is only the current startup-compatibility baseline. New deployments should create a GitLab Provider in the settings center. When no GitLab connection exists, the server imports the legacy YAML into an encrypted integration record. After migration, Docker, Kubernetes, and Helm examples should no longer require a GitLab token.
+GitLab is a global code-source/system integration, not a delivery-workbench-only setting. It is now managed only through the Code Sources list and GitLab detail page; the server no longer reads or imports a `gitlab` block from `config.yaml`.
 
 An integration record includes a display name, GitLab URL, encrypted token, default group, timeout, enablement, connection-test status, and audit metadata. Delivery and other workbenches reference the Provider ID and repository coordinates.
 

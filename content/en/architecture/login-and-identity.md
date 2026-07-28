@@ -76,7 +76,15 @@ OIDC、OAuth2、飞书、钉钉、企业微信这几类可运行 provider 现在
 
 飞书、钉钉、企业微信的 App Key、App Secret、CorpID、CorpSecret 等应用凭据属于“登陆设置”的登录源应用配置，不属于组织节点。组织节点只保存映射来源和第三方部门/组织 ID；如果同一种 provider 配了多个应用，组织来源应优先选择具体登录源应用 ID，而不是只选择 `feishu`、`dingtalk` 或 `wecom` 类型。
 
-当前实现不是飞书、钉钉、企业微信通讯录的全量同步或事件订阅。第三方目录同步、组织变更 webhook、离职禁用同步等应作为后续 connector 能力设计；本阶段只在用户成功登录时根据 provider 返回的数据补充本地授权上下文。
+## Directory synchronization
+
+Directory connections are separate from login-time role and organization mapping. Feishu connections configured as `scheduled_and_realtime` accept verified contact events and apply a single-object delta from the event payload. When the payload does not contain enough current data, Soha fetches only the referenced department or person instead of pulling the complete directory snapshot. Duplicate deliveries are idempotent, and older events do not overwrite a newer projection.
+
+Scheduled or manually triggered full reconciliation remains the drift-repair fallback. Unsupported or incomplete events mark the connection as requiring reconciliation; they do not trigger a full snapshot for every webhook.
+
+For a departure or user deletion event, Soha removes the memberships owned by that directory source. With `userDisablePolicy: managed_only`, it also disables an account managed by the connection and revokes its active sessions. With `userDisablePolicy: never`, it leaves the account enabled and removes only the directory-owned memberships. Missing or deleted organizations are archived rather than hard-deleted.
+
+The directory connection console shows callback configuration and verification, recent queued or failed events with retry controls, the last incremental and full reconciliation times, and whether full reconciliation is required. Feishu directory events are currently supported; DingTalk and WeCom still rely on scheduled or manual full synchronization.
 
 针对 SAML 类 provider，目前只保存配置态字段，例如：
 

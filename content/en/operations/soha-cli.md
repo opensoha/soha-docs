@@ -1,11 +1,11 @@
 # soha
 
-`soha` 是 soha AI Gateway 的本地入口。它负责登录、保存本地 profile、声明 AI client 上下文、启动 MCP stdio server，以及检查当前身份能看到的 Gateway capability。
+`soha` is the local entry point for the Soha AI Gateway. It handles login, stores local profiles, declares AI client context, starts the MCP stdio server, and inspects the Gateway capabilities available to the current identity.
 
-CLI 不执行真实平台动作。所有 MCP tool 调用都会代理到 soha 后端：
+The CLI does not perform platform actions directly. Every MCP tool call is proxied through the Soha backend:
 
 ```text
-soha mcp start
+soha mcp
   -> GET /api/v1/ai-gateway/capabilities
   -> POST /api/v1/ai-gateway/tools/:toolName/invoke
   -> POST /api/v1/ai-gateway/resources/read
@@ -14,9 +14,17 @@ soha mcp start
   -> owning application service
 ```
 
-## 构建和安装二进制
+## Installation, npx, and local builds
 
-`soha` CLI 目前不是 npm 包；它是 Go 写的本地二进制。开发环境可以直接从 `soha-cli` 源码构建，然后把二进制放到本机 `PATH` 里。
+`@opensoha/cli` is a lightweight npm launcher for the native Go CLI. It downloads the platform binary matching the npm package version, verifies it against `checksums.txt`, and caches it by version. The package will be published by the first tagged release that includes the npm publishing step. Until it appears in the registry, npx returns `E404`; use the native GitHub Release binary instead. After publication, use `@latest` interactively and pin the npm version in CI:
+
+```bash
+npx -y @opensoha/cli@latest mcp
+npx -y @opensoha/cli@latest setup --client codex --mode both
+npx -y @opensoha/cli@0.1.0 version --json
+```
+
+`setup` writes the verified cached binary path into the MCP configuration, so starting the Agent does not download the binary again. Run the latest `setup` again to upgrade. For development, build the binary from the `soha-cli` source and add it to `PATH`:
 
 ```bash
 cd ../soha-cli
@@ -27,13 +35,13 @@ install -m 0755 ./bin/soha ~/.local/bin/soha
 soha help
 ```
 
-如果 `~/.local/bin` 还不在 `PATH`，先把它加入 shell 配置：
+If `~/.local/bin` is not already in `PATH`, add it to your shell configuration:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-当前 Gateway 命令面：
+Current Gateway commands:
 
 - `login`
 - `profile list|show|use`
@@ -47,18 +55,18 @@ export PATH="$HOME/.local/bin:$PATH"
 - `audit list`
 - `approval list|timeline|approve|reject|cancel`
 - `governance status`
-- `mcp start`
+- `mcp`
 - `mcp install`
-- `skill list`
-- `skill install`
+- `setup`
+- `skill list|install|status|update|remove|rollback`
 - `diagnose`
 - `completion bash|zsh`
 
-`skill install` 只安装 AI 可读流程和方法论，不赋予额外权限。真实授权仍由 Gateway manifest、permission keys、scope grants 和 MCP tool grants 决定。
+`skill install` installs AI-readable workflows and methods only. It grants no additional permissions. Authorization still comes from the Gateway manifest, permission keys, scope grants, and MCP tool grants.
 
-端到端 MCP client、CI service account、delivery/k8s workflow、access policy 和 skill binding 示例见 [AI Gateway Examples](./ai-gateway-examples.md)。
+See [AI Gateway Examples](./ai-gateway-examples.md) for end-to-end MCP client, CI service account, delivery/Kubernetes workflow, access policy, and skill binding examples.
 
-## 登录
+## Login
 
 ```bash
 soha login \
@@ -69,19 +77,19 @@ soha login \
   --ai-client-id codex-local
 ```
 
-如果没有传 `--password`，CLI 会从标准输入读取密码。
+If `--password` is omitted, the CLI reads the password from standard input.
 
-本地配置默认写入：
+The local configuration defaults to:
 
 ```text
 ~/.soha/config.json
 ```
 
-也可以通过 `SOHA_CONFIG=/abs/path/config.json` 指定路径。配置文件使用 `0600` 权限写入，父目录使用 `0700` 权限创建。
+Set `SOHA_CONFIG=/abs/path/config.json` to use another path. The CLI writes the configuration file with `0600` permissions and creates parent directories with `0700` permissions.
 
-`profile show` 只展示脱敏后的 token；不要把完整 token、kubeconfig、环境变量或服务账号密钥写入日志、issue、AI 对话或诊断附件。
+`profile show` displays redacted tokens only. Never put full tokens, kubeconfigs, environment variables, or service account secrets in logs, issues, AI conversations, or diagnostic attachments.
 
-## Profile 和上下文
+## Profiles and context
 
 ```bash
 soha profile list
@@ -89,7 +97,7 @@ soha profile show local
 soha profile use local
 ```
 
-AI client 上下文会作为请求头发送到 Gateway，用于审计和 tool grant 过滤：
+AI client context is sent to the Gateway as request headers for auditing and tool-grant filtering:
 
 ```bash
 soha context set \
@@ -100,14 +108,14 @@ soha context set \
   --source soha
 ```
 
-对应请求头：
+The corresponding headers are:
 
 - `X-Soha-AI-Client-ID`
 - `X-Soha-AI-Client`
 - `X-Soha-Skill-ID`
 - `X-Soha-Source`
 
-## Capability 检查
+## Capability inspection
 
 ```bash
 soha capabilities --profile local
@@ -118,21 +126,21 @@ soha capabilities --profile local --domain platform --output names
 soha capabilities --profile local --domain platform --output json
 ```
 
-`capabilities` 会调用 `GET /api/v1/ai-gateway/capabilities`，输出当前身份可用的 tools、resources、prompts、skills、permission keys 和 manifest summary。`--output inputs` 会按 tool 汇总 manifest `inputSchema` 与 `outputSchema` 中的 required 字段和 properties 字段，方便在不展开完整 JSON manifest 的情况下核对 MCP client 需要传入的参数和可预期输出字段。
+`capabilities` calls `GET /api/v1/ai-gateway/capabilities` and prints the tools, resources, prompts, skills, permission keys, and manifest summary available to the current identity. `--output inputs` summarizes required fields and properties from each tool's manifest `inputSchema` and `outputSchema`.
 
-`--domain platform` 会改为调用 `GET /api/v1/clusters/capabilities`，输出 Direct/Agent 连接模式的运行时能力矩阵。该矩阵用于核对 YAML apply/delete、CRD、Helm、logs、exec、port-forward 和 Docker runtime 等能力在不同连接模式下的 `available`、`partial` 或 `unsupported` 状态。平台能力矩阵支持 `json`、`yaml` 和 `names` 输出；`inputs` 只适用于默认 Gateway manifest。
+`--domain platform` calls `GET /api/v1/clusters/capabilities` instead and prints the runtime capability matrix for Direct and Agent connection modes. It reports YAML apply/delete, CRD, Helm, logs, exec, port-forward, Docker runtime, and related capabilities as `available`, `partial`, or `unsupported`. Platform capabilities support `json`, `yaml`, and `names`; `inputs` applies only to the default Gateway manifest.
 
-如果 capability 不存在，优先检查：
+If a capability is missing, check:
 
-- 当前 profile 是否登录到正确 server。
-- 用户或 token 是否拥有 `ai.gateway.view`。
-- 业务工具是否还需要对应 domain permission，例如 `delivery.*`。
-- `mcp_tool_grants` 是否把 tool 收窄掉。
-- `ai_access_policies` 或 `ai_gateway_skill_bindings` 是否把当前 AI client、角色或主体收窄掉。
+- The active profile points to the intended server.
+- The user or token has `ai.gateway.view`.
+- The business tool's domain permissions, such as `delivery.*`, are granted.
+- `mcp_tool_grants` has not narrowed the tool set.
+- `ai_access_policies` or `ai_gateway_skill_bindings` has not narrowed the current AI client, role, or subject.
 
-## Tool Call
+## Tool calls
 
-人工兜底调用 Gateway tool：
+Call a Gateway tool manually as a fallback:
 
 ```bash
 soha tool call k8s.pods.list \
@@ -140,11 +148,11 @@ soha tool call k8s.pods.list \
   --input ./pod-list-input.json
 ```
 
-`--input -` 从标准输入读取 JSON；也可以用 `--input-json '{"clusterId":"cluster-a","namespace":"prod"}'`。CLI 只调用 `POST /api/v1/ai-gateway/tools/:toolName/invoke`，不直接访问数据库、Kubernetes 或 runner。
+`--input -` reads JSON from standard input. You can also use `--input-json '{"clusterId":"cluster-a","namespace":"prod"}'`. The CLI calls only `POST /api/v1/ai-gateway/tools/:toolName/invoke`; it does not access the database, Kubernetes, or runners directly.
 
-## Resource 和 Prompt
+## Resources and prompts
 
-人工读取 Gateway MCP resource 或 prompt，用于排查 MCP client 能看到的上下文：
+Read a Gateway MCP resource or prompt when diagnosing the context visible to an MCP client:
 
 ```bash
 soha resource read soha://delivery/applications \
@@ -157,11 +165,11 @@ soha prompt get soha.delivery.plan_release \
   --context-json '{"environmentId":"dev"}'
 ```
 
-`resource read` 只调用 `POST /api/v1/ai-gateway/resources/read`，`prompt get` 只调用 `POST /api/v1/ai-gateway/prompts/get`。`--context -`、`--arguments -` 可从标准输入读取 JSON；同一命令一次只允许一个参数源读取标准输入。输出会按 CLI 脱敏规则处理。
+`resource read` calls only `POST /api/v1/ai-gateway/resources/read`; `prompt get` calls only `POST /api/v1/ai-gateway/prompts/get`. `--context -` and `--arguments -` read JSON from standard input, but only one argument source may use standard input in a single command. Output follows the CLI redaction rules.
 
-## Token 和 Service Account
+## Tokens and service accounts
 
-个人 token：
+Personal tokens:
 
 ```bash
 soha token list --profile local
@@ -169,7 +177,7 @@ soha token create --profile local --name codex-local --permission-keys ai.gatewa
 soha token revoke --profile local pat-123
 ```
 
-Service account：
+Service accounts:
 
 ```bash
 soha service-account list --profile local
@@ -179,33 +187,33 @@ soha service-account token-create --profile local --service-account-id sa-123 --
 soha service-account token-revoke --profile local sat-123
 ```
 
-创建 token 时后端返回的明文 token 只会在本次命令输出中出现一次。`token-list` 只返回服务账号 token 的 id、所属服务账号、prefix、权限、scope、过期、最近使用和吊销状态。列表、审计和诊断输出默认脱敏，不显示 token hash、kubeconfig、环境变量或 secret-looking 字段。
+The backend returns a newly created plaintext token once. `token-list` returns only the token ID, owning service account, prefix, permissions, scopes, expiry, last-used time, and revocation state. List, audit, and diagnostic output is redacted by default and does not expose token hashes, kubeconfigs, environment variables, or secret-like fields.
 
 ## Audit
 
-查询 Gateway audit：
+Query Gateway audit records:
 
 ```bash
 soha audit list --profile local --tool-name diagnosis.release_failure.analyze --limit 20
 soha audit list --profile local --actor user-1 --from 2026-05-29T00:00:00Z
 ```
 
-支持 actor、actor type、AI client、skill、tool、risk level、result、action、from/to 和 limit 过滤。时间使用 RFC3339。
+Filters include actor, actor type, AI client, skill, tool, risk level, result, action, from/to, and limit. Times use RFC3339.
 
 ## Governance
 
-查询 Gateway 治理健康和运营指标：
+Inspect Gateway governance health and operational metrics:
 
 ```bash
 soha governance status --profile local
 soha governance status --profile local --window-hours 48 --json
 ```
 
-`governance status` 调用 `GET /api/v1/ai-gateway/governance/status`，默认统计最近 24 小时审计；显式 `--window-hours` 只接受 1 到 168，避免直接 API 请求触发异常大窗口扫描。输出包括健康状态、health checks、调用成功/拒绝/失败数、pending approval 数、approval SLA 摘要、PAT/service token 的 last-used/过期/未使用提醒、AI client 注册审批状态、budget/rate-limit/redaction/resource-scope 覆盖度和异常调用 finding。普通文本输出会把每个 health check 的状态、名称、count 和脱敏消息打印出来，也会把 finding 的 actor、subject、AI client、approval request、policy、grant、tool 和 risk level 一并打印，并展示结构化 `recommendationAction` 的 action、target、refs 和 count，便于定位 `approval_sla_due_soon`、`stale_gateway_approvals`、`high_risk_allow_without_approval` / `high_risk_grant_without_approval` 以及 `high_risk_allow_without_resource_scope` / `high_risk_grant_without_resource_scope` 这类治理告警；普通文本输出还会展示 redaction hit summary，包括 total matches、命中 audit 数、input/output target、主要 match type/classifier/field path/policy/tool。`policyCoverage` 会同时展示 total 与 active policy/grant/binding 数量，`redactionPolicyState` 会把 input `redactionPolicy`、`outputRedactionPolicy` 和 response/output redaction aliases 计为 configured，disabled policy、expired grant 和 disabled binding 不会把 coverage state 标记为 `configured`；没有任何 active `resourceScopes` 覆盖时，后端会通过 `resource_scope_coverage` health check 和 recommendation action 提醒补齐跨环境访问约束；`--json` 保留完整脱敏 DTO，包括 approvals、riskCounts、pendingApprovalClientIds、redaction summary、activeAccessPolicies、activeToolGrants、resourceScopeState、resourceScopedAccessPolicies、`recommendationActions` 和 token due/stale day 字段。已配置的 `rateLimit`、调用次数型 `budget`、token/cost budget、strict/sanitize input redaction、output redaction 和 `resourceScopes` 会在后端 invocation 前强制执行；CLI 只展示脱敏治理摘要。
+`governance status` calls `GET /api/v1/ai-gateway/governance/status`. It uses the last 24 hours of audit records by default; explicit `--window-hours` values are limited to 1 through 168. Output covers health checks, successful/denied/failed calls, pending approvals, approval SLA, PAT and service-token usage, AI client registration status, budget/rate-limit/redaction/resource-scope coverage, and anomalous findings. Text output is redacted and includes structured recommendation actions. `--json` preserves the complete redacted DTO. Configured rate limits, budgets, redaction policies, and resource scopes are enforced by the backend before invocation; the CLI only displays the governance summary.
 
-## Approval Requests
+## Approval requests
 
-治理输出或 Console 中看到 approval request id 后，可以从 CLI 继续查询和处理：
+Use the CLI to inspect and decide approval requests found in governance output or the Console:
 
 ```bash
 soha approval list --profile local --status pending --tool-name delivery.actions.trigger
@@ -215,43 +223,50 @@ soha approval reject approval-123 --profile local --comment "missing rollback pl
 soha approval cancel approval-123 --profile local --comment "duplicate request"
 ```
 
-`approval list` 代理 `GET /api/v1/ai-gateway/approval-requests`，支持 `id`、`status`、`actor`、`actor-type`、`ai-client-id`、`skill-id`、`tool-name`、`risk-level`、`strategy`、`from`、`to` 和 `limit` 过滤。`approval timeline` 代理 `GET /api/v1/ai-gateway/approval-requests/:requestID/timeline`，返回后端从 `approvalRouting` 派生的 `approvalTrace`、decision、stage history、workflow/task 关联和同一 approval request 的 Gateway audit events。`audit list` 也支持 `--approval-request-id`，便于只查看某个审批请求关联的审计事件。`approve`、`reject` 和 `cancel` 只代理已有审批 API，并把 `--comment` 作为 decision comment 发送；实际候选审批人、change window、多阶段 quorum、AI client 激活或 tool replay 都仍由后端 Gateway application service 执行。CLI 输出会脱敏 approval tool input、decision comment、执行输出和关联 metadata。
+`approval list` proxies `GET /api/v1/ai-gateway/approval-requests` and supports ID, status, actor, actor type, AI client, skill, tool, risk level, strategy, time, and limit filters. `approval timeline` proxies `GET /api/v1/ai-gateway/approval-requests/:requestID/timeline`. Approval commands proxy the existing approval APIs; candidate approvers, change windows, multi-stage quorum, AI client activation, and tool replay remain backend responsibilities. CLI output redacts tool input, decision comments, execution output, and related metadata.
 
-## MCP stdio server
+## MCP stdio server and Agent configuration
 
-本地启动：
-
-```bash
-soha mcp start --profile local
-```
-
-生成 MCP client 配置：
+Start the local server:
 
 ```bash
-soha mcp install \
-  --profile local \
-  --command /usr/local/bin/soha \
-  --ai-client-id codex-local \
-  --ai-client Codex \
-  --skill-id k8s-sre
+soha mcp --profile local
+soha mcp --profile local --base-url https://soha.internal.example
 ```
 
-输出形态：
+The official hosted endpoint `https://mcp.opensoha.com` is the default. Self-hosted deployments must pass `--base-url` explicitly. Configure an Agent's MCP and Skills together with:
+
+```bash
+soha setup --client codex --mode both --profile local
+soha setup --client codex --scope project --mode both --profile local
+soha setup --client claude --mode mcp --base-url https://soha.internal.example
+soha setup --client codex --check
+```
+
+The default `--scope user` writes user-level configuration. `--scope project` writes repository-local client configuration, the Agent skill, and the `.soha/skills` runtime. Explicit `--config`, `--dest`, and `--runtime-skill-dest` values override the scope. Supported clients are `codex`, `claude`, `cursor`, `kiro`, `gemini`, `antigravity`, `antigravity-ide`, and `trae`.
+
+To print generic MCP JSON manually, use:
+
+```bash
+soha mcp install --profile local --command /usr/local/bin/soha
+```
+
+The generated command arguments use the direct `mcp` entry point:
 
 ```json
 {
   "mcpServers": {
     "soha": {
       "command": "/usr/local/bin/soha",
-      "args": ["mcp", "start", "--profile", "local", "--ai-client-id", "codex-local", "--ai-client", "Codex", "--skill-id", "k8s-sre"]
+      "args": ["mcp", "--profile", "local"]
     }
   }
 }
 ```
 
-如果没有传 `--profile`，`mcp install` 会使用当前 profile。`--ai-client-id`、`--ai-client` 和 `--skill-id` 会写入生成的 `mcp start` 参数，用于固定审计来源、AI client context 和 skill binding 上下文。
+Without `--profile`, `mcp install` uses the current profile. `--ai-client-id`, `--ai-client`, and `--skill-id` are written into the generated `mcp` arguments to pin the audit source, AI client context, and skill binding. `mcp start` remains a compatibility form.
 
-MCP server 支持：
+The MCP server supports:
 
 - `initialize`
 - `tools/list`
@@ -261,77 +276,53 @@ MCP server 支持：
 - `prompts/list`
 - `prompts/get`
 
-`initialize` 会返回 soha MCP 的安全边界说明：本地进程只是 AI Gateway proxy，不直接访问 PostgreSQL、Kubernetes、Docker、runner 工作目录、本地 kubeconfig，也不会绕过后端权限拼接 prompt 或 resource 内容。`tools/list`、`resources/list` 和 `prompts/list` 从 Gateway manifest 动态生成 MCP 能力列表；当前默认 Gateway tools 都会透出结构化 `inputSchema`，并在 manifest 定义输出契约时透出 `outputSchema`，让 MCP client 可以识别 `applicationId`、`action`、`clusterId`、`namespace`、`podName`、`deploymentName`、`serviceName`、`nodeName`、`taskId` 等输入字段以及可预期输出字段。`resources/list` 会透出 resource `contextSchema`，`prompts/list` 会透出 prompt `argumentSchema`、`contextSchema` 和标准 MCP `arguments[]` 摘要。`tools/list` 会输出标准 MCP `annotations`：`read` tool 标记只读/幂等，`mutate`、`execute`、`high` tool 标记 destructive，且 soha tool 默认 `openWorldHint=true`。三类列表都会在 `_meta.soha` 中带上 `permissionKeys` 和 `requiredScopes`；tool 列表还会带上 `domain`、`action`、`mcpAdapterId`、`mcpToolName`、`riskLevel` 和 `requiresApproval`，用于客户端展示调用/读取前的权限、scope、adapter 映射与风险预期。`tools/call` 只代理到 `POST /api/v1/ai-gateway/tools/:toolName/invoke`，`resources/read` 只代理到 `POST /api/v1/ai-gateway/resources/read`，`prompts/get` 只代理到 `POST /api/v1/ai-gateway/prompts/get`；缺少 tool name、resource URI/name 或 prompt name 时会直接返回 JSON-RPC invalid params，不会把无效请求发给后端。
+The local process is an AI Gateway proxy. It does not directly access PostgreSQL, Kubernetes, Docker, runner workspaces, or the local kubeconfig, and it cannot bypass backend permissions. Tool, resource, and prompt lists are generated dynamically from the Gateway manifest. Schemas and `_meta.soha` metadata describe inputs, outputs, permission keys, scopes, adapters, risk, and approval requirements. Tool calls, resource reads, and prompt requests are always proxied through the corresponding backend endpoints.
 
-`resources/read` 使用 manifest 暴露的 `soha://...` URI，例如 `soha://delivery/applications`、`soha://delivery/execution-tasks` 和 `soha://k8s/runtime`。`prompts/get` 支持 `soha.delivery.plan_release` 和 `soha.k8s.diagnose_workload`，并会把 MCP arguments 和 context 交给后端 Gateway 脱敏后合成 prompt messages。resource 和 prompt 也受 skill binding 约束：当 `--skill-id` 指向某个绑定 skill 时，后端只允许读取与该绑定 capability refs 相关的 resource/prompt。
-
-当前可调用 Gateway tools 包括：
-
-- `delivery.applications.list`
-- `delivery.applications.detail`
-- `delivery.applications.create`
-- `delivery.application_environments.list`
-- `delivery.application_services.list`
-- `delivery.build_sources.list`
-- `delivery.release_targets.list`
-- `delivery.actions.trigger`
-- `delivery.release_bundles.list`
-- `delivery.execution_tasks.list`
-- `delivery.execution_logs.list`
-- `delivery.workflow_templates.list`
-- `delivery.release_context.diff`
-- `delivery.rollback.context`
-- `k8s.pods.list`
-- `k8s.pods.logs`
-- `k8s.pods.describe`
-- `k8s.deployments.list`
-- `k8s.deployments.rollout_status`
-- `k8s.deployments.events`
-- `k8s.services.list`
-- `k8s.services.backends`
-- `k8s.routes.context`
-- `k8s.storage.context`
-- `k8s.nodes.detail`
-- `k8s.events.list`
-- `diagnosis.release_failure.analyze`
-
-`delivery.actions.trigger` 支持 build、deploy、build_deploy、workflow、verify 和 rollback；rollback 应先用 `delivery.rollback.context` 读取建议上下文，再以 `action=rollback` 触发受控 workflow。k8s 工具需要 `clusterId`，`namespace` 可按平台 scope 语义为空表示聚合视图。`k8s.pods.logs` 还需要 `podName`，可选 `container`、`tailLines`、`sinceSeconds` 和 `previous`。日志输出会在 Gateway 层做基础敏感字段脱敏。
+Resources use manifest URIs such as `soha://delivery/applications`, `soha://delivery/execution-tasks`, and `soha://k8s/runtime`. Prompts include `soha.delivery.plan_release` and `soha.k8s.diagnose_workload`. Skill bindings can further narrow the resources and prompts visible to a client.
 
 ## Skills
 
-仓库内置首批 Skills：
+The initial built-in Skills are:
 
 - `delivery-developer`
 - `delivery-tester`
 - `k8s-sre`
 - `security-change`
 
-查看可安装 Skills：
+List Skills from the latest stable GitHub Release:
 
 ```bash
-soha skill list --source skills/ai-gateway
+soha skill list
 ```
 
-安装单个 Skill：
+Install one Skill:
 
 ```bash
 soha skill install \
-  --source skills/ai-gateway \
   --dest ~/.soha/skills \
   delivery-developer
 ```
 
-安装全部：
+Install all Skills:
 
 ```bash
 soha skill install --all
 ```
 
-默认来源为 `skills/ai-gateway`，可用 `SOHA_SKILLS_SOURCE=/abs/path` 覆盖。默认安装目录为 `~/.soha/skills`，可用 `SOHA_SKILLS_DIR=/abs/path` 覆盖。
+The default source is the latest stable `opensoha/soha-skills` GitHub Release, never a branch. Pin a release for reproducible installs or rollback with `--source github:opensoha/soha-skills@v0.1.0`. Local checkouts, release tarballs, and HTTPS release URLs remain supported through `--source`. The default destination is `~/.soha/skills`; `--scope project` uses `.soha/skills` in the current repository, while explicit `--dest` or `SOHA_SKILLS_DIR` values override the default.
 
-Skills 是工作流说明，不是安全边界。AI 客户端安装 Skill 后仍必须通过当前身份可见的 MCP tools 工作。
+Install and update stage a complete generation before activation. The previous verified generation remains available for rollback, and operations append to the local JSONL installation audit:
 
-## 诊断
+```bash
+soha skill status
+soha skill update
+soha skill remove k8s-sre
+soha skill rollback
+```
+
+Skills describe workflows; they are not a security boundary. An AI client must still use MCP tools visible to its current identity.
+
+## Diagnostics
 
 ```bash
 soha diagnose --profile local
@@ -342,9 +333,9 @@ soha diagnose --profile local --cluster-capability resource.yaml.apply
 soha diagnose --profile local --tool k8s.pods.logs --ai-client-id codex-local --skill-id k8s-sre --source codex-mcp
 ```
 
-`diagnose` 会验证 profile、server、token 和 Gateway capability 读取链路，并输出 tool/resource/prompt/skill/permission key 数量。传入 `--tool` 时会展示该 tool 的 risk level、审批要求、permission keys、required scopes，以及从 manifest `inputSchema` / `outputSchema` 汇总出的 `inputRequired`、`inputFields`、`outputRequired` 和 `outputFields`，并提示检查 MCP tool grants、AI access policies、skill bindings、AI client context 和 resource scopes。传入 `--resource` 或 `--prompt` 时会展示 resource/prompt 的 permission keys，并提示检查 Gateway `resources/read` / `prompts/get`、skill binding、AI client context 和 arguments/context。`--ai-client-id`、`--ai-client`、`--skill-id` 和 `--source` 只覆盖本次诊断请求，用于模拟 `mcp start` 或 `mcp install` 生成的客户端上下文，不会修改 profile。它不打印 token。
+`diagnose` validates the profile, server, token, and Gateway capability path, then prints tool/resource/prompt/skill/permission-key counts. Tool diagnostics include risk, approval requirements, permission keys, scopes, and summarized input/output schemas. Resource and prompt diagnostics identify the relevant permissions and binding context. AI client flags override only the current diagnostic request and do not modify the profile. Tokens are never printed.
 
-传入 `--cluster-capability` 时，`diagnose` 会读取平台能力矩阵并展示指定 capability 的 Direct/Agent 支持状态、原因、required scopes、risk level、审批要求和 `docsUrl`。这条路径用于排查某个集群连接模式为什么不能执行 YAML、CRD、Helm、logs、exec、port-forward 或 Docker runtime 操作。
+`--cluster-capability` reads the platform capability matrix and explains the selected capability's Direct/Agent support, required scopes, risk, approval requirement, and documentation URL.
 
 ## Completion
 

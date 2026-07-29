@@ -5,7 +5,7 @@
 CLI 不执行真实平台动作。所有 MCP tool 调用都会代理到 soha 后端：
 
 ```text
-soha mcp start
+soha mcp
   -> GET /api/v1/ai-gateway/capabilities
   -> POST /api/v1/ai-gateway/tools/:toolName/invoke
   -> POST /api/v1/ai-gateway/resources/read
@@ -14,9 +14,17 @@ soha mcp start
   -> owning application service
 ```
 
-## 构建和安装二进制
+## 安装、npx 与本地构建
 
-`soha` CLI 目前不是 npm 包；它是 Go 写的本地二进制。开发环境可以直接从 `soha-cli` 源码构建，然后把二进制放到本机 `PATH` 里。
+`@opensoha/cli` 是原生 Go CLI 的轻量 npm 启动器。它下载与 npm 包版本匹配的平台二进制，核对 `checksums.txt` 后按版本缓存。该包会由首个包含 npm 发布步骤的 tag release 发布；在 registry 尚未出现该包时，npx 会返回 `E404`，此时应先使用原生 GitHub Release 二进制。发布后，交互式安装使用 `@latest`，CI 应固定 npm 版本：
+
+```bash
+npx -y @opensoha/cli@latest mcp
+npx -y @opensoha/cli@latest setup --client codex --mode both
+npx -y @opensoha/cli@0.1.0 version --json
+```
+
+`setup` 会把已校验的缓存二进制路径写入 MCP 配置，因此 Agent 每次启动 MCP 时不需要重新走 npm 下载。升级时重新执行最新的 `setup`。开发环境也可以从 `soha-cli` 源码构建并把二进制放入 `PATH`：
 
 ```bash
 cd ../soha-cli
@@ -47,10 +55,10 @@ export PATH="$HOME/.local/bin:$PATH"
 - `audit list`
 - `approval list|timeline|approve|reject|cancel`
 - `governance status`
-- `mcp start`
+- `mcp`
 - `mcp install`
-- `skill list`
-- `skill install`
+- `setup`
+- `skill list|install|status|update|remove|rollback`
 - `diagnose`
 - `completion bash|zsh`
 
@@ -217,39 +225,46 @@ soha approval cancel approval-123 --profile local --comment "duplicate request"
 
 `approval list` 代理 `GET /api/v1/ai-gateway/approval-requests`，支持 `id`、`status`、`actor`、`actor-type`、`ai-client-id`、`skill-id`、`tool-name`、`risk-level`、`strategy`、`from`、`to` 和 `limit` 过滤。`approval timeline` 代理 `GET /api/v1/ai-gateway/approval-requests/:requestID/timeline`，返回后端从 `approvalRouting` 派生的 `approvalTrace`、decision、stage history、workflow/task 关联和同一 approval request 的 Gateway audit events。`audit list` 也支持 `--approval-request-id`，便于只查看某个审批请求关联的审计事件。`approve`、`reject` 和 `cancel` 只代理已有审批 API，并把 `--comment` 作为 decision comment 发送；实际候选审批人、change window、多阶段 quorum、AI client 激活或 tool replay 都仍由后端 Gateway application service 执行。CLI 输出会脱敏 approval tool input、decision comment、执行输出和关联 metadata。
 
-## MCP stdio server
+## MCP stdio server 与 Agent 配置
 
 本地启动：
 
 ```bash
-soha mcp start --profile local
+soha mcp --profile local
+soha mcp --profile local --base-url https://soha.internal.example
 ```
 
-生成 MCP client 配置：
+官方托管地址 `https://mcp.opensoha.com` 是默认值；私有化部署必须显式传 `--base-url`。推荐直接配置 Agent 的 MCP 和 Skills：
 
 ```bash
-soha mcp install \
-  --profile local \
-  --command /usr/local/bin/soha \
-  --ai-client-id codex-local \
-  --ai-client Codex \
-  --skill-id k8s-sre
+soha setup --client codex --mode both --profile local
+soha setup --client codex --scope project --mode both --profile local
+soha setup --client claude --mode mcp --base-url https://soha.internal.example
+soha setup --client codex --check
 ```
 
-输出形态：
+默认 `--scope user` 写用户级配置；`--scope project` 写仓库内的客户端配置、Agent skill 和 `.soha/skills` runtime。显式 `--config`、`--dest` 和 `--runtime-skill-dest` 优先于 scope。`codex`、`claude`、`cursor`、`kiro`、`gemini`、`antigravity`、`antigravity-ide` 和 `trae` 均可作为 client。
+
+需要手工查看通用 MCP JSON 时使用：
+
+```bash
+soha mcp install --profile local --command /usr/local/bin/soha
+```
+
+输出中的命令参数以直接 `mcp` 入口开头：
 
 ```json
 {
   "mcpServers": {
     "soha": {
       "command": "/usr/local/bin/soha",
-      "args": ["mcp", "start", "--profile", "local", "--ai-client-id", "codex-local", "--ai-client", "Codex", "--skill-id", "k8s-sre"]
+      "args": ["mcp", "--profile", "local"]
     }
   }
 }
 ```
 
-如果没有传 `--profile`，`mcp install` 会使用当前 profile。`--ai-client-id`、`--ai-client` 和 `--skill-id` 会写入生成的 `mcp start` 参数，用于固定审计来源、AI client context 和 skill binding 上下文。
+如果没有传 `--profile`，`mcp install` 会使用当前 profile。`--ai-client-id`、`--ai-client` 和 `--skill-id` 会写入生成的 `mcp` 参数，用于固定审计来源、AI client context 和 skill binding 上下文。`mcp start` 仅保留为兼容形式。
 
 MCP server 支持：
 
@@ -306,17 +321,16 @@ MCP server 支持：
 - `k8s-sre`
 - `security-change`
 
-查看可安装 Skills：
+查看最新稳定 GitHub Release 中可安装的 Skills：
 
 ```bash
-soha skill list --source skills/ai-gateway
+soha skill list
 ```
 
 安装单个 Skill：
 
 ```bash
 soha skill install \
-  --source skills/ai-gateway \
   --dest ~/.soha/skills \
   delivery-developer
 ```
@@ -327,7 +341,16 @@ soha skill install \
 soha skill install --all
 ```
 
-默认来源为 `skills/ai-gateway`，可用 `SOHA_SKILLS_SOURCE=/abs/path` 覆盖。默认安装目录为 `~/.soha/skills`，可用 `SOHA_SKILLS_DIR=/abs/path` 覆盖。
+默认来源是 `opensoha/soha-skills` 的最新稳定 GitHub Release，不从 branch 安装，也不提供 `--skills-version`。仅在可复现安装或回滚时使用 `--source github:opensoha/soha-skills@v0.1.0`。本地 checkout、release tarball 和 HTTPS release URL 仍可通过 `--source` 使用。默认安装目录为 `~/.soha/skills`；`--scope project` 使用当前仓库的 `.soha/skills`，显式 `--dest` 或 `SOHA_SKILLS_DIR` 会覆盖默认值。
+
+安装和更新会先生成完整 staging 目录，再切换 active generation；旧 generation 可回滚，操作会写入本地 JSONL 安装审计：
+
+```bash
+soha skill status
+soha skill update
+soha skill remove k8s-sre
+soha skill rollback
+```
 
 Skills 是工作流说明，不是安全边界。AI 客户端安装 Skill 后仍必须通过当前身份可见的 MCP tools 工作。
 
@@ -342,7 +365,7 @@ soha diagnose --profile local --cluster-capability resource.yaml.apply
 soha diagnose --profile local --tool k8s.pods.logs --ai-client-id codex-local --skill-id k8s-sre --source codex-mcp
 ```
 
-`diagnose` 会验证 profile、server、token 和 Gateway capability 读取链路，并输出 tool/resource/prompt/skill/permission key 数量。传入 `--tool` 时会展示该 tool 的 risk level、审批要求、permission keys、required scopes，以及从 manifest `inputSchema` / `outputSchema` 汇总出的 `inputRequired`、`inputFields`、`outputRequired` 和 `outputFields`，并提示检查 MCP tool grants、AI access policies、skill bindings、AI client context 和 resource scopes。传入 `--resource` 或 `--prompt` 时会展示 resource/prompt 的 permission keys，并提示检查 Gateway `resources/read` / `prompts/get`、skill binding、AI client context 和 arguments/context。`--ai-client-id`、`--ai-client`、`--skill-id` 和 `--source` 只覆盖本次诊断请求，用于模拟 `mcp start` 或 `mcp install` 生成的客户端上下文，不会修改 profile。它不打印 token。
+`diagnose` 会验证 profile、server、token 和 Gateway capability 读取链路，并输出 tool/resource/prompt/skill/permission key 数量。传入 `--tool` 时会展示该 tool 的 risk level、审批要求、permission keys、required scopes，以及从 manifest `inputSchema` / `outputSchema` 汇总出的 `inputRequired`、`inputFields`、`outputRequired` 和 `outputFields`，并提示检查 MCP tool grants、AI access policies、skill bindings、AI client context 和 resource scopes。传入 `--resource` 或 `--prompt` 时会展示 resource/prompt 的 permission keys，并提示检查 Gateway `resources/read` / `prompts/get`、skill binding、AI client context 和 arguments/context。`--ai-client-id`、`--ai-client`、`--skill-id` 和 `--source` 只覆盖本次诊断请求，用于模拟 `mcp` 或 `mcp install` 生成的客户端上下文，不会修改 profile。它不打印 token。
 
 传入 `--cluster-capability` 时，`diagnose` 会读取平台能力矩阵并展示指定 capability 的 Direct/Agent 支持状态、原因、required scopes、risk level、审批要求和 `docsUrl`。这条路径用于排查某个集群连接模式为什么不能执行 YAML、CRD、Helm、logs、exec、port-forward 或 Docker runtime 操作。
 

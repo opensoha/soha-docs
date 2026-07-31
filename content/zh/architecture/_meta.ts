@@ -3,6 +3,7 @@ export default {
   'application-delivery': '应用交付',
   'delivery-devops-workbench': '交付 DevOps 工作台',
   'monitoring-and-alerting': '监控与告警',
+  'log-observability': '日志可观测性',
   authorization: '权限模型',
   'login-and-identity': '登录与身份',
   'ai-copilot': 'AI Copilot',

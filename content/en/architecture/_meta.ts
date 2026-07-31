@@ -3,6 +3,7 @@ export default {
   'application-delivery': 'Application Delivery',
   'delivery-devops-workbench': 'Delivery DevOps Workbench',
   'monitoring-and-alerting': 'Monitoring And Alerting',
+  'log-observability': 'Log Observability',
   authorization: 'Authorization',
   'login-and-identity': 'Login And Identity',
   'ai-copilot': 'AI Copilot',

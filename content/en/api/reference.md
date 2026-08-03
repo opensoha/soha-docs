@@ -24,6 +24,16 @@ OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生�
 
 The generator must not read `soha-web` or runtime implementations as the public API source of truth.
 
+## Contract Distribution
+
+The same versioned contract is available without running the docs generator:
+
+- npm: `@opensoha/contracts/openapi/soha-api.yaml` and `@opensoha/contracts/openapi/soha-api.json`.
+- Go: `github.com/opensoha/soha-contracts/openapi`, with embedded YAML/JSON accessors plus version and SHA-256 metadata.
+- A running Soha server: `/swagger/openapi.yaml` and `/swagger/openapi.json` when Swagger is enabled.
+
+Server responses include `X-Soha-Contracts-Version` and `X-Soha-Contracts-SHA256`. Soha serves the packaged contract bytes directly; it does not generate a second runtime specification.
+
 ## Generated Output Contract
 
 当前生成产物包含：

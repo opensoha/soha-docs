@@ -7,8 +7,10 @@
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.3`
+- OpenAPI version: `0.1.4`
 - Source artifact: `openapi/soha-api.yaml`
+- Generated artifact: `openapi/soha-api.json`
+- Go artifact package: `github.com/opensoha/soha-contracts/openapi`
 - npm package: `@opensoha/contracts`
 
 ## 契约目录
@@ -19,6 +21,8 @@
 soha-contracts/
   openapi/
     soha-api.yaml
+    soha-api.json
+    spec_generated.go
   capabilities/
     cluster-capability-matrix.schema.json
   profiles/
@@ -51,6 +55,7 @@ soha-contracts/
 The foundational npm exports include:
 
 - `openapi/soha-api.yaml`
+- `openapi/soha-api.json`
 - `capabilities/cluster-capability-matrix.schema.json`
 - `profiles/agent-profile.schema.json`
 - `presets/mcp-preset.schema.json`

@@ -61,6 +61,7 @@ mcp:
 bootstrap:
 kubernetes:
 monitoring:
+security:
 ```
 
 Key backend fields now used by the runtime:
@@ -78,6 +79,27 @@ Key backend fields now used by the runtime:
 - `monitoring.enabled`: toggles monitoring ingress endpoints
 - `monitoring.webhook_token`: shared token accepted by the alert webhook endpoint
 - `security.credential_encryption_key`：用于加密持久化的集成与平台凭据
+- `security.secret_provider`：留空时使用本地加密值，设为 `vault_kv2` 时启用 Vault Secret 版本
+- `security.vault_kv2.*`：仅服务端使用的 Vault 地址、Token、Namespace、超时和响应大小限制
+
+## Vault KV v2 Secret Store
+
+Vault KV v2 是 Secret Store 的首个外部后端，只在 Soha 服务端配置：
+
+```yaml
+security:
+  secret_provider: vault_kv2
+  vault_kv2:
+    address: https://vault.example.com
+    token: replace-with-a-server-token
+    namespace: ""
+    timeout: 10s
+    max_response_bytes: 2097152
+```
+
+地址必须是无凭据、path、query 和 fragment 的 origin。除本机 loopback 开发地址外必须使用 HTTPS。公开 Secret API 不接收 Vault Token，Secret 记录也不会保存 Token。
+
+创建或轮换 Vault Secret 版本时，需要提供 KV v2 `mount`、`path`、数据 `key` 和显式正整数 Vault `version`。Soha 只保存该定位信息；调用方仍使用 `soha://secrets/{id}` 或 `soha://secrets/{id}/versions/{version}`。Core 会先完成 RBAC、scope、binding、审批、审计和 lease 校验，再读取 Vault。配置缺失或 Vault 读取失败时保持 fail-closed，并隐藏 Provider 原始响应。
 
 ## 标准初始配置
 

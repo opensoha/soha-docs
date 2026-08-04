@@ -21,12 +21,20 @@ Typical overrides:
 - `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`
 - `SOHA_MONITORING_WEBHOOK_TOKEN`
 - `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY`
+- `SOHA_SECURITY_SECRET_PROVIDER`
+- `SOHA_SECURITY_VAULT_KV2_ADDRESS`
+- `SOHA_SECURITY_VAULT_KV2_TOKEN`
+- `SOHA_SECURITY_VAULT_KV2_NAMESPACE`
+- `SOHA_SECURITY_VAULT_KV2_TIMEOUT`
+- `SOHA_SECURITY_VAULT_KV2_MAX_RESPONSE_BYTES`
 - `SOHA_REDIS_ADDR`
 - `SOHA_AUTH_ENABLE_DEV_AUTH`
 
 The repository config and all deployment forms default the database password to `pgsql` and the initial `opensoha` administrator password to `opensoha`. Soha does not vary or reject these standard initial credentials based on an application environment label; both remain explicitly overridable.
 
 The JWT signing secret, execution runner token, monitoring webhook token, and credential encryption key all default to `soha-123456789012345678901234567890`. Soha accepts that documented value and does not require a SecretStore file, writer lease, or secret PVC at startup. Public or formal deployments should override all four variables independently. Changing `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY` requires migrating existing ciphertext first; otherwise previously stored credentials cannot be decrypted.
+
+Set `SOHA_SECURITY_SECRET_PROVIDER=vault_kv2` to enable Vault-backed Secret versions. `SOHA_SECURITY_VAULT_KV2_TOKEN` is a server credential: inject it through the deployment secret mechanism and do not expose it to CLI, Web, MCP, skills, or OpenAPI callers. Vault-backed versions pin a KV v2 version; an unavailable provider fails closed.
 
 Runner and Gateway examples also use these operational variables:
 

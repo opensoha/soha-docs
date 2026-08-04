@@ -21,12 +21,20 @@ Typical overrides:
 - `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`
 - `SOHA_MONITORING_WEBHOOK_TOKEN`
 - `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY`
+- `SOHA_SECURITY_SECRET_PROVIDER`
+- `SOHA_SECURITY_VAULT_KV2_ADDRESS`
+- `SOHA_SECURITY_VAULT_KV2_TOKEN`
+- `SOHA_SECURITY_VAULT_KV2_NAMESPACE`
+- `SOHA_SECURITY_VAULT_KV2_TIMEOUT`
+- `SOHA_SECURITY_VAULT_KV2_MAX_RESPONSE_BYTES`
 - `SOHA_REDIS_ADDR`
 - `SOHA_AUTH_ENABLE_DEV_AUTH`
 
 仓库配置与所有部署方式默认使用数据库密码 `pgsql`，初始化的 `opensoha` 管理员密码为 `opensoha`。Soha 不根据应用环境标签区分或拒绝这组标准初始凭据；两者仍可通过环境变量显式覆盖。
 
 JWT 签名密钥、execution runner token、monitoring webhook token 和 credential encryption key 均默认使用 `soha-123456789012345678901234567890`。Soha 接受这个文档化默认值，启动时不要求 SecretStore 文件、writer lease 或 secret PVC。公网或正式部署应分别覆盖全部四项。修改 `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY` 前必须先迁移已有密文，否则之前保存的凭据将无法解密。
+
+设置 `SOHA_SECURITY_SECRET_PROVIDER=vault_kv2` 可启用 Vault Secret 版本。`SOHA_SECURITY_VAULT_KV2_TOKEN` 是服务端凭据，应通过部署 Secret 注入，不能暴露给 CLI、Web、MCP、skills 或 OpenAPI 调用方。Vault Secret 版本会固定 KV v2 版本；Provider 不可用时请求保持 fail-closed。
 
 Runner and Gateway examples also use these operational variables:
 

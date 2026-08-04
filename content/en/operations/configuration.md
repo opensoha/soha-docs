@@ -61,6 +61,7 @@ mcp:
 bootstrap:
 kubernetes:
 monitoring:
+security:
 ```
 
 Key backend fields now used by the runtime:
@@ -78,6 +79,27 @@ Key backend fields now used by the runtime:
 - `monitoring.enabled`: toggles monitoring ingress endpoints
 - `monitoring.webhook_token`: shared token accepted by the alert webhook endpoint
 - `security.credential_encryption_key`: key used to encrypt persisted integration and platform credentials
+- `security.secret_provider`: empty for local encrypted values, or `vault_kv2` to enable Vault-backed Secret versions
+- `security.vault_kv2.*`: server-side Vault address, token, namespace, timeout, and response-size limit
+
+## Vault KV v2 Secret Store
+
+Vault KV v2 is the first external backend for Secret Store versions. Configure it only on the Soha server:
+
+```yaml
+security:
+  secret_provider: vault_kv2
+  vault_kv2:
+    address: https://vault.example.com
+    token: replace-with-a-server-token
+    namespace: ""
+    timeout: 10s
+    max_response_bytes: 2097152
+```
+
+The address must be an origin without credentials, path, query, or fragment. HTTPS is required except for loopback HTTP during local development. The token is never accepted by the public Secret API and is not stored in Secret records.
+
+When creating or rotating a Vault-backed version, provide a KV v2 `mount`, `path`, data `key`, and an explicit positive Vault `version`. Soha stores only this locator. Callers still use `soha://secrets/{id}` or `soha://secrets/{id}/versions/{version}`; Core performs RBAC, scope and binding checks, approval, audit, and lease handling before reading Vault. Missing configuration or any Vault read failure remains fail-closed and does not expose the provider response.
 
 ## Standard Initial Defaults
 

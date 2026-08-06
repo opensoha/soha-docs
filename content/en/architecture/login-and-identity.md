@@ -147,8 +147,8 @@ Only Refresh Token hashes are persisted. A `post_logout_redirect_uri` must exact
 
 当前过渡实现保持 `runtime.execution_runner_token` 兼容，同时允许外部 runner 入口接受 `service_account_token`：
 
-- Delivery execution runner 需要 `delivery.execution-tasks.manage`
-- Docker runner 需要 `docker.operations.manage`
+- Delivery execution runner 需要 `delivery.execution-tasks.claim`
+- Docker runner 需要 `docker.operations.claim`
 - AI agent runner 需要 `ai.gateway.invoke` 或 `observe.ai.chat`
 
 任务级 callback token 仍然由对应执行任务或 agent run 自己校验。SAT 只替代“谁可以 claim/status/callback 这个 runner 通道”的全局共享入口令牌，不替代任务级防重放和回调归属校验。

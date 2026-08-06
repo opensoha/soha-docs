@@ -1,197 +1,92 @@
-# Authorization
+# 权限模型
 
-## Model
+Soha 使用精确 RBAC 权限键，并与 ABAC、Scope Grant 组合。Web、OpenAPI、CLI、MCP、Skills 和 AI Gateway 最终都进入同一条服务端授权决策链。
 
-soha uses RBAC + ABAC.
+## 权限契约
 
-### RBAC Roles
+可授权权限采用稳定格式 `<domain>.<resource>.<action>`，例如：
 
-- `admin`
-- `ops`
-- `developer`
-- `readonly`
-- `auditor`
+- `virtualization.vms.view`
+- `virtualization.vms.create`
+- `virtualization.vms.resize`
+- `virtualization.vms.delete`
+- `platform.pods.logs`
+- `platform.pods.exec`
 
-RBAC answers one question first: does the principal's role set ever permit this action type?
+`@opensoha/contracts` 的 `auth/permission-catalog.json` 是权限定义真实源，服务端通过 `GET /api/v1/access/permissions` 返回同一目录。每条定义包含显示名称、风险等级、支持的范围类型、审批策略、状态、是否可分配以及兼容别名。
 
-### ABAC Attributes
+角色只在 `permissionKeys` 中保存精确权限。历史 `capabilities` 字段和已被替代的粗粒度 `*.manage` 只用于迁移兼容：角色编辑器会只读展示并原样回传，但新授权只能选择目录中的精确权限。
 
-- user: `user_id`, `roles`, `teams`, `projects`, `tags`
-- cluster: `cluster_id`, `region`, `environment`, `labels`
-- namespace: `namespace`, `labels`, `owner_team`
-- resource: `kind`, `name`, `labels`, `annotations`, `owner`
-- action: `view`, `list`, `watch`, `update`, `delete`, `restart`, `scale`, `logs`, `exec`
-- context: `request time`, `source ip`, `approval state`
+## 决策链
 
-## Authorization Flow
+资源所属的应用服务按以下顺序判断：
 
-1. API middleware validates bearer JWT or applies local bootstrap principal when development auth is explicitly enabled
-2. Handler builds service call parameters only
-3. Application service builds a normalized access request
-4. RBAC evaluator derives baseline allowed actions from persisted role capabilities
-5. ABAC evaluator matches persisted policies against attributes and conditions
-6. Scope filter builder calculates allowed clusters, namespaces, and selectors
-7. Final decision is returned to application service
-8. Resource service either performs the operation or returns deny
-9. Audit service records the allow or deny result
+1. 鉴权并加载主体的持久化角色权限。
+2. 与 PAT 或服务账号 Token 的权限上限求交集。
+3. 校验精确权限键；迁移期内，目录声明的旧别名可以兼容满足该权限。
+4. 使用主体、目标资源和请求上下文执行 ABAC deny/allow。
+5. 使用 Scope Grant 继续收窄可操作范围。
+6. 需要审批时返回 `approval_required`，不直接执行。
+7. 再与模块启用状态、Provider/Agent 能力和资源生命周期状态求交集。
+8. 变更前立即复核，并记录允许、拒绝或审批挂起审计。
 
-## Access Management Surfaces
+ABAC 拒绝或 Scope 不匹配始终优先。Provider 支持与资源状态只能减少动作，不能授予权限。
 
-- the console exposes `users`, `roles`, `user groups`, `policies`, and `scope grants` as the access management surface
-- user-facing `user groups` map to the persisted `teams` relation so existing policy matchers and scope grants remain stable
-- user create and update operations persist base profile fields together with role bindings and user-group bindings in the same request, so permission changes become effective on the next principal load or token refresh
-- roles persist two distinct authorization payloads:
-  - `capabilities`: RBAC resource actions such as `view`, `list`, `update`, `trigger`
-  - `permissionKeys`: console menu and backend API permissions such as `access.users.manage` or `settings.ai.view`
-- built-in role permission maps remain bootstrap defaults for seed replay, but runtime backend authorization and permission snapshots must resolve effective `permissionKeys` from persisted role assignments so custom roles can formally delegate console/API access
+## 菜单、页面与动作
 
-## Frontend Permission Projection
+角色编辑器按 `工作台 -> 菜单/页面 -> 页面动作` 展示权限。这个层级只负责浏览和批量选择，不是安全标识。
 
-- the frontend now consumes a permission snapshot for authenticated sessions
-- the snapshot contains persisted role-derived `permissionKeys` and backend-filtered `visibleMenuIds`
-- route visibility must not rely on static route metadata alone; route access is determined by both required permission keys and backend-filtered visible menus
-- page-level destructive or mutable buttons should progressively switch from unconditional rendering to either:
-  - role-derived permission keys for delivery/management surfaces
-  - backend-returned `allowedActions` for scoped platform resource rows
+- 页面查看权限决定路由访问和菜单派生。
+- 每个按钮或 API 操作使用页面所属资源的精确动作权限。
+- 勾选父级会展开为当前列出的精确子权限，不保存通配符。
+- 未知键和旧权限键保留在只读兼容分组中。
+- 原“全局资源动作”不再是可分配权限域。
 
-## Menu Visibility Derivation
+后端过滤后的 `visibleMenuIds` 决定导航入口。前端路由和按钮校验用于改善体验，后端服务仍是最终授权点。
 
-- the common path now derives visible menus from runtime `permissionKeys` instead of requiring a second manual menu-role binding step
-- backend menu visibility evaluation follows this order:
-  - disabled menus are always hidden
-  - menus with a known backend derivation rule become visible when any mapped `*.view` permission key is present
-  - explicit `menu_role_bindings` remain as a fallback path for menus that still need operator-curated visibility
-  - unmapped menus without explicit bindings remain visible for compatibility until they are either mapped or explicitly bound
-- visible child menus automatically pull their enabled ancestors into the returned tree so sidebar structure stays navigable
-- the permission snapshot's `visibleMenuIds` is produced from this backend-filtered tree, so sidebar ordering and visibility stay aligned with backend menu state
-- frontend menu management now exposes three operator-facing states:
-  - `自动派生`: visibility comes from the mapped permission keys
-  - `显式覆盖`: menu role IDs are stored and used as the explicit path
-  - `未映射`: no known permission mapping exists yet, so operators must either keep explicit role IDs or accept the current compatibility fallback
+## 资源动作
 
-## Known Exception Paths
+列表与详情 API 可以返回 `allowedActions`。它是权限、范围、运行时能力、资源状态和审批状态求交后的最终动作集合。
 
-- explicit menu role IDs are additive fallback in the current backend implementation; they do not narrow visibility for a principal that already satisfies the derived permission rule
-- the backend derivation table is intentionally bounded to the current menu contract, so newly added or custom menus do not auto-derive until their menu ID is mapped in the backend
-- the frontend can infer derived permission keys from route metadata for the menu-management UI, but the persisted menu payload still stores only `roleIds`; `visibilityMode` and `derivedPermissionKeys` are currently UI-level interpretation fields rather than durable backend columns
+例如，一个虚拟机角色可以拥有 `view`、`create`、`resize`，但没有 `delete`。如果当前 Provider 不支持扩容，即使角色拥有 `resize`，返回的 `allowedActions` 仍会移除该动作。即使按钮可见，变更 API 也会重复同一授权检查。
 
-## Access Surface Permissions
+## AI 与自动化调用
 
-- access-management read/list surfaces use:
-  - `access.users.view`
-  - `access.roles.view`
-  - `access.groups.view`
-  - `access.policies.view`
-  - `access.scope-grants.view`
-- mutable access-management operations use:
-  - `access.users.manage`
-  - `access.roles.manage`
-  - `access.groups.manage`
-  - `access.policies.manage`
-  - `access.scope-grants.manage`
-- these permission keys are separate from RBAC resource `capabilities`; they gate console menus, permission snapshots, and backend API writes rather than Kubernetes or delivery runtime actions directly
+MCP 与 Skills manifest 中的权限键和范围只用于发现与预检，不代表执行授权。
 
-## Observability And AI
+- CLI 只发送服务端签发的 Token 与目标资源范围，不自行声明权限。
+- AI Gateway 调用同时需要 `ai.gateway.invoke` 和业务资源权限。
+- Tool Grant、Access Policy、Skill Binding 只能继续收窄权限。
+- 高风险调用可以先进入审批挂起，再由所属服务执行。
+- 直接 HTTP、CLI 和 MCP 调用复用同一应用服务权限与审计路径。
 
-- observability APIs such as alert summary, alerts, acknowledgements, ownership assignment, notification channel management, routes, and silences must perform backend permission checks instead of relying on frontend button visibility
-- copilot APIs are split into:
-  - `observe.ai.*` for user-facing chat, root-cause runs, and inspection actions
-  - `settings.ai.*` for control-plane configuration such as data sources, analysis profiles, and automation policies
-- AI Gateway APIs add a separate external-agent boundary:
-  - `ai.gateway.view` for reading the caller-specific capability manifest
-  - `ai.gateway.invoke` for invoking already-authorized MCP tools through Gateway
-  - `ai.gateway.manage` for managing AI clients, service accounts, access policies, tool grants, and skill bindings
-- AI Gateway permissions do not replace business permissions. A delivery tool still needs the relevant `delivery.*` key, and a Kubernetes diagnosis tool still needs the relevant workspace/platform key.
-- MCP tool grants are evaluated across the current subject, its roles, and the declared AI client. They only narrow access; deny grants take precedence over allow grants.
-- scheduled automation or inspection jobs may execute with a system principal internally, but interactive user requests must always be evaluated against the caller's permission keys
+Gateway 管理按资源拆分，包括 `ai.gateway.clients.manage`、`ai.gateway.tokens.manage`、`ai.gateway.grants.manage`、`ai.gateway.policies.manage`、`ai.gateway.skills.manage` 和 `ai.gateway.approvals.manage`。旧 `ai.gateway.manage` 仅作为兼容状态存在。
 
-## Delivery Management
-
-- delivery configuration APIs such as application-environment bindings, workflow templates, build templates, registries, and application delivery actions must enforce backend permission keys for write operations
-- workflow and release triggering are separate permissions from page visibility; a user may view release records without being allowed to trigger new workflow or release runs
-
-## Settings Center
-
-- settings routes use `settings.<domain>.view` to control page access
-- mutable operations such as saving login-provider, Prometheus, or AI provider/control-plane settings use `settings.<domain>.manage`
-- frontend forms must hide submit actions and block submit handlers when the manage permission is absent, but backend services remain the final enforcement point
-
-## System Management
-
-- system-management routes such as online users, announcements, menus, audit logs, and operation logs use `system.*.view` permissions for route access
-- mutable operations such as session revocation, announcement maintenance, and menu maintenance use dedicated `system.*.manage` permissions
-
-## Console Navigation Notes
-
-- access control remains a first-level console entry so administrators can discover permission configuration directly from the sidebar
-- settings center remains a first-level system-workspace entry, but login settings and branding settings now resolve as dedicated child routes under `/settings/login` and `/settings/branding`
-- AI settings no longer live inside the settings-center tab surface; they belong to the AI workbench settings routes
-- cluster monitoring connection details are expected to be managed with cluster configuration, not as a separate global settings-center submenu
-
-## Operator Runbook
-
-- formal role assignment and validation steps now live in the operations runbook: [角色授权分配运行手册](../operations/role-authorization-assignment.md)
-
-## Result Structure
+## 决策结果
 
 ```json
 {
-  "allowed": true,
-  "reason": "role ops matched non-production scope",
-  "allowedActions": ["view", "list", "watch", "logs"],
-  "resourceScope": {
-    "clusters": ["local"],
-    "namespaces": ["default"],
-    "labelSelector": "owner=team-a"
-  }
+  "status": "allow",
+  "permissionKey": "virtualization.vms.resize",
+  "action": "resize",
+  "resource": {
+    "type": "VirtualMachine",
+    "id": "vm-42"
+  },
+  "allowedActions": ["view", "resize"],
+  "reasonCode": "authorized",
+  "policyVersion": "2026-08-05"
 }
 ```
 
-## Storage Model
+## 存储与所有权
 
-### PostgreSQL
+- `roles.permission_keys` 保存精确权限。
+- `policies` 保存 ABAC 规则。
+- `scope_grants` 保存主体到资源范围的附加收窄。
+- Token 权限上限限制 PAT 与服务账号。
+- operation 与 audit 记录变更和授权结果。
 
-- `roles`
-- `policies`
-- `user_role_bindings`
-- `role_permission_bindings`
-- `scope_grants`
-- durable user, team, and project attributes
-- `sessions`
-- audit trail of allow, deny, and operation outcomes
+`soha-contracts` 负责公共目录与决策结构；`internal/application/access` 负责公共权限、ABAC 与范围组合；各领域服务负责资源属性、运行时状态、审批上下文和最终变更校验。
 
-Short-lived login and policy-evaluation state should use signed tokens, request context, process-local cache, or explicit PostgreSQL-backed records. No separate cache service is part of the current runtime baseline.
-
-## Recommended Policy Schema
-
-### `policies`
-
-- `id`
-- `name`
-- `effect`
-- `priority`
-- `subjects` JSONB
-- `targets` JSONB
-- `actions` JSONB
-- `conditions` JSONB
-- `reason`
-- `created_at`
-- `updated_at`
-
-Role permission keys live in `role_permission_bindings`; scoped access grants live in `scope_grants`.
-
-## Responsibility Split
-
-### Middleware
-
-- request ID
-- bearer token parsing and principal extraction
-- source and request context capture
-- no policy evaluation
-
-### Service Layer
-
-- build access request
-- call access service and policy engine
-- apply effective scope to downstream resource queries
-- emit audit entries for allow and deny paths
+实际分配步骤见[角色授权分配](../operations/role-authorization-assignment.md)。

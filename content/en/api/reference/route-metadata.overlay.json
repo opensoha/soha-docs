@@ -758,7 +758,7 @@
       "status": "implemented",
       "permissions": [
         "runtime execution runner token",
-        "delivery.execution-tasks.manage when using service-account tokens"
+        "delivery.execution-tasks.claim when using service-account tokens"
       ],
       "scopes": [
         "runner providerKinds",
@@ -780,7 +780,7 @@
       "status": "implemented",
       "permissions": [
         "runtime execution runner token",
-        "delivery.execution-tasks.manage when using service-account tokens"
+        "delivery.execution-tasks.claim when using service-account tokens"
       ],
       "scopes": [
         "execution task id",
@@ -821,7 +821,7 @@
       "status": "implemented",
       "permissions": [
         "runtime execution runner token",
-        "docker.operations.manage when using service-account tokens"
+        "docker.operations.claim when using service-account tokens"
       ],
       "scopes": [
         "Docker runner operation kinds",
@@ -843,7 +843,7 @@
       "status": "implemented",
       "permissions": [
         "runtime execution runner token",
-        "docker.operations.manage when using service-account tokens"
+        "docker.operations.claim when using service-account tokens"
       ],
       "scopes": [
         "Docker operation id",

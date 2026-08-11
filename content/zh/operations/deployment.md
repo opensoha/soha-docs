@@ -111,4 +111,4 @@ PostgreSQL 18 stores its default `PGDATA` below `/var/lib/postgresql/18/docker`,
 - Docker Desktop for macOS, especially Apple Silicon, is not a reliable validation path for local KubeVirt or nested Proxmox VE labs.
 - Keep local k3s for platform control-plane and Kubernetes API-path testing.
 - Validate KubeVirt and PVE features against real external servers or dedicated lab hosts, then register those endpoints in soha.
-- See [KubeVirt / PVE 虚拟化实验环境 Runbook](./virtualization-lab-runbook.md) for external environment prerequisites and checklist.
+- 外部环境前置条件与验收清单请参阅 [KubeVirt / PVE 虚拟化实验环境 Runbook](./virtualization-lab-runbook.md)。

@@ -146,22 +146,22 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `traces.v1`
 - `delivery.v1`
 
-当前状态：
+Current status:
 
 - `platform-native.v1`
-  - 已可读平台聚合证据
+  - Reads aggregated platform evidence.
 - `logs.v1`
-  - 已有真实后端执行层
-  - 支持 `es` / `loki` / `clickhouse`
+  - Uses live backend providers.
+  - Supports `es`, `loki`, and `clickhouse`.
 - `metrics.v1`
-  - 已补齐 Prometheus-backed 执行层
+  - Uses the Prometheus-backed execution path.
 - `traces.v1`
-  - 已补齐 Jaeger-backed 执行层
+  - Uses the Jaeger-backed execution path.
 
-控制平面采用双入口：
+The control plane has two entry points:
 
 1. Settings > AI
-   - 全局 provider、data source、analysis profile、automation policy 配置
+   - Global provider, data source, analysis profile, and automation policy configuration.
 2. `/ai-workbench/tools`
    - 兼容旧入口，实际跳转到 `/ai-workbench/tool-settings`
 3. `/ai-workbench/tool-settings`

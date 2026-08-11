@@ -43,28 +43,11 @@
 
 ## Virtualization APIs
 
-- `GET /api/v1/virtualization/overview`
-- `GET /api/v1/virtualization/clusters?provider=<optional>&kubernetesClusterId=<optional>&limit=100`
-- `POST /api/v1/virtualization/clusters`
-- `PUT /api/v1/virtualization/clusters/:id`
-- `DELETE /api/v1/virtualization/clusters/:id`
-- `POST /api/v1/virtualization/clusters/:id/test`
-- `POST /api/v1/virtualization/clusters/:id/sync`
-- `GET /api/v1/virtualization/vms?provider=<optional>&connectionId=<optional>&namespace=<optional>&status=<optional>&limit=100`
-- `POST /api/v1/virtualization/vms`
-- `GET /api/v1/virtualization/vms/:id`
-- `POST /api/v1/virtualization/vms/:id/actions`
-- `GET /api/v1/virtualization/images?provider=<optional>&connectionId=<optional>&status=<optional>&limit=100`
-- `GET /api/v1/virtualization/flavors?provider=<optional>&connectionId=<optional>&status=<optional>&limit=100`
-- `POST /api/v1/virtualization/flavors`
-- `PUT /api/v1/virtualization/flavors/:id`
-- `DELETE /api/v1/virtualization/flavors/:id`
-- `GET /api/v1/virtualization/operations?taskKind=<optional>&status=<optional>&connectionId=<optional>&vmId=<optional>&limit=100`
-- `GET /api/v1/virtualization/operations/:taskID`
-- `GET /api/v1/virtualization/operations/:taskID/logs`
-- `POST /api/v1/virtualization/sync`
+公开契约覆盖连接、虚拟机、镜像、规格、操作、指标、控制台、同步、取消和重试接口。完整真实源路由与 schema 请查阅[生成 API 参考](./reference/generated/index.md#virtualization)。
 
-PVE credentials are accepted only on create or update payloads and are never returned by API responses. Responses expose only `credentialConfigured`.
+PVE 凭据只在创建或更新 payload 中接收，API 响应绝不返回凭据，仅暴露 `credentialConfigured`。
+
+KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明确不支持；客户端必须消费实时 capability 与 VM `allowedActions`，不能假设与 PVE 等价。
 
 ## Compute APIs
 
@@ -81,8 +64,11 @@ PVE credentials are accepted only on create or update payloads and are never ret
 - `POST /api/v1/compute/resources/:domain/:kind/:id/actions/:action`
 - `GET /api/v1/compute/tasks`
 - `GET /api/v1/compute/tasks/:domain/:id`
+- `GET /api/v1/compute/tasks/:domain/:id/logs`
 - `POST /api/v1/compute/tasks/:domain/:id/cancel`
 - `POST /api/v1/compute/tasks/:domain/:id/retry`
+
+这些路由均已在 Core 中上线，并委托给已启用的虚拟化或容器运行时 provider。实际可用性仍取决于模块状态、provider 能力和调用方权限。
 
 ## Application APIs
 

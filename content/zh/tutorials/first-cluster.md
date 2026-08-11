@@ -5,13 +5,13 @@ description: 使用 direct kubeconfig 或 agent 模式注册第一个 Kubernetes
 
 # 第一次接入集群
 
-Soha 支持两种集群连接模式：`direct_kubeconfig` 和 `agent`。本地或可信集群可以使用 direct 模式，让控制平面读取 kubeconfig material。集群必须通过远端 agent 回连时，使用 agent 模式。
+Soha 支持两种集群连接模式：`direct_kubeconfig` 和 `agent`。本地或可信集群可以使用 direct 模式，让控制平面读取 kubeconfig。内网集群可以使用 agent 模式，由集群内 Agent 主动与 Soha 访问地址建立长连接。
 
 ## 前置条件
 
 - 已按 [第一次部署](./first-deploy.md) 启动 Soha 控制平面。
 - 有一个具备 cluster-management 权限的 access token。
-- 有 kubeconfig 路径，或已经规划好 remote agent endpoint。
+- 有 kubeconfig 路径，或有权限部署生成的 Agent Manifest。
 
 ## 注册 Direct Kubeconfig 集群
 
@@ -35,19 +35,15 @@ curl -sS -X POST "$SOHA_SERVER/api/v1/clusters" \
 
 API reference 名称是 `POST /api/v1/clusters`。
 
-## Agent 注册形状
+## 安装 Agent
 
-Agent 集群会在 Soha 中持久化远端 endpoint 和 token metadata。远端 `soha-agent` 仍然拥有集群侧 runtime。
+在运行时配置中设置 Soha 访问地址，在集群页面创建 Agent 连接，然后执行短有效期的安装命令：
 
-```json
-{
-  "id": "edge-a",
-  "name": "Edge A",
-  "connectionMode": "agent",
-  "agentEndpoint": "https://agent.example.internal",
-  "agentToken": "replace-with-agent-token"
-}
+```bash
+kubectl apply -f https://soha.example.com/api/v1/kubernetes/agent-installations/<install-ticket>/manifest.yaml
 ```
+
+集群内 Agent 主动连接 Soha，并在断开后自动重连。不要暴露入站 Agent NodePort。能力、Prometheus 和生产验收要求见 [Kubernetes 工作台](../operations/kubernetes-workbench.md)。
 
 ## 验证集群读取
 
@@ -94,6 +90,6 @@ GET "$SOHA_SERVER/api/v1/clusters/local/namespaces"
 - Direct 集群在 credential 无效时，应在注册前报告 kubeconfig validation error。
 - Agent 集群在不可达或未授权时，应返回明确的 connectivity 或 authorization 状态，而不是静默空列表。
 
-## 已知缺口
+## 已知限制
 
-当前 agent parity 仍小于 direct 模式。Logs、YAML apply/delete、exec、port-forward 和部分 rollout history 路径仍是产品路线图工作。
+应使用实时能力矩阵，而不是假设 Direct 与 Agent 完全对等。Soha 控制平面无法访问配置的 Prometheus 时，Agent 指标能力仍为 partial；自定义资源访问则依赖针对每个 API Group 和 Resource 的明确 Kubernetes RBAC。

@@ -5,13 +5,13 @@ description: Register the first Kubernetes cluster using direct kubeconfig or ag
 
 # First Cluster
 
-Soha supports two cluster connection modes: `direct_kubeconfig` and `agent`. Use direct mode for a local or trusted cluster where the control plane can read kubeconfig material. Use agent mode when the cluster must call back through a remote agent boundary.
+Soha supports two cluster connection modes: `direct_kubeconfig` and `agent`. Use direct mode for a local or trusted cluster where the control plane can read kubeconfig material. Use agent mode for a private cluster whose Agent initiates a long-lived connection to the Soha access address.
 
 ## Prerequisites
 
 - A running Soha control plane from [First Deploy](./first-deploy.md).
 - An access token with cluster-management permissions.
-- A kubeconfig path or a planned remote agent endpoint.
+- A kubeconfig path or permission to deploy the generated Agent manifest.
 
 ## Direct Kubeconfig Registration
 
@@ -35,19 +35,15 @@ curl -sS -X POST "$SOHA_SERVER/api/v1/clusters" \
 
 The API reference name is `POST /api/v1/clusters`.
 
-## Agent Registration Shape
+## Agent Installation
 
-Agent clusters persist remote endpoint and token metadata in Soha. The remote `soha-agent` still owns the cluster-side runtime.
+Set the Soha access address in Runtime Configuration, create an Agent connection on the cluster page, and run its short-lived installation command:
 
-```json
-{
-  "id": "edge-a",
-  "name": "Edge A",
-  "connectionMode": "agent",
-  "agentEndpoint": "https://agent.example.internal",
-  "agentToken": "replace-with-agent-token"
-}
+```bash
+kubectl apply -f https://soha.example.com/api/v1/kubernetes/agent-installations/<install-ticket>/manifest.yaml
 ```
+
+The cluster-side Agent connects outward to Soha and reconnects automatically. Do not expose an inbound Agent NodePort. See [Kubernetes Workbench](../operations/kubernetes-workbench.md) for capability, Prometheus, and production checks.
 
 ## Verify Cluster Reads
 
@@ -95,6 +91,6 @@ GET "$SOHA_SERVER/api/v1/clusters/local/namespaces"
 - Direct clusters report kubeconfig validation errors before registration when credentials are invalid.
 - Agent clusters fail with an explicit connectivity or authorization state rather than a silent empty resource list.
 
-## Known Gaps
+## Known Limits
 
-Current agent parity is still narrower than direct mode. Logs, YAML apply/delete, exec, port-forward, and some rollout history paths remain product-roadmap work.
+Use the live capability matrix instead of assuming Direct and Agent parity. Agent metrics remain partial when the Soha control plane cannot reach the configured Prometheus endpoint, and custom-resource access depends on explicit Kubernetes RBAC for each API group and resource.

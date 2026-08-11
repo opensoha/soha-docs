@@ -1,59 +1,59 @@
-# Multi-Cluster Model
+# 多集群模型
 
-## Cluster Registry Model
+## 集群注册模型
 
-Each cluster has:
+每个集群包含：
 
-- durable metadata in PostgreSQL
-- credential metadata in PostgreSQL
-- secret material referenced externally or stored through future secret providers
-- runtime clients managed by cluster-manager
+- PostgreSQL 中的持久化元数据
+- PostgreSQL 中的凭据元数据
+- 通过外部 Secret Provider 引用或受保护保存的敏感材料
+- 由 cluster-manager 管理的运行时连接
 
-## Connection Strategy
+## 连接策略
 
-Current runtime supports two connection modes:
+当前运行时支持两种连接模式：
 
 - `direct_kubeconfig`
-  - bootstrapped from `config.yaml` or registered through the cluster API
-  - supports explicit context selection
-  - builds per-cluster typed, dynamic, and discovery clients
-  - starts informer/cache readers dynamically after registration
+  - 从 `config.yaml` 引导，或通过集群 API 注册
+  - 支持显式选择 context
+  - 为每个集群构建 typed、dynamic 和 discovery client
+  - 注册后动态启动 informer/cache reader
 - `agent`
-  - persists remote endpoint and token metadata in PostgreSQL
-  - lets the backend pull summary and resource data from a remote agent
-  - lets the backend send controlled execution actions such as restart and scale
+  - 使用基于 Soha 访问地址生成的短有效期 Manifest 安装
+  - 由内网集群主动与 Soha 建立长连接
+  - 通过该连接传输有边界的资源清单、日志、流和受控操作
 
-Future expansion can add:
+后续可以扩展：
 
-- encrypted credential stores
-- cloud provider auth plugins
-- service account federation
-- richer agent actions such as logs, exec, and rollout history
+- 加密凭据存储
+- 云厂商认证插件
+- Service Account 联邦
+- 工作负载身份联邦
 
-## Health and Capability Discovery
+## 健康与能力发现
 
-cluster-manager should periodically collect:
+cluster-manager 应定期采集：
 
-- API reachability
-- Kubernetes version
-- available API groups and resources
-- optional metrics availability
-- last successful sync time
+- API 可达性
+- Kubernetes 版本
+- 可用的 API Group 和 Resource
+- 可选指标能力
+- 最近一次成功同步时间
 
-## Client Lifecycle
+## Client 生命周期
 
-cluster-manager maintains a per-cluster client bundle:
+对于 Direct 集群，cluster-manager 维护每个集群的 client bundle：
 
 - `kubernetes.Interface`
 - `dynamic.Interface`
 - `discovery.DiscoveryInterface`
-- shared informer factory handles
+- shared informer factory handle
 
-Lifecycle rules:
+生命周期规则：
 
-- lazy initialize on first use or bootstrap
-- refresh when credentials change or a new direct kubeconfig cluster is registered
-- surface last error state
-- close caches when a cluster is removed
+- 首次使用或引导时延迟初始化
+- 凭据变化或注册新的 Direct 集群时刷新
+- 展示最近一次错误状态
+- 删除集群时关闭 cache
 
-For agent clusters, soha keeps the durable registry in PostgreSQL and creates HTTP clients on demand instead of `client-go` bundles.
+对于 Agent 集群，Soha 在 PostgreSQL 中保存持久化注册信息，并通过已建立的反向长连接路由请求，而不是在控制平面创建本地 `client-go` bundle。当 Agent RBAC 或控制平面到 Prometheus 的网络限制某项能力时，以能力矩阵为最终依据。

@@ -82,7 +82,7 @@ Proxmox VE 是完整虚拟化平台和宿主机操作系统栈，官方安装形
 
 KubeVirt 与 PVE 的常规控制能力仍应走 soha 后端的标准 API、任务和回调路径，不依赖大模型或 MCP。创建、同步、电源操作、取消、重试、审计和权限判断都必须在无 AI provider 的情况下可用。
 
-MCP skills 更适合作为 AI 接入后的排障增强：例如把 PVE 事件、KubeVirt VMI 状态、Pod 日志、Prometheus 指标和操作日志组合成一次调查上下文。未接入大模型时，不应让 MCP 成为虚拟化基础功能的前置条件。
+官方 `virtualization-operator` Skill 和 `local-environment-provisioning` preset 当前只发布 `virtualization.vms.create.plan`、`virtualization.vms.create.trigger` 和 `virtualization.vms.action.trigger`。调用前必须从 live Gateway manifest 发现工具；清单、详情、指标、控制台和操作读取仍走公开 HTTP API 或工作台。MCP 不能绕过后端权限、scope、审批、幂等、审计和操作持久化。
 
 ### 外部服务器接入路径
 
@@ -163,17 +163,9 @@ pvesh get /storage
 
 ### KubeVirt Agent 模式
 
-1. 在目标集群网络内启动 soha agent。
-2. agent 使用可访问 KubeVirt 资源的 kubeconfig。
-3. 在 soha 中注册 agent 模式集群。
-4. 确认 agent endpoint 和 token 匹配。
-5. 执行连接测试和资源同步。
+当前不支持。KubeVirt adapter 要求直连 Kubernetes client；Agent-connected KubeVirt 必须返回明确的 unsupported 结果，不能进入创建、同步、动作、指标或控制台验收。
 
-验收点：
-
-- agent health endpoint 正常。
-- soha 集群状态不应显示为离线。
-- 如果当前 agent 还未支持某些 KubeVirt CRUD 能力，页面或操作结果必须明确提示不支持，而不是伪装成功。
+客户端必须使用实时 capability 和 VM `allowedActions`。当前 KubeVirt adapter 只声明 CPU 与内存 resize，不能假设磁盘、网络、电源或删除动作与 PVE 等价。
 
 ### PVE 连接
 

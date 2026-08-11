@@ -19,16 +19,16 @@ Current runtime supports two connection modes:
   - builds per-cluster typed, dynamic, and discovery clients
   - starts informer/cache readers dynamically after registration
 - `agent`
-  - persists remote endpoint and token metadata in PostgreSQL
-  - lets the backend pull summary and resource data from a remote agent
-  - lets the backend send controlled execution actions such as restart and scale
+  - installs from a short-lived manifest generated from the Soha access address
+  - initiates a long-lived reverse session from the private cluster to Soha
+  - carries bounded inventory, logs, streams, and controlled actions through that session
 
 Future expansion can add:
 
 - encrypted credential stores
 - cloud provider auth plugins
 - service account federation
-- richer agent actions such as logs, exec, and rollout history
+- workload identity federation
 
 ## Health and Capability Discovery
 
@@ -56,4 +56,4 @@ Lifecycle rules:
 - surface last error state
 - close caches when a cluster is removed
 
-For agent clusters, soha keeps the durable registry in PostgreSQL and creates HTTP clients on demand instead of `client-go` bundles.
+For Agent clusters, Soha keeps the durable registry in PostgreSQL and routes requests through the active reverse session instead of building a local `client-go` bundle. The capability matrix remains authoritative when Agent RBAC or control-plane Prometheus reachability limits a feature.

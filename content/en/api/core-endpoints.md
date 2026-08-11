@@ -44,28 +44,11 @@ operation and schema index.
 
 ## Virtualization APIs
 
-- `GET /api/v1/virtualization/overview`
-- `GET /api/v1/virtualization/clusters?provider=<optional>&kubernetesClusterId=<optional>&limit=100`
-- `POST /api/v1/virtualization/clusters`
-- `PUT /api/v1/virtualization/clusters/:id`
-- `DELETE /api/v1/virtualization/clusters/:id`
-- `POST /api/v1/virtualization/clusters/:id/test`
-- `POST /api/v1/virtualization/clusters/:id/sync`
-- `GET /api/v1/virtualization/vms?provider=<optional>&connectionId=<optional>&namespace=<optional>&status=<optional>&limit=100`
-- `POST /api/v1/virtualization/vms`
-- `GET /api/v1/virtualization/vms/:id`
-- `POST /api/v1/virtualization/vms/:id/actions`
-- `GET /api/v1/virtualization/images?provider=<optional>&connectionId=<optional>&status=<optional>&limit=100`
-- `GET /api/v1/virtualization/flavors?provider=<optional>&connectionId=<optional>&status=<optional>&limit=100`
-- `POST /api/v1/virtualization/flavors`
-- `PUT /api/v1/virtualization/flavors/:id`
-- `DELETE /api/v1/virtualization/flavors/:id`
-- `GET /api/v1/virtualization/operations?taskKind=<optional>&status=<optional>&connectionId=<optional>&vmId=<optional>&limit=100`
-- `GET /api/v1/virtualization/operations/:taskID`
-- `GET /api/v1/virtualization/operations/:taskID/logs`
-- `POST /api/v1/virtualization/sync`
+The public contract covers connection, VM, image, flavor, operation, metrics, console, synchronization, cancellation, and retry routes. Use the [generated API reference](./reference/generated/index.md#virtualization) for the complete source-of-truth list and schemas.
 
 PVE credentials are accepted only on create or update payloads and are never returned by API responses. Responses expose only `credentialConfigured`.
+
+KubeVirt virtualization currently requires a direct Kubernetes client. Agent-connected KubeVirt is explicitly unsupported, and clients must use live capabilities and VM `allowedActions` instead of assuming PVE parity.
 
 ## Compute APIs
 
@@ -82,8 +65,11 @@ PVE credentials are accepted only on create or update payloads and are never ret
 - `POST /api/v1/compute/resources/:domain/:kind/:id/actions/:action`
 - `GET /api/v1/compute/tasks`
 - `GET /api/v1/compute/tasks/:domain/:id`
+- `GET /api/v1/compute/tasks/:domain/:id/logs`
 - `POST /api/v1/compute/tasks/:domain/:id/cancel`
 - `POST /api/v1/compute/tasks/:domain/:id/retry`
+
+These routes are live Core facades over the enabled virtualization and container-runtime providers. Availability still depends on module state, provider capabilities, and the caller's permissions.
 
 ## Application APIs
 

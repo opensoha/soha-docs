@@ -74,7 +74,7 @@ OIDC、OAuth2、飞书、钉钉、企业微信这几类可运行 provider 现在
 
 登录回调不会自动创建本地组织或角色。管理员需要先在“组织架构”中建立组织树，并为第三方组织填入对应来源和外部 ID。这样可以把第三方组织目录的实时同步与登录授权映射拆开，避免登录链路变成隐式主数据导入。
 
-飞书、钉钉、企业微信的 App Key、App Secret、CorpID、CorpSecret 等应用凭据属于“登陆设置”的登录源应用配置，不属于组织节点。组织节点只保存映射来源和第三方部门/组织 ID；如果同一种 provider 配了多个应用，组织来源应优先选择具体登录源应用 ID，而不是只选择 `feishu`、`dingtalk` 或 `wecom` 类型。
+飞书、钉钉、企业微信的 App Key、App Secret、CorpID、CorpSecret 等应用凭据属于“登录设置”的登录源应用配置，不属于组织节点。组织节点只保存映射来源和第三方部门/组织 ID；如果同一种 provider 配了多个应用，组织来源应优先选择具体登录源应用 ID，而不是只选择 `feishu`、`dingtalk` 或 `wecom` 类型。
 
 ## Directory synchronization
 
@@ -310,7 +310,7 @@ Only Refresh Token hashes are persisted. A `post_logout_redirect_uri` must exact
 
 ## 前端与权限边界
 
-“登陆设置” 只是配置面，不直接绕过现有权限模型。
+“登录设置” 只是配置面，不直接绕过现有权限模型。
 
 仍然使用：
 

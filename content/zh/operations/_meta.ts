@@ -3,6 +3,7 @@ export default {
   deployment: '部署',
   'environment-variables': '环境变量',
   'agent-runtime': 'Agent Runtime',
+  'kubernetes-workbench': 'Kubernetes 工作台',
   'ai-gateway-examples': 'AI Gateway 示例',
   mcp: 'MCP',
   'mcp-configuration': 'MCP 配置',

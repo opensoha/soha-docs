@@ -86,11 +86,13 @@ For a departure or user deletion event, Soha removes the memberships owned by th
 
 The directory connection console shows callback configuration and verification, recent queued or failed events with retry controls, the last incremental and full reconciliation times, and whether full reconciliation is required. Feishu directory events are currently supported; DingTalk and WeCom still rely on scheduled or manual full synchronization.
 
-针对 SAML 类 provider，目前只保存配置态字段，例如：
+SAML login sources persist and use these runtime fields:
 
 - `metadataUrl`
 - `entityId`
 - `certificate`
+
+The server publishes SP metadata and an ACS endpoint, then validates signatures, `InResponseTo`, timing, audience, recipient, and assertion replay. Imported login sources remain disabled until an operator verifies the metadata and certificates.
 
 ## 配置来源
 
@@ -269,24 +271,29 @@ Only Refresh Token hashes are persisted. A `post_logout_redirect_uri` must exact
 
 ### SAML
 
-当前仅配置可见，不是完整可运行链路。
+The SP login flow is operational end to end.
 
-已支持：
+- SP metadata: `GET /api/v1/auth/saml/:providerID/metadata`
+- ACS: `POST /api/v1/auth/login/:providerID/acs`
+- strict validation of signature algorithms and placement, `InResponseTo`, Destination, Recipient, Audience, and time conditions
+- one-time assertion IDs and state consumption to prevent replay
+- NameID and attribute mappings resolve into the same local user, role, and organization model
 
-- 设置页配置
-- 配置持久化
-- 登录页展示占位
-- 能明确告诉用户当前链路未启用
+Metadata accepts only currently valid signing certificates. Rotate certificates before the previous certificate expires.
 
-未支持：
+## Provider workbench runtime boundary
 
-- SP metadata 生成
-- ACS endpoint
-- assertion 校验
-- nameID / attribute statement 解析
-- SAML 到本地用户的正式映射
+Workbench providers are distinct from external login sources described above:
 
-所以当前服务端必须把 SAML 视为“配置态能力”，不能对外宣称已经具备可用登录能力。
+- `oidc`: Soha acts as an OIDC Provider for downstream applications. The downstream application owns `state`, `nonce`, and PKCE; the workbench launches only its configured application URL.
+- `saml`: Soha acts as a SAML IdP, publishes metadata and SSO endpoints, and applies application policy, MFA, and registered ACS restrictions.
+- `proxy`: supports forward-auth and reverse-proxy. Reverse-proxy rejects private, loopback, and link-local targets by default; enable `allowPrivateUpstream` only for an intentional internal-service integration.
+
+OIDC clients can combine strict redirect URI entries with RE2 regular expressions. Strict entries require exact equality; regular expressions are validated at configuration time and matched against the complete URI, not a substring. At least one strict or regular-expression entry is required.
+
+SAML signing certificates can be rotated from the Provider workbench with a 0-30 day overlap. During overlap, metadata publishes the new active certificate and the retiring certificate so downstream service providers can refresh without downtime.
+
+Provider `secretRefs` accept only `soha://secrets/...` references. Read APIs return configured aliases, never reference values. OIDC redirect URIs, SAML ACS URLs, and `http.access_url` support both HTTP and HTTPS so self-hosted operators can choose their transport boundary. HTTPS remains strongly recommended because HTTP exposes authorization codes, assertions, and session cookies to network interception. OIDC and SAML issuers use the configured access URL instead of trusting forwarded host/proto headers.
 
 ## 审计与本地身份绑定
 

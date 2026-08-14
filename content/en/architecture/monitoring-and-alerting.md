@@ -1,181 +1,120 @@
 # Monitoring And Alerting
 
-## Goal
+Soha is the control and investigation plane for observability. It does not store raw telemetry or
+replace OpenTelemetry, SkyWalking OAP, Prometheus-compatible storage, Loki, or Grafana.
 
-soha should become the unified alert ingress and routing plane for the platform.
+## Architecture Boundary
 
-The target model is:
+OpenTelemetry is the preferred instrumentation, resource identity, collection, and transport
+standard. It is not an observability backend. Soha uses the following execution paths:
 
-1. alerts arrive from Prometheus Alertmanager, Grafana Alerting, or future third-party systems
-2. soha normalizes them into one internal alert envelope
-3. platform policies decide ownership, routing, suppression, grouping, and escalation
-4. soha dispatches notifications to downstream channels
+```text
+Metrics: OTel Collector or scrape -> Prometheus-compatible backend -> Soha
+Traces:  OTel Collector -> SkyWalking OAP or Jaeger -> Soha
+Logs:    OTel Collector -> Loki, Elasticsearch, or ClickHouse -> Soha
+Alerts:  Soha rules or external alerting systems -> Soha alert events
+```
 
-This keeps alert governance inside the platform instead of scattering logic across multiple tools.
+SkyWalking OAP remains an external APM analysis backend. Soha queries its service metadata,
+topology, and traces through bounded adapters. Provider credentials remain on the server.
 
-当前信息架构已经从旧的“告警中心”收敛成“监控工作台”：
+## Workbench Information Architecture
 
-- `/monitoring-workbench`
-- `/monitoring-workbench/overview`
-- `/monitoring-workbench/integrations`
-- `/monitoring-workbench/alerts`
-- `/monitoring-workbench/rules`
-- `/monitoring-workbench/notifications`
-- `/monitoring-workbench/healing`
-- `/monitoring-workbench/oncall`
-- `/monitoring-workbench/events`
+The canonical namespace is `/monitoring-workbench`. The four primary directions are:
 
-旧的 `/observability/*` 路径仍保留兼容跳转。
+1. **Services and health**: service inventory, provider freshness, topology context, and active
+   alerts.
+2. **Explore**: one shareable scope and time range across metrics, traces, logs, and events.
+3. **Dashboards**: native templates and bounded Grafana JSON import rendered by Soha.
+4. **Alerts and events**: rules, event lifecycle, notification evidence, healing, and on-call.
 
-## Current Implemented Surface
+Provider, data-source, integration, rule, notification, healing, and on-call pages are operational
+configuration surfaces, not separate observability products. Existing `/observability/*` links are
+kept as compatibility redirects.
 
-The repository now has a real monitoring ingress baseline, not just placeholders.
+## Data Sources And Query State
 
-- inbound webhook: `POST /api/v1/integrations/alerts/webhook`
-- registered integration webhook: `POST /api/v1/integrations/alerts/:integrationID/webhook`
-- alert integration management APIs:
-  - `GET /api/v1/alert-integrations`
-  - `GET /api/v1/alert-integrations/:integrationID`
-  - `POST /api/v1/alert-integrations`
-  - `PUT /api/v1/alert-integrations/:integrationID`
-  - `POST /api/v1/alert-integrations/test`
-- summary API: `GET /api/v1/monitoring/summary`
-- alert inventory API: `GET /api/v1/alerts`
-- alert governance APIs:
-  - `POST /api/v1/alerts/:alertID/acknowledge`
-  - `PUT /api/v1/alerts/:alertID/ownership`
-- notification channel APIs:
-  - `GET /api/v1/notification-channels`
-  - `POST /api/v1/notification-channels`
-  - `PUT /api/v1/notification-channels/:channelID`
-- alert silence APIs:
-  - `GET /api/v1/alert-silences`
-  - `POST /api/v1/alert-silences`
-  - `PUT /api/v1/alert-silences/:silenceID`
-- alert delivery history API:
-  - `GET /api/v1/alert-delivery-logs`
-- frontend pages:
-  - `/monitoring-workbench/overview`
-  - `/monitoring-workbench/integrations`
-  - `/monitoring-workbench/alerts`
-  - `/monitoring-workbench/notifications`
-  - `/monitoring-workbench/oncall`
-  - `/monitoring-workbench/events`
-  - notification channels, routes, and silences are grouped under `/monitoring-workbench/notifications`
+Built-in adapters support Prometheus metrics, Jaeger and SkyWalking traces, and Loki,
+Elasticsearch, and ClickHouse logs. A provider's code capability is reported separately from its
+runtime state:
 
-Current persistence behavior:
+- `unconfigured`: no enabled data source exists;
+- `unknown`: the source has not been validated;
+- `healthy`: backend validation succeeded;
+- `degraded` or `failed`: one or more configured sources cannot be used;
+- `unsupported`: no executable adapter is available.
 
-- registered alert sources are written to `alert_integrations`
-- normalized alerts are written to `alert_events`
-- notification channel definitions are written to `notification_channels`
-- silence windows are written to `alert_silences`
-- downstream delivery attempts are written to `alert_delivery_logs`
-- every accepted alert ingest also emits a normalized record into `event_stream`
+Queries keep scope, absolute time range, filters, signal, and provider-native query details in a
+versioned context and query snapshot. A query can return `success`, `empty`, `partial`, `no_data`,
+`error`, or `unsupported`. Backend errors are not presented as empty results, and authorization may
+narrow but never broaden the requested scope.
 
-This means the platform now owns:
+The service APIs use SkyWalking Metadata V2 and topology when a scoped, healthy SkyWalking data
+source is available. Missing identity or version-specific fields are returned as degraded or
+unsupported instead of fabricated health. Trace results can open associated logs with the same
+trace ID, span ID, scope, and time range.
 
-- alert ingestion
-- alert integration registration for Alertmanager, Grafana Alerting, and Generic Webhook payloads
-- route matching
-- downstream fan-out logging
-- silence-based suppression
-- acknowledgement
-- owner and assignee state
-- notification channel registration
+SkyWalking OAP receives OTLP traces over gRPC and converts them to its Zipkin trace model. Soha can
+query those traces through the configured Zipkin query endpoint. Native Metadata V2 service and
+topology views remain conditional on telemetry analyzed by SkyWalking's native service model.
 
-监控工作台与 AI 工作台当前边界：
+## Dashboards
 
-- 监控工作台负责告警治理、通知、自愈、值班与事件流
-- AI 工作台负责调查、分析与证据归并
-- 监控工作台可以把 `alertId`、cluster、namespace、workload、timeRange 通过标准 handoff scope 传给 AI 工作台
-- AI 工作台只回链原始告警或事件，不在聊天面板里直接承接治理动作
+Soha imports Grafana Classic JSON and V1 resource wrappers into a bounded intermediate model. It
+retains the original JSON, variables, data-source bindings, import warnings, and unsupported panel
+JSON. It renders supported panels itself and never executes an unknown panel or exposes backend
+credentials to the browser.
 
-## Recommended Modules
+Current guardrails include:
 
-### Backend
+- a 2 MiB dashboard payload limit;
+- at most 200 imported panels and 8 targets per panel;
+- Prometheus expressions limited to 8,192 bytes;
+- explicit data-source type and UID mapping;
+- bounded custom and constant variables;
+- explicit rejection of Grafana V2 resources;
+- `timeseries`, `table`, `stat`, `gauge`, `text`, and `row` as the supported panel surface.
 
-- `internal/application/monitoring`
-  - alert ingestion orchestration
-  - alert normalization
-  - alert integration registration and payload adapter orchestration
-  - silence, ack, assign, resolve workflow
-- `internal/application/notification`
-  - channel dispatch orchestration
-  - retry and delivery status
-- `internal/repository/alert`
-  - alert integrations, alert events, notification policies, and notification channels
-- future: `internal/repository/alerts`
-  - silences, routing rules, delivery logs
+Unsupported panels remain inspectable and produce warnings. Grafana alert rules are not imported
+from dashboard JSON. Playback advances one shared client-side time window; it is not Grafana
+playlist emulation or server-side video generation.
 
-### Frontend
+## Alert Lifecycle
 
-- `web/src/features/observability/monitoring-pages.tsx`
-  - monitoring summary
-  - alert integration registry and payload normalization tester
-  - alerts list
-  - notification tabs
-  - on-call placeholder
-  - events feed
-- future:
-  - richer alert detail surface
-  - explicit delivery-history workbench
-  - extracted notification management components
+Alertmanager v1, Grafana Alerting v1, and Generic Webhook integrations normalize external payloads
+into durable alert events. Integration-specific tokens protect registered webhook endpoints. The
+current platform owns:
 
-## Data Model Direction
+- alert integration registration and normalization;
+- internal metric-rule evaluation with reducer, comparator, threshold, and pending duration;
+- `pending`, `firing`, `resolved`, `no_data`, and `error` evaluation evidence;
+- acknowledgement, ownership, resolution, silences, routing, and notification delivery logs;
+- healing runs with permission and approval checks;
+- notification policies, channels, templates, on-call schedules, rotations, escalation policies,
+  and assignment rules;
+- durable rule runs and trigger-time query snapshots;
+- audit records for authorized configuration and manual state mutations.
 
-PostgreSQL should hold:
+A backend error or missing data does not clear a firing internal alert. Only a definitive healthy
+evaluation that no longer matches can resolve it. The simple rule editor covers validated metric
+rules; provider-specific logs and traces rules remain advanced capabilities.
 
-- alert_integrations
-- alert_events
-- alert_rules_shadow
-- notification_policies
-- alert_silences
-- alert_delivery_logs
-- notification_channels
+Alert details preserve the diagnostic time window and can open metrics, traces, and logs without
+requiring the user to re-enter scope. AI investigation receives the same alert, cluster, namespace,
+workload, and time context, while governance actions stay in the monitoring workbench.
 
-Short-lived alert processing state should stay in backend-owned runtime structures or durable rows:
+## Deliberate Limits
 
-- dedup windows derived from alert fingerprints and timestamps
-- bounded in-process burst buffers for inbound alerts
-- dispatch retry state persisted in delivery or notification records
-- active websocket/subscription state held in process memory
+- Soha does not implement a cross-signal query language or a second telemetry database.
+- The `starter` observability profile is single-replica Loki and is not production HA.
+- Provider configuration or a valid Collector configuration does not prove live data flow. A known
+  metric, trace, and trace-correlated log must be written and queried in each production
+  environment before the corresponding provider is treated as healthy.
+- Native Nightingale integration, Alertmanager inhibition, subscriptions, recurring maintenance
+  windows, rule packs, anomaly detection, SLO burn-rate rules, and an independent Incident model
+  are not part of the current baseline. Add them only after a concrete operating need establishes
+  their lifecycle and ownership.
+- Existing time-bounded silences provide the current suppression primitive; they are not presented
+  as source-level inhibition or a recurring maintenance scheduler.
 
-## Integration Strategy
-
-### Inbound
-
-- keep the legacy normalized webhook for compatibility: `/integrations/alerts/webhook`
-- register explicit Alertmanager, Grafana Alerting, or Generic Webhook integrations
-- use integration-specific tokens and `/integrations/alerts/:integrationID/webhook`
-- normalize provider-native payloads into Soha `IngestAlert` records before route resolution, notification, self-healing, on-call, and event fan-out
-- keep future platform-native rule evaluation in Soha, but do not reimplement a full external alerting engine inside the console
-
-### Outbound
-
-- email
-- webhook
-- enterprise chat bots
-- incident systems
-
-## Policy Direction
-
-Alert routing should combine:
-
-- cluster
-- namespace
-- project
-- severity
-- environment
-- owner team
-- maintenance window
-
-Authorization should reuse existing RBAC + ABAC.
-
-## Next Step Reserve
-
-The next increment should add:
-
-- delivery retry state
-- escalation policies
-- maintenance window orchestration beyond simple silences
-- incident grouping and owner views at a higher level than single alerts
+See the generated API reference for the authoritative public HTTP surface.

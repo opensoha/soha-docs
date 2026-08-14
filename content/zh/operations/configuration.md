@@ -173,7 +173,9 @@ Current runtime expectations:
 - `feishu`: supported through configured Feishu auth endpoints and field mappings
 - `dingtalk`: supported through configured DingTalk auth endpoints and field mappings
 - `wecom`: supported through webpage authorization plus enterprise access-token and `getuserinfo` APIs
-- `saml`: configuration-visible only; runtime assertion/ACS handling is not enabled yet
+- `saml`: 支持 SP metadata、ACS、签名与 assertion 校验、属性映射和重放防护
+
+把 `http.access_url` 设置为用户实际访问的根地址。私有化安装支持 HTTP 和 HTTPS，由部署方决定；仍强烈建议使用 HTTPS，否则身份令牌、Assertion 和会话 Cookie 缺少传输保护。OIDC/SAML issuer 和公开协议地址使用该值，不从客户端提交的 forwarded host/proto 推断。
 
 ## Operational Conventions
 

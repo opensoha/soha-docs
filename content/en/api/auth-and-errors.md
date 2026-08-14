@@ -27,7 +27,7 @@ When `auth.enable_dev_auth` is enabled in `config.yaml`, the backend can still a
 - `POST /api/v1/auth/oidc/exchange` is still the final frontend session exchange endpoint for OIDC and OAuth2-style providers.
 - `GET /api/v1/auth/providers` returns every enabled third-party provider instead of assuming a single OIDC entry.
 - OIDC, OAuth2, Feishu, DingTalk, and WeCom providers can supplement local role and organization bindings at login time when `syncRolesOnLogin` or `syncOrgsOnLogin` is enabled. The callback only matches existing local roles and organizations; it does not create directory objects.
-- SAML may appear in configuration and provider discovery, but the runtime ACS/assertion flow is not enabled yet. A provider without a `loginUrl` should be treated by the frontend as non-runnable.
+- SAML login is operational through `GET /api/v1/auth/saml/:providerID/metadata` and `POST /api/v1/auth/login/:providerID/acs`. Responses are bound to one-time state and request IDs and validate signatures, Destination, Recipient, Audience, and time conditions.
 
 ## Error Envelope
 

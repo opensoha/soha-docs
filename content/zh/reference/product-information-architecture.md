@@ -1,98 +1,96 @@
-# Product Information Architecture
+# 产品信息架构
 
-## Primary Navigation
+## 一级导航
 
-### Workbenches
+### 工作台
 
-- K8s Workbench
-- Virtualization Workbench
-- Delivery Workbench
-- AI Workbench
-- Monitoring Workbench
+- K8s 工作台
+- 虚拟化工作台
+- 交付工作台
+- AI 工作台
+- 监控工作台
 
-### Global Governance
+### 全局治理
 
-- Access
-- System
-- Settings
-- Docs
+- 访问控制
+- 系统
+- 设置
+- 文档
 
-## MVP Page List
+## MVP 页面清单
 
-### K8s Workbench
+### K8s 工作台
 
-- fleet summary cards
-- namespace distribution
-- recent events list
-- recent audit list
+- 集群总览卡片
+- namespace 分布
+- 最近事件列表
+- 最近审计列表
 
-### Delivery Workbench
+### 交付工作台
 
-- application center
-- application service components
-- delivery blueprints
-- build templates
-- application-environment bindings
-- environment matrix
-- CI/CD DAG workflows
-- delivery artifacts
-- test plans and test runs
-- release board
-- execution tasks
+- 应用中心
+- 应用服务组件
+- 交付蓝图
+- 构建模板
+- 应用与环境绑定
+- 环境矩阵
+- CI/CD DAG 工作流
+- 交付制品
+- 测试计划与测试运行
+- 发布看板
+- 执行任务
 
-### Virtualization Workbench
+### 虚拟化工作台
 
-- virtualization overview
-- virtual machine inventory
-- virtualization cluster catalog
-- image catalog
-- flavor catalog
-- operation records
+- 虚拟化总览
+- 虚拟机清单
+- 虚拟化集群目录
+- 镜像目录
+- 规格目录
+- 操作记录
 
-### AI Workbench
+### AI 工作台
 
-- investigation entry
-- automation entry
-- tools and skills entry
+- 调查入口
+- 自动化入口
+- 工具与 Skills 入口
 
-### Monitoring Workbench
+### 监控工作台
 
-- overview
-- alerts
-- rules
-- notifications
-- healing
-- on-call
-- events
+- 服务与健康总览
+- Metrics、Traces、Logs、Events 统一 Explore
+- Dashboard
+- 告警与事件
+- Provider、数据源、集成、规则、通知、自愈和值班的运营与配置入口
 
-### Clusters
+### 集群
 
-- cluster inventory list
-- cluster detail summary
-- namespace counts and capability tags
+- 集群清单
+- 集群详情摘要
+- namespace 数量和能力标签
 
-### Workloads
+### 工作负载
 
-- cluster selector
-- namespace dropdown
-- deployment list page
-- pod list page
-- controller list pages
-- dedicated detail pages with tabs
+- 集群选择
+- namespace 下拉选择
+- Deployment 列表
+- Pod 列表
+- Controller 列表
+- 带 Tab 的独立详情页
 
-## Priority Order
+## 优先级顺序
 
-1. K8s Workbench
-2. Virtualization Workbench
-3. Delivery Workbench
-4. AI Workbench
-5. Monitoring Workbench
-6. Global governance pages
-7. Remaining implementation gaps
+1. K8s 工作台
+2. 虚拟化工作台
+3. 交付工作台
+4. AI 工作台
+5. 监控工作台
+6. 全局治理页面
+7. 其余实现缺口
 
-## Placeholder Modules
+## 占位模块
 
-The following modules are reserved in the platform contract, but are not enabled as real workbenches yet:
+以下模块已在平台合同中预留，但尚未作为真实工作台启用：
 
-- Security
+- 安全
 - CMDB

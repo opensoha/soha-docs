@@ -86,11 +86,13 @@ OIDC、OAuth2、飞书、钉钉、企业微信这几类可运行 provider 现在
 
 目录连接控制台会展示回调配置与验证状态、近期排队或失败事件及重试入口、最近增量和全量对账时间，以及是否需要全量对账。当前实时目录事件支持飞书；钉钉和企业微信仍使用定时或手动全量同步。
 
-针对 SAML 类 provider，目前只保存配置态字段，例如：
+SAML 登录源还保存并使用以下运行时字段：
 
 - `metadataUrl`
 - `entityId`
 - `certificate`
+
+服务端会生成 SP metadata 和 ACS 地址，并验证签名、`InResponseTo`、时效、受众、接收方与 assertion 重放。登录源导入时默认保持禁用，管理员核对 metadata 和证书后再启用。
 
 ## 配置来源
 
@@ -269,24 +271,29 @@ Refresh Token 仅以 hash 持久化。`post_logout_redirect_uri` 必须精确匹
 
 ### SAML
 
-当前仅配置可见，不是完整可运行链路。
+当前是完整可运行的 SP 登录链路。
 
-已支持：
+- SP metadata：`GET /api/v1/auth/saml/:providerID/metadata`
+- ACS：`POST /api/v1/auth/login/:providerID/acs`
+- 严格校验签名算法、签名位置、`InResponseTo`、Destination、Recipient、Audience 和时间条件
+- assertion ID 与 state 都是一次性消费，防止重放
+- NameID 与属性映射统一落到本地用户、角色和组织体系
 
-- 设置页配置
-- 配置持久化
-- 登录页展示占位
-- 能明确告诉用户当前链路未启用
+metadata 只接受当前有效的签名证书。证书轮换必须在旧证书过期前完成。
 
-未支持：
+## Provider 工作台运行边界
 
-- SP metadata 生成
-- ACS endpoint
-- assertion 校验
-- nameID / attribute statement 解析
-- SAML 到本地用户的正式映射
+内网工作台的 Provider 与上面的外部登录源是两套不同边界：
 
-所以当前服务端必须把 SAML 视为“配置态能力”，不能对外宣称已经具备可用登录能力。
+- `oidc`：Soha 作为下游应用的 OIDC Provider；下游应用负责生成并校验 `state`、`nonce` 和 PKCE，工作台只使用应用已配置的启动地址。
+- `saml`：Soha 作为 SAML IdP，提供 metadata 和 SSO 端点，并按应用策略、MFA 和已登记 ACS 签发响应。
+- `proxy`：提供 forward-auth 与 reverse-proxy。反向代理默认拒绝私网、回环和链路本地地址；仅在明确需要访问内网服务时启用 `allowPrivateUpstream`。
+
+OIDC 客户端可以组合使用严格 Redirect URI 与 RE2 正则表达式。严格规则要求完整相等；正则表达式在保存时校验，并对完整 URI 匹配，而不是子串匹配。两种规则至少配置一条。
+
+SAML 签名证书可从 Provider 工作台轮换，重叠期范围为 0-30 天。重叠期间 metadata 同时发布新的活动证书和即将退役的证书，下游 SP 可以无停机更新。
+
+Provider 的 `secretRefs` 只接受 `soha://secrets/...` 引用，读取接口只返回已配置的别名，不返回引用值。OIDC Redirect URI、SAML ACS 和 `http.access_url` 都支持 HTTP 与 HTTPS，由私有化部署方决定传输边界。仍强烈建议正式环境使用 HTTPS，因为 HTTP 会让授权码、Assertion 和会话 Cookie 暴露在网络监听与篡改风险下。OIDC/SAML issuer 使用已配置的访问地址，不信任请求携带的 forwarded host/proto。
 
 ## 审计与本地身份绑定
 

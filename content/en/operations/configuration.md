@@ -173,7 +173,9 @@ Current runtime expectations:
 - `feishu`: supported through configured Feishu auth endpoints and field mappings
 - `dingtalk`: supported through configured DingTalk auth endpoints and field mappings
 - `wecom`: supported through webpage authorization plus enterprise access-token and `getuserinfo` APIs
-- `saml`: configuration-visible only; runtime assertion/ACS handling is not enabled yet
+- `saml`: supports SP metadata, ACS, signature and assertion validation, attribute mapping, and replay protection
+
+Set `http.access_url` to the origin clients actually use. Both HTTP and HTTPS are supported for self-hosted installations; HTTPS is strongly recommended because identity tokens, assertions, and session cookies otherwise cross the network without transport protection. OIDC/SAML issuer and protocol URLs use this value instead of deriving authority from client-supplied forwarded host/proto headers.
 
 ## Operational Conventions
 

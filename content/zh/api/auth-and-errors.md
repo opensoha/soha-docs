@@ -1,6 +1,6 @@
-# Auth And Errors
+# 认证与错误
 
-## Auth Entry
+## 认证入口
 
 The current backend uses real identity and session handling.
 
@@ -22,12 +22,12 @@ When `auth.enable_dev_auth` is enabled in `config.yaml`, the backend can still a
 
 `auth.login_verification.slider_enabled` controls whether the login page renders the frontend slider interaction before password submission.
 
-## Provider Notes
+## Provider 说明
 
 - `POST /api/v1/auth/oidc/exchange` is still the final frontend session exchange endpoint for OIDC and OAuth2-style providers.
 - `GET /api/v1/auth/providers` returns every enabled third-party provider instead of assuming a single OIDC entry.
 - OIDC, OAuth2, Feishu, DingTalk, and WeCom providers can supplement local role and organization bindings at login time when `syncRolesOnLogin` or `syncOrgsOnLogin` is enabled. The callback only matches existing local roles and organizations; it does not create directory objects.
-- SAML may appear in configuration and provider discovery, but the runtime ACS/assertion flow is not enabled yet. A provider without a `loginUrl` should be treated by the frontend as non-runnable.
+- SAML 登录已通过 `GET /api/v1/auth/saml/:providerID/metadata` 和 `POST /api/v1/auth/login/:providerID/acs` 完整启用。响应绑定一次性 state 与请求 ID，并校验签名、Destination、Recipient、Audience 和时间条件。
 
 ## Error Envelope
 

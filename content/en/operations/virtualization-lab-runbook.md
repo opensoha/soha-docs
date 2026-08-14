@@ -74,6 +74,8 @@ After approval, call `POST /api/v1/virtualization/vms` with the same request and
 
 Poll `GET /api/v1/virtualization/operations/{taskID}` and read `/logs` until a terminal state. Confirm the created VM appears in Soha and the provider inventory.
 
+PVE creation is not transactional after the provider VM exists. A later disk resize, cloud-init configuration, or automatic start failure can leave the operation failed while the VM remains in PVE. Record the intended VMID before creation, reconcile it after any failure, and remove only the disposable VM and disks created by that attempt.
+
 ### Action
 
 Choose one reversible action from the VM's current `allowedActions`. Send it through `POST /api/v1/virtualization/vms/{vmID}/actions` or the documented `/power` compatibility route. Poll the returned operation and confirm provider state.
@@ -120,6 +122,8 @@ Discover these tools from the live Gateway manifest. Inventory, detail, metrics,
 4. Confirm the VM and temporary disk or DataVolume are removed from Soha and the provider.
 5. Remove only lab-created image, flavor, or connection records whose dependency preview is empty.
 6. Verify cleanup operation and audit evidence.
+
+KubeVirt deletion submits deletion of the `VirtualMachine` object. DataVolume and PVC cleanup depends on the live cluster's ownership and garbage-collection policy; verify both explicitly and remove only disposable child volumes from this test if they remain.
 
 Never delete a shared template, golden PVC, DataSource, storage pool, namespace, or connection as implicit cleanup.
 

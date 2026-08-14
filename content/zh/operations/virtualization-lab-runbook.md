@@ -392,6 +392,8 @@ qm status <vmid>
 - 磁盘落在实验存储池。
 - VM 可进入安装界面。
 
+PVE 在底层 VM 已创建后的后续步骤目前不具备事务补偿。磁盘扩容、cloud-init 配置或自动启动失败时，任务可能失败但 VM 仍留在 PVE。创建前记录目标 VMID，任何失败后都应在 PVE 清点，并只删除本次尝试创建的实验 VM 和磁盘。
+
 ## P1 电源操作
 
 ### 支持操作
@@ -624,6 +626,8 @@ kubectl get vm,vmi,dv,pvc -n virt-lab
 - VM 和 VMI 删除完成。
 - 临时 PVC / DataVolume 按策略清理。
 - golden PVC 和 DataSource 保留。
+
+KubeVirt 删除只提交 `VirtualMachine` 对象删除。DataVolume 和 PVC 是否清理由实际集群的所有权与垃圾回收策略决定；必须分别核实，若有残留，只手工删除本次实验创建的子卷。
 
 ### PVE
 

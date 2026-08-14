@@ -57,13 +57,12 @@
 
 ### Monitoring Workbench
 
-- overview
-- alerts
-- rules
-- notifications
-- healing
-- on-call
-- events
+- service and health overview
+- unified Explore for metrics, traces, logs, and events
+- dashboards
+- alerts and events
+- operations and configuration for providers, data sources, integrations, rules, notifications,
+  healing, and on-call
 
 ### Clusters
 

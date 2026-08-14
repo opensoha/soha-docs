@@ -59,17 +59,34 @@ Soha 默认不会启用增强采集。在集群详情的 **日志采集** 区域
 | --- | --- | --- |
 | `starter` | OpenTelemetry Collector 和带保留 PVC 的单副本 Loki | 小规模环境和评估 |
 | `collector_only` | OpenTelemetry Collector，将日志转发到外部 Loki OTLP 端点 | 已有持久化后端 |
-| `production_external` | 外部后端模式，并使用面向生产的资源规格 | 生产环境自主管理存储 |
+| `production_external` | 使用面向生产资源规格的 Collector 和外部后端 | 生产环境自主管理存储与分析 |
 
 Collector 只读挂载 `/var/log/pods`。可以通过 namespace allowlist 限制文件发现范围；外部凭据只引用已有的
 Kubernetes Secret。
+
+默认 signal allowlist 只有 `logs`，因此升级后仍保持原有 filelog 到 Loki 的链路。运维人员可以明确启用带 TLS 和
+token 的 OTLP receiver，再加入 metrics 和 traces。Metrics 通过 Prometheus Remote Write 导出；Traces 通过
+OTLP/gRPC 导出，通常指向已启用 OTLP trace handler 的 SkyWalking OAP `11800` 端点。这些外部链路必须配置端点
+并引用现有的凭据 Secret。
+
+Collector 会补充 Soha workspace 和 Kubernetes cluster 标识，保留应用上报的 OpenTelemetry service identity，
+并拒绝缺少 `service.name` 的 metrics 或 traces。其有界脱敏策略会删除配置的凭据属性并哈希配置的用户标识。
+Soha 仍是控制面和统一查询层；OAP、Prometheus-compatible storage 与 Loki 继续承担分析和存储。
+
+SkyWalking 会把 OTLP Trace 转换成 Zipkin Trace 模型，因此 Soha 的 SkyWalking 数据源使用已启用的 Zipkin query
+端点查询这部分 Trace。该链路支持 Trace Explore，但不意味着 OTLP 输入会自动生成 SkyWalking 原生服务拓扑；服务和
+拓扑视图仍以 SkyWalking 原生服务模型已经分析出数据为前提。
 
 停止采集只会停止新日志写入。卸载 add-on 默认保留 Loki PVC，因此不会在停用采集时静默删除历史日志。
 
 ## 运行限制
 
+- `starter` Loki 是 filesystem storage 的单副本实例，不是生产 HA 后端。
+- 使用 `production_external` 时，保留、复制、容量、备份、升级、凭据轮换和故障恢复由外部后端负责。
 - 运行时日志受容器运行时轮转影响，底层文件删除后无法继续查询。
 - 历史保留期由外部数据源或托管 profile 决定。
 - Live 会话有服务端时限；重连必须获取新的单次 ticket，并重新执行授权。
 - 来源数、条目数、时间范围和 provider 查询工作量都由服务端限制。
 - 来源降级会明确返回，不会通过扩大查询范围来补偿。
+- Helm 渲染和 Collector 配置校验通过，不等于 collector 到 backend 再到 Soha 的真实链路已经可用；每个部署都必须
+  用已知信号执行 smoke test 后才能标记为健康。

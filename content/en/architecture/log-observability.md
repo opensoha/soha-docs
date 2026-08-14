@@ -67,16 +67,37 @@ The independent `soha-observability` Helm chart supports:
 | --- | --- | --- |
 | `starter` | OpenTelemetry Collector and single-replica Loki with retained PVC | Small installations and evaluation |
 | `collector_only` | OpenTelemetry Collector forwarding to an external Loki OTLP endpoint | Existing durable backend |
-| `production_external` | External profile with production-oriented resource sizing | Production-managed storage |
+| `production_external` | Collector with production-oriented resource sizing and external backends | Production-managed storage and analysis |
 
 The collector mounts `/var/log/pods` read-only. Use its namespace allowlist to limit file discovery.
 External credentials are referenced from an existing Kubernetes Secret.
+
+The default signal allowlist contains only `logs`, so an upgrade keeps the original filelog-to-Loki
+pipeline. An operator can explicitly enable an authenticated TLS OTLP receiver and add metrics and
+traces. Metrics are exported through Prometheus Remote Write; traces are exported through OTLP/gRPC,
+typically to a SkyWalking OAP `11800` endpoint with its OTLP trace handler enabled. These external
+pipelines require configured endpoints and existing credential Secrets.
+
+The collector adds the Soha workspace and Kubernetes cluster identity, preserves application-provided
+OpenTelemetry service identity, and rejects metrics or traces without `service.name`. Its bounded
+redaction policy removes configured credential attributes and hashes configured user identifiers.
+Soha remains the control and query plane: OAP, Prometheus-compatible storage, and Loki remain the
+telemetry analysis and storage backends.
+
+SkyWalking converts OTLP traces to its Zipkin trace model. The Soha SkyWalking data source therefore
+uses the enabled Zipkin query endpoint for those traces. This enables Trace Explore but does not
+claim that OTLP input populates native SkyWalking service topology; native service and topology
+views remain conditional on data analyzed by SkyWalking's native service model.
 
 Stopping collection stops new writes. Uninstalling the add-on retains the Loki PVC by default, so
 removing collection does not silently delete historical logs.
 
 ## Operational Limits
 
+- The `starter` Loki is a single replica with filesystem storage and is not an HA production
+  backend.
+- With `production_external`, retention, replication, capacity, backup, upgrade, credential
+  rotation, and recovery are owned by the external backends.
 - Runtime logs are subject to container-runtime rotation and disappear when the underlying files
   are removed.
 - Durable retention is controlled by the configured backend or the managed profile.
@@ -84,3 +105,6 @@ removing collection does not silently delete historical logs.
   authorization.
 - Query source counts, entry counts, time ranges, and provider work are bounded server-side.
 - A degraded source is reported explicitly; it does not broaden the query to compensate.
+- Successful chart rendering and Collector configuration validation do not prove a live
+  collector-to-backend-to-Soha path. Each deployment must run a known-signal smoke test before it is
+  treated as healthy.

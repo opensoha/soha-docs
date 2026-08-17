@@ -7,6 +7,7 @@
 - `soha` copies the web artifact into `internal/staticassets/web/dist` and embeds it into the server binary at build time
 - `soha-docs` builds and publishes the Nextra website and documentation site independently
 - `soha-agent` builds the remote cluster agent and optional Hermes provider runner independently
+- `soha-operator` 独立提供可选的集群内 `WorkloadCronJob` 控制器
 - `cmd/server` serves the HTTP API and SPA, and redirects `/docs/` to the configured docs URL by default
 - PostgreSQL is the durable system of record
 - deployment assets pin pgvector 0.8.5 on PostgreSQL 18.4 for fresh local, manifest, and Helm installs
@@ -22,6 +23,8 @@ Deployment assets now live under `deploy/`.
 - `configs/config.compose.yaml`
 - `deploy/deployment.yaml`
 - sibling repository `../soha-helm/charts/soha/`
+- sibling repository `../soha-helm/charts/soha-operator/`
+- sibling repository `../soha-operator/config/default/`
 
 Use these paths as the default baseline for image build, local stack startup, raw Kubernetes rollout, and Helm packaging. The optional Hermes provider runner is built from sibling repository `../soha-agent`. `configs/config.compose.yaml` is the app-container config for compose; it points the database host at the `postgres` service and does not seed host-local kubeconfig paths.
 
@@ -50,6 +53,26 @@ Run Hermes as the first external Agent Runtime provider:
 ```bash
 make init-hermes
 ```
+
+## Soha Operator
+
+Soha Operator 是一个独立版本化的可选组件，用于在集群内执行 `WorkloadCronJob` 自动化。通过 OpenSoha 的公开 Helm 仓库安装：
+
+```bash
+helm repo add opensoha https://opensoha.github.io/soha-helm
+helm repo update
+helm install soha-operator opensoha/soha-operator \
+  --namespace soha-operator \
+  --create-namespace
+```
+
+也可以固定 Operator 的 release tag，直接通过 Kustomize 安装发布清单：
+
+```bash
+kubectl apply -k "https://github.com/opensoha/soha-operator//config/default?ref=v0.1.0"
+```
+
+Operator `v0.1.0` 默认使用公开的多架构镜像 `ghcr.io/opensoha/soha-operator:0.1.0`，支持 `linux/amd64` 和 `linux/arm64`。Helm chart 与 Operator runtime 各自独立版本化；chart 的 `appVersion` 表示默认 runtime 镜像版本。
 
 ## Local Run Assumptions
 

@@ -7,6 +7,7 @@
 - `soha` copies the web artifact into `internal/staticassets/web/dist` and embeds it into the server binary at build time
 - `soha-docs` builds and publishes the Nextra website and documentation site independently
 - `soha-agent` builds the remote cluster agent and optional Hermes provider runner independently
+- `soha-operator` provides the optional cluster-local `WorkloadCronJob` controller independently
 - `cmd/server` serves the HTTP API and SPA, and redirects `/docs/` to the configured docs URL by default
 - PostgreSQL is the durable system of record
 - deployment assets pin pgvector 0.8.5 on PostgreSQL 18.4 for fresh local, manifest, and Helm installs
@@ -22,6 +23,8 @@ Deployment assets now live under `deploy/`.
 - `configs/config.compose.yaml`
 - `deploy/deployment.yaml`
 - sibling repository `../soha-helm/charts/soha/`
+- sibling repository `../soha-helm/charts/soha-operator/`
+- sibling repository `../soha-operator/config/default/`
 
 Use these paths as the default baseline for image build, local stack startup, raw Kubernetes rollout, and Helm packaging. The optional Hermes provider runner is built from sibling repository `../soha-agent`. `configs/config.compose.yaml` is the app-container config for compose; it points the database host at the `postgres` service and does not seed host-local kubeconfig paths.
 
@@ -50,6 +53,26 @@ Run Hermes as the first external Agent Runtime provider:
 ```bash
 make init-hermes
 ```
+
+## Soha Operator
+
+The Soha Operator is an optional, independently versioned component for cluster-local `WorkloadCronJob` automation. Install its public Helm chart from the OpenSoha chart repository:
+
+```bash
+helm repo add opensoha https://opensoha.github.io/soha-helm
+helm repo update
+helm install soha-operator opensoha/soha-operator \
+  --namespace soha-operator \
+  --create-namespace
+```
+
+To install the release manifests directly with Kustomize instead, pin the operator tag:
+
+```bash
+kubectl apply -k "https://github.com/opensoha/soha-operator//config/default?ref=v0.1.0"
+```
+
+Operator `v0.1.0` uses the public multi-architecture image `ghcr.io/opensoha/soha-operator:0.1.0` for `linux/amd64` and `linux/arm64`. The Helm chart and operator runtime have independent version numbers; use the chart `appVersion` as the default runtime image version.
 
 ## Local Run Assumptions
 

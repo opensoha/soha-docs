@@ -11,6 +11,7 @@ Typical overrides:
 - `SOHA_CONFIG_FILE`
 - `SOHA_HTTP_ADDR`
 - `SOHA_LOGGER_LEVEL`
+- `SOHA_LOGGER_FORMAT`（生产环境默认 `json`，本地调试可使用 `console`）
 - `SOHA_DATABASE_HOST`
 - `SOHA_DATABASE_PORT`
 - `SOHA_DATABASE_NAME`

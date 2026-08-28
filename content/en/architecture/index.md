@@ -37,5 +37,5 @@ design and constraints.
 
 Additional conventions:
 
-- Application groups, application environment tags, and application environment bindings are all carried by the application center. No independent business scope or global environment directory is retained.
+- The platform environment directory is reusable cluster/namespace/stage inventory. Application-environment bindings are maintained only in application detail and carry that application's targets and release policy.
 - During the compatibility period, some permission keys, scope fields, and backend legacy data still use `delivery.*`, `businessLineId`, and `delivery_environments` naming, but they no longer represent independent user-maintainable master data entries.

@@ -8,9 +8,11 @@ The developer/tester-facing DevOps workbench design is documented separately in 
 
 ## Current Implemented Surface
 
-The repository now has a delivery control-plane baseline centered on four stable objects:
+The repository now has a delivery control-plane baseline centered on six stable objects:
 
 - applications
+- application services
+- platform environments
 - build templates
 - application-environment bindings
 - execution records
@@ -50,6 +52,7 @@ The repository now has a delivery control-plane baseline centered on four stable
   - `GET /api/v1/delivery/execution-tasks/:taskID/runner-status`
   - `POST /api/v1/delivery/execution-callbacks`
 - application-environment detail and target-candidate APIs:
+  - `GET /api/v1/delivery/environments`
   - `GET /api/v1/application-environments/:applicationEnvironmentID/detail`
   - `GET /api/v1/application-environments/target-candidates`
 - delivery aggregate API:
@@ -65,11 +68,12 @@ The repository now has a delivery control-plane baseline centered on four stable
   - `/applications`
   - `/delivery/blueprints`
   - `/applications/:applicationId`
+  - `/delivery/environments`
   - `/build-templates`
   - `/delivery/release-bundles`
   - `/delivery/execution-tasks`
-  - `/application-environments`
-  - `/application-environments/:applicationEnvironmentId`
+  - `/application-environments` (read-only compatibility index)
+  - `/application-environments/:applicationEnvironmentId` (compatibility adapter into application detail)
   - `/workflow-templates`
   - `/release-board`
   - `/workflows`
@@ -119,23 +123,28 @@ Build-source types:
 
 DAG templates remain environment-scoped delivery orchestration templates and are not treated as build-source variants.
 
-Current build surface:
+Current delivery write surface:
 
+- `POST /api/v1/delivery/plans`
+- `POST /api/v1/delivery/plans/:planID/confirm`
 - `GET /api/v1/builds`
-- `POST /api/v1/builds/trigger`
+- `POST /api/v1/builds/trigger` remains a compatibility API; the console does not expose it as a parallel write path
 - `build_records` now stores manual build requests plus worker-completed artifact metadata
 - each accepted trigger also emits a unified build event into `event_stream`
 - DAG `build` nodes now reuse the same build service path and can emit artifact metadata for downstream `deploy_update_image` nodes
 
 The current model is not GitOps-only and not a fake mock pipeline. It is a real platform workflow where:
 
-1. an application is registered in soha
-2. one or more build sources are attached to the application
-3. an application-environment binding selects one build source, one workflow template, and explicit platform targets
-4. a manual build or workflow build node creates a release bundle and execution task in the execution plane
-5. the produced artifact image is recorded on both the build record and the release bundle metadata
-6. deployment replaces the target Deployment image in Kubernetes while execution task state is advanced in parallel
-7. soha records workflow, execution-task, deploy, and release outcomes
+1. an application is created or onboarded in the application center
+2. services and build sources are maintained inside that application
+3. an application-environment binding selects an item from the reusable platform environment directory, then owns application-specific policy and targets
+4. the user creates and confirms one `DeliveryPlan`
+5. the plan creates a release bundle and execution task in the execution plane
+6. the produced artifact image is recorded on both the build record and the release bundle metadata
+7. deployment replaces the target Deployment image in Kubernetes while execution task state is advanced in parallel
+8. soha records workflow, execution-task, deploy, and release outcomes
+
+The platform environment directory is read-only inventory in the delivery workbench. Application-environment bindings are written only from application detail or the delivery flow. Manifest packages are authored under an application or service; the Kubernetes workbench consumes rendered revisions for observation, diff, sync, repair, and rollback.
 
 企业 AI coding 场景下，`delivery_blueprints` 作为控制平面模板对象存在，而不是仓库文件本身：
 

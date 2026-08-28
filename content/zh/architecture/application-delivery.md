@@ -8,9 +8,11 @@ The developer/tester-facing DevOps workbench design is documented separately in 
 
 ## Current Implemented Surface
 
-The repository now has a delivery control-plane baseline centered on four stable objects:
+The repository now has a delivery control-plane baseline centered on six stable objects:
 
 - applications
+- application services
+- platform environments
 - build templates
 - application-environment bindings
 - execution records
@@ -50,6 +52,7 @@ The repository now has a delivery control-plane baseline centered on four stable
   - `GET /api/v1/delivery/execution-tasks/:taskID/runner-status`
   - `POST /api/v1/delivery/execution-callbacks`
 - application-environment detail and target-candidate APIs:
+  - `GET /api/v1/delivery/environments`
   - `GET /api/v1/application-environments/:applicationEnvironmentID/detail`
   - `GET /api/v1/application-environments/target-candidates`
 - delivery aggregate API:
@@ -65,11 +68,12 @@ The repository now has a delivery control-plane baseline centered on four stable
   - `/applications`
   - `/delivery/blueprints`
   - `/applications/:applicationId`
+  - `/delivery/environments`
   - `/build-templates`
   - `/delivery/release-bundles`
   - `/delivery/execution-tasks`
-  - `/application-environments`
-  - `/application-environments/:applicationEnvironmentId`
+  - `/application-environments`（只读兼容索引）
+  - `/application-environments/:applicationEnvironmentId`（进入应用详情的兼容适配页）
   - `/workflow-templates`
   - `/release-board`
   - `/workflows`
@@ -119,23 +123,28 @@ Build-source types:
 
 DAG templates remain environment-scoped delivery orchestration templates and are not treated as build-source variants.
 
-Current build surface:
+Current delivery write surface:
 
+- `POST /api/v1/delivery/plans`
+- `POST /api/v1/delivery/plans/:planID/confirm`
 - `GET /api/v1/builds`
-- `POST /api/v1/builds/trigger`
+- `POST /api/v1/builds/trigger` 继续作为兼容 API；控制台不再提供平行写入口
 - `build_records` now stores manual build requests plus worker-completed artifact metadata
 - each accepted trigger also emits a unified build event into `event_stream`
 - DAG `build` nodes now reuse the same build service path and can emit artifact metadata for downstream `deploy_update_image` nodes
 
 The current model is not GitOps-only and not a fake mock pipeline. It is a real platform workflow where:
 
-1. an application is registered in soha
-2. one or more build sources are attached to the application
-3. an application-environment binding selects one build source, one workflow template, and explicit platform targets
-4. a manual build or workflow build node creates a release bundle and execution task in the execution plane
-5. the produced artifact image is recorded on both the build record and the release bundle metadata
-6. deployment replaces the target Deployment image in Kubernetes while execution task state is advanced in parallel
-7. soha records workflow, execution-task, deploy, and release outcomes
+1. 在应用中心创建或接入 application
+2. 在该 application 内维护 services 与 build sources
+3. application-environment binding 选择平台环境目录中的环境，并保存应用专属策略和目标
+4. 用户创建并确认唯一的 `DeliveryPlan`
+5. plan 在 execution plane 中创建 release bundle 与 execution task
+6. 产物镜像同时记录到 build record 与 release bundle metadata
+7. Kubernetes Deployment 替换目标镜像，并同步推进 execution task 状态
+8. soha 记录 workflow、execution task、deploy 与 release 结果
+
+平台环境目录在交付工作台中是只读库存；应用环境绑定只在应用详情或交付流程中写入。ManifestPackage 在应用或服务下维护；K8s 工作台只消费渲染后的修订，用于观察、diff、同步、修复和回滚。
 
 企业 AI coding 场景下，`delivery_blueprints` 作为控制平面模板对象存在，而不是仓库文件本身：
 

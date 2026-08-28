@@ -90,6 +90,7 @@ These routes are live Core facades over the enabled virtualization and container
 - `POST /api/v1/build-templates`
 - `PUT /api/v1/build-templates/:buildTemplateID`
 - `DELETE /api/v1/build-templates/:buildTemplateID`
+- `GET /api/v1/delivery/environments`
 - `GET /api/v1/application-environments`
 - `POST /api/v1/application-environments`
 - `GET /api/v1/application-environments/:applicationEnvironmentID`
@@ -127,6 +128,8 @@ These routes are live Core facades over the enabled virtualization and container
 - `GET /api/v1/integrations/gitlab/projects?search=<optional>&limit=50`
 - `GET /api/v1/integrations/gitlab/branches?projectId=<required>&search=<optional>&limit=50`
 - `GET /api/v1/integrations/gitlab/tags?projectId=<required>&search=<optional>&limit=50`
+
+The console creates and confirms `DeliveryPlan` as its canonical delivery write path. Direct build, workflow, and release trigger endpoints remain compatibility APIs.
 
 ## Copilot APIs
 

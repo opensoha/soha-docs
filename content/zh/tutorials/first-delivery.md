@@ -1,6 +1,6 @@
 ---
 title: 第一次交付
-description: 创建第一条交付应用路径，触发 build 或 deploy 动作，并查看 execution task 状态。
+description: 创建或接入应用、绑定环境、确认交付计划，并查看 execution task 状态。
 ---
 
 # 第一次交付
@@ -32,23 +32,36 @@ curl -sS -X POST "$SOHA_SERVER/api/v1/applications" \
   }'
 ```
 
-API reference 名称是 `POST /api/v1/applications`。
+API reference 名称是 `POST /api/v1/applications`。控制台入口为 **应用交付 → 应用中心 → 创建 / 接入应用**；后续增量服务只在应用详情的 **服务** Tab 新增。
 
-## 触发 Build
+## 绑定环境
 
-当 application 有 build source 或 template 时，使用 build trigger endpoint：
+进入应用详情的 **环境** Tab，从 **平台配置 → 环境目录** 选择一个环境并建立绑定。环境目录是可复用的平台库存；应用环境绑定才保存本应用的目标和发布策略。
+
+记录返回的应用环境绑定 ID，下一步创建交付计划时使用。
+
+## 创建并确认交付计划
+
+`DeliveryPlan` 是 build、deploy、workflow、verify 和 rollback 的唯一用户可见交付意图。
 
 ```bash
-curl -sS -X POST "$SOHA_SERVER/api/v1/builds/trigger" \
+curl -sS -X POST "$SOHA_SERVER/api/v1/delivery/plans" \
   -H "Authorization: Bearer $SOHA_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "applicationId": "app-1",
-    "sourceRef": "main"
+    "applicationEnvironmentId": "binding-1",
+    "action": "build_deploy",
+    "source": "manual",
+    "refType": "branch",
+    "refName": "main"
   }'
+
+curl -sS -X POST "$SOHA_SERVER/api/v1/delivery/plans/plan-1/confirm" \
+  -H "Authorization: Bearer $SOHA_TOKEN"
 ```
 
-API reference 名称是 `POST /api/v1/builds/trigger`。
+API reference 名称是 `POST /api/v1/delivery/plans` 与 `POST /api/v1/delivery/plans/{planID}/confirm`。旧 build、workflow、release trigger 端点继续作为兼容 API 保留，不再形成额外的控制台写入口。
 
 ## 通过 AI Gateway 触发
 
@@ -77,20 +90,22 @@ Fixture artifact: [`first-delivery.expected.txt`](/tutorial-fixtures/first-deliv
 
 ```bash
 POST "$SOHA_SERVER/api/v1/applications"
-POST "$SOHA_SERVER/api/v1/builds/trigger"
+POST "$SOHA_SERVER/api/v1/delivery/plans"
+POST "$SOHA_SERVER/api/v1/delivery/plans/plan-1/confirm"
 GET "$SOHA_SERVER/api/v1/delivery/execution-tasks?applicationId=app-1&limit=20"
 ```
 
 ```json
 {"item": {"id": "app-1", "name": "billing-api", "ownerTeam": "platform"}}
-{"item": {"id": "task-1", "applicationId": "app-1", "status": "queued"}}
+{"item": {"id": "plan-1", "applicationId": "app-1", "applicationEnvironmentId": "binding-1", "status": "draft"}}
+{"item": {"plan": {"id": "plan-1", "status": "confirmed"}, "result": {"executionTaskId": "task-1", "status": "queued"}}}
 {"items": [{"id": "task-1", "taskKind": "build", "status": "queued"}]}
 ```
 
 ## 验收标准
 
 - application 记录能从 application list 或 detail API 看到。
-- Build/deploy trigger 返回持久记录、queued execution task，或清晰的 disabled/unsupported 状态。
+- DeliveryPlan 确认返回持久记录、queued execution task，或清晰的 disabled/unsupported 状态。
 - 可以查看 execution task 状态，不需要读取 runner 本地文件。
 
 ## 已知缺口

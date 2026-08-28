@@ -1,6 +1,6 @@
 ---
 title: First Delivery
-description: Create the first delivery application path, trigger a build or deploy action, and inspect execution task state.
+description: Create or onboard an application, bind an environment, confirm a delivery plan, and inspect execution task state.
 ---
 
 # First Delivery
@@ -32,23 +32,36 @@ curl -sS -X POST "$SOHA_SERVER/api/v1/applications" \
   }'
 ```
 
-The API reference name is `POST /api/v1/applications`.
+The API reference name is `POST /api/v1/applications`. In the console, use **Application Delivery → Applications → Create / Onboard Application**. Add later services only from the application's **Services** tab.
 
-## Trigger A Build
+## Bind An Environment
 
-Use the build trigger endpoint when the application has a build source or template.
+Open the application detail **Environments** tab and bind one item from **Platform Configuration → Environment Directory**. The directory is reusable platform inventory; the application binding owns this application's targets and release policy.
+
+Keep the returned application-environment binding ID for the delivery plan below.
+
+## Create And Confirm A Delivery Plan
+
+`DeliveryPlan` is the canonical user-visible delivery intent for build, deploy, workflow, verification, and rollback actions.
 
 ```bash
-curl -sS -X POST "$SOHA_SERVER/api/v1/builds/trigger" \
+curl -sS -X POST "$SOHA_SERVER/api/v1/delivery/plans" \
   -H "Authorization: Bearer $SOHA_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "applicationId": "app-1",
-    "sourceRef": "main"
+    "applicationEnvironmentId": "binding-1",
+    "action": "build_deploy",
+    "source": "manual",
+    "refType": "branch",
+    "refName": "main"
   }'
+
+curl -sS -X POST "$SOHA_SERVER/api/v1/delivery/plans/plan-1/confirm" \
+  -H "Authorization: Bearer $SOHA_TOKEN"
 ```
 
-The API reference name is `POST /api/v1/builds/trigger`.
+The API reference names are `POST /api/v1/delivery/plans` and `POST /api/v1/delivery/plans/{planID}/confirm`. The older build, workflow, and release trigger endpoints remain compatibility APIs, not additional console write paths.
 
 ## Trigger Through AI Gateway
 
@@ -79,20 +92,22 @@ Fixture artifact: [`first-delivery.expected.txt`](/tutorial-fixtures/first-deliv
 
 ```bash
 POST "$SOHA_SERVER/api/v1/applications"
-POST "$SOHA_SERVER/api/v1/builds/trigger"
+POST "$SOHA_SERVER/api/v1/delivery/plans"
+POST "$SOHA_SERVER/api/v1/delivery/plans/plan-1/confirm"
 GET "$SOHA_SERVER/api/v1/delivery/execution-tasks?applicationId=app-1&limit=20"
 ```
 
 ```json
 {"item": {"id": "app-1", "name": "billing-api", "ownerTeam": "platform"}}
-{"item": {"id": "task-1", "applicationId": "app-1", "status": "queued"}}
+{"item": {"id": "plan-1", "applicationId": "app-1", "applicationEnvironmentId": "binding-1", "status": "draft"}}
+{"item": {"plan": {"id": "plan-1", "status": "confirmed"}, "result": {"executionTaskId": "task-1", "status": "queued"}}}
 {"items": [{"id": "task-1", "taskKind": "build", "status": "queued"}]}
 ```
 
 ## Exit Criteria
 
 - The application record is visible from the application list or detail API.
-- Build/deploy trigger returns a durable record, a queued execution task, or a clear disabled/unsupported state.
+- Delivery-plan confirmation returns a durable record, a queued execution task, or a clear disabled/unsupported state.
 - Execution task state can be inspected without reading runner-local files.
 
 ## Known Gaps

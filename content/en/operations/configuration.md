@@ -289,8 +289,10 @@ When enabled, soha serves these routes from the backend:
 - `GET /api/v1/integrations/gitlab/branches`
 - `GET /api/v1/integrations/gitlab/tags`
 
-Build and AI routes now also exist:
+Delivery compatibility and AI routes also exist. New console delivery actions create and confirm `DeliveryPlan`; the direct build trigger remains for API compatibility:
 
+- `POST /api/v1/delivery/plans`
+- `POST /api/v1/delivery/plans/:planID/confirm`
 - `GET /api/v1/builds`
 - `POST /api/v1/builds/trigger`
 - `GET /api/v1/copilot/insights`

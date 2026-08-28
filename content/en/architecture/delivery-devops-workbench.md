@@ -92,7 +92,7 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 
 - `/applications` 继续作为应用中心。
 - `/applications/:applicationId` 扩展为应用详情工作台。
-- `/application-environments` 继续作为应用环境绑定管理面，但在应用详情内提供更自然的环境视图。
+- `/delivery/environments` 作为平台环境只读目录；应用环境绑定只在应用详情维护，`/application-environments` 暂留只读兼容索引。
 - `/workflow-templates` 继续作为 DAG 模板管理面。
 - `/delivery/release-bundles` 作为交付物中心的控制面列表。
 - `/delivery/execution-tasks` 作为执行任务和日志查看面。

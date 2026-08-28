@@ -664,7 +664,8 @@ async function verifyTutorialCoverage() {
       'tutorials/first-delivery.md',
       [
         'POST /api/v1/applications',
-        'POST /api/v1/builds/trigger',
+        'POST /api/v1/delivery/plans',
+        'POST /api/v1/delivery/plans/{planID}/confirm',
         'GET /api/v1/delivery/execution-tasks',
         'delivery.actions.trigger',
       ],

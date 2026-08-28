@@ -89,6 +89,7 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 - `POST /api/v1/build-templates`
 - `PUT /api/v1/build-templates/:buildTemplateID`
 - `DELETE /api/v1/build-templates/:buildTemplateID`
+- `GET /api/v1/delivery/environments`
 - `GET /api/v1/application-environments`
 - `POST /api/v1/application-environments`
 - `GET /api/v1/application-environments/:applicationEnvironmentID`
@@ -126,6 +127,8 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 - `GET /api/v1/integrations/gitlab/projects?search=<optional>&limit=50`
 - `GET /api/v1/integrations/gitlab/branches?projectId=<required>&search=<optional>&limit=50`
 - `GET /api/v1/integrations/gitlab/tags?projectId=<required>&search=<optional>&limit=50`
+
+控制台以创建并确认 `DeliveryPlan` 作为唯一交付写入口；直接 build、workflow、release trigger 端点继续作为兼容 API 保留。
 
 ## Copilot APIs
 

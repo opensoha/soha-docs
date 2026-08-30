@@ -7,7 +7,12 @@ function createNavbar(locale: Locale) {
   return (
     <Navbar
       key="site-navbar"
-      logo={<span className="site-logo">OpenSoha</span>}
+      logo={
+        <span className="site-logo">
+          <img alt="" aria-hidden="true" src="/logo.svg" />
+          <span>OpenSoha</span>
+        </span>
+      }
       projectLink="https://github.com/opensoha/soha"
     >
       <LocaleSwitch lite className="site-locale-switch" />

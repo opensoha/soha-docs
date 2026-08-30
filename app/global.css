@@ -31,9 +31,17 @@ body {
 }
 
 .site-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--soha-ink);
   font-weight: 700;
   letter-spacing: 0;
+}
+
+.site-logo img {
+  width: 28px;
+  height: 28px;
 }
 
 .site-nav-link {

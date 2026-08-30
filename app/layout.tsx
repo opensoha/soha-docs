@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   },
   description: 'OpenSoha 是面向平台团队的开源 Soha 控制平面文档与产品入口。',
   metadataBase: new URL(process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.dev'),
+  icons: {
+    icon: '/logo.svg',
+    shortcut: '/logo.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

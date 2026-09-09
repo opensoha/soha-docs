@@ -340,6 +340,7 @@ async function verifyNavigationDocsExist() {
     'api/reference',
     'api/reference/generated/index',
     'operations/operator-runbooks',
+    'operations/network-access',
     'operations/docs-publish-acceptance',
     'governance/index',
     'release-notes/index',
@@ -782,6 +783,30 @@ async function verifyOperatorRunbookCoverage() {
   ])
 }
 
+async function verifyNetworkAccessRunbookCoverage() {
+  const [zhRunbook, enRunbook] = await Promise.all([
+    read('operations/network-access.md'),
+    read('content/en/operations/network-access.md'),
+  ])
+  const required = [
+    '/api/v1/network-access/**',
+    '/api/network-control/v1/**',
+    '/api/ingest/v1/**',
+    'internal_direct',
+    'internal_ztna',
+    'external_vpn',
+    'external_vpn_ztna',
+    'external_direct_ztna',
+    'ProtectedSet',
+    'managed_follow',
+    'app_subscription',
+    'network_access.sessions.list',
+    'tunnel_required',
+  ]
+  requireIncludes('Chinese network access runbook coverage', zhRunbook, required)
+  requireIncludes('English network access runbook coverage', enRunbook, required)
+}
+
 await verifyNextraSetup()
 await verifySingleDocumentShell()
 await verifyNoPrivateSaasExposure()
@@ -799,3 +824,4 @@ await verifyTutorialCoverage()
 await verifyChineseTutorialLocalization()
 await verifyGatewayEndpointStatus()
 await verifyOperatorRunbookCoverage()
+await verifyNetworkAccessRunbookCoverage()

@@ -275,6 +275,7 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 - `GET /api/v1/ai-gateway/relay/upstreams`
 - `POST /api/v1/ai-gateway/relay/upstreams`
 - `PUT /api/v1/ai-gateway/relay/upstreams/:upstreamID`
+- `POST /api/v1/ai-gateway/relay/upstreams/test`
 - `POST /api/v1/ai-gateway/relay/upstreams/health-checks/run`
 - `POST /api/v1/ai-gateway/relay/upstreams/:upstreamID/test`
 - `GET /api/v1/ai-gateway/relay/model-routes`

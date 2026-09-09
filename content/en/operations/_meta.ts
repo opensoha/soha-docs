@@ -4,6 +4,7 @@ export default {
   'environment-variables': 'Environment Variables',
   'agent-runtime': 'Agent Runtime',
   'kubernetes-workbench': 'Kubernetes Workbench',
+  'network-access': 'Network Access Workbench',
   'ai-gateway-examples': 'AI Gateway Examples',
   mcp: 'MCP',
   'mcp-configuration': 'MCP Configuration',

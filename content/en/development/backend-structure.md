@@ -62,12 +62,13 @@
 
 数据库 bootstrap 也按关注点拆分。`database.go` 保留 seed 编排、角色/策略/用户/集群等通用持久化 helper；菜单 seed、模块禁用过滤、菜单角色绑定和内置菜单升级逻辑归 `database_menus.go`。未来增加领域菜单或权限时，应优先在对应 seed 文件中落位，并同步权限键、菜单可见性、前端 route metadata 和文档。
 
-## 未来安全工作台边界
+## Network access workbench boundary
 
-当前仓库尚未实现内网安全工作台业务。预留边界如下：
+The network access workbench is split across three control entry points and a separate data plane:
 
-- `/api/v1/security/**`: 管理控制面 API，由 Soha web admin 使用。
-- `/api/client/v1/**`: Wails 桌面端和 Flutter 移动端的客户端 API。
-- `/api/ingest/v1/**`: 设备上报、心跳、审计证据和安全遥测 ingest API，适合由未来 `cmd/security-ingest` 承载。
+- `/api/v1/network-access/**`: management, policy, and audit APIs in `cmd/server`.
+- `/api/network-control/v1/**`: endpoint, NAS, and gateway control APIs in `cmd/network-control`.
+- `/api/ingest/v1/**`: heartbeat, Accounting, and aggregate telemetry APIs in `cmd/ingest`, backed by a separate database.
+- `cmd/network-gateway`: the separate WireGuard/nftables data plane with no management API.
 
-Soha 负责软件库、设备资产与上报、策略、审计和控制面数据。FreeRADIUS、Fleet、mihomo 等应作为被管理或被集成的执行侧系统，不应成为 Soha 主进程的运行时核心。
+Soha owns devices, sites, policy, leases, authorization, downgrade, and audit. FreeRADIUS owns EAP/RADIUS and mihomo executes endpoint proxy state; neither becomes part of the main Soha process or an authorization source. See [Network Access Workbench Operations](../operations/network-access.md) for deployment and acceptance.

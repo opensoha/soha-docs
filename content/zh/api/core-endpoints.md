@@ -250,6 +250,12 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` currently covers the Gateway, token, audit, approval, governance, and MCP capability boundaries below:
 
 - `GET /api/v1/ai-gateway/capabilities`
+- `POST /api/v1/ai-gateway/plans/validate`
+- `POST /api/v1/ai-gateway/tasks`
+- `GET /api/v1/ai-gateway/tasks`
+- `GET /api/v1/ai-gateway/tasks/:taskId`
+- `POST /api/v1/ai-gateway/tasks/:taskId/resume`
+- `POST /api/v1/ai-gateway/tasks/:taskId/cancel`
 - `POST /api/v1/ai-gateway/tools/:toolName/invoke`
 - `POST /api/v1/ai-gateway/resources/read`
 - `POST /api/v1/ai-gateway/prompts/get`
@@ -323,6 +329,8 @@ Planned relay contracts in the same OpenAPI artifact, not routed by the backend 
 - `POST /api/v1/ai-gateway/relay/cache/purge`
 
 `/ai-gateway/capabilities` returns the current caller's AI-native tools, resources, prompts, and skills after backend permission filtering. AI clients should send `X-Soha-AI-Client-ID`, `X-Soha-AI-Client`, and `X-Soha-Skill-ID` when available so audit records can distinguish human, service, client, skill, and tool context.
+
+`/ai-gateway/plans/validate` 在执行前校验能力计划；`/ai-gateway/tasks` 创建和列出持久化任务，每一步执行时都会重新检查权限和当前条件。恢复任务会创建新的计划版本；取消任务不会回滚已完成步骤的副作用。
 
 `/ai-gateway/tools/:toolName/invoke` is the shared MCP/CLI/AI-agent tool invocation entry point. It must re-check Gateway permission, domain permission, scope, grants, and risk policy, then call the owning application service instead of bypassing soha control-plane logic.
 

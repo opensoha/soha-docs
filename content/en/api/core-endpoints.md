@@ -251,6 +251,12 @@ The console creates and confirms `DeliveryPlan` as its canonical delivery write 
 The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` currently covers the Gateway, token, audit, approval, governance, and MCP capability boundaries below:
 
 - `GET /api/v1/ai-gateway/capabilities`
+- `POST /api/v1/ai-gateway/plans/validate`
+- `POST /api/v1/ai-gateway/tasks`
+- `GET /api/v1/ai-gateway/tasks`
+- `GET /api/v1/ai-gateway/tasks/:taskId`
+- `POST /api/v1/ai-gateway/tasks/:taskId/resume`
+- `POST /api/v1/ai-gateway/tasks/:taskId/cancel`
 - `POST /api/v1/ai-gateway/tools/:toolName/invoke`
 - `POST /api/v1/ai-gateway/resources/read`
 - `POST /api/v1/ai-gateway/prompts/get`
@@ -324,6 +330,8 @@ Planned relay contracts in the same OpenAPI artifact, not routed by the backend 
 - `POST /api/v1/ai-gateway/relay/cache/purge`
 
 `/ai-gateway/capabilities` returns the current caller's AI-native tools, resources, prompts, and skills after backend permission filtering. AI clients should send `X-Soha-AI-Client-ID`, `X-Soha-AI-Client`, and `X-Soha-Skill-ID` when available so audit records can distinguish human, service, client, skill, and tool context.
+
+`/ai-gateway/plans/validate` validates a capability plan before execution; `/ai-gateway/tasks` creates and lists durable tasks, with permissions and current conditions checked again for each step. Resuming creates a plan revision; cancellation preserves side effects of steps already completed.
 
 `/ai-gateway/tools/:toolName/invoke` is the shared MCP/CLI/AI-agent tool invocation entry point. It must re-check Gateway permission, domain permission, scope, grants, and risk policy, then call the owning application service instead of bypassing soha control-plane logic.
 

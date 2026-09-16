@@ -7,7 +7,7 @@
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.17`
+- OpenAPI version: `0.1.18`
 - Source artifact: `openapi/soha-api.yaml`
 - Generated artifact: `openapi/soha-api.json`
 - Go artifact package: `github.com/opensoha/soha-contracts/openapi`
@@ -267,6 +267,12 @@ This list mirrors `../soha-contracts/openapi/soha-api.yaml`. Paths use the docs 
 - `GET /api/v1/copilot/agent-runs`
 - `GET /api/v1/clusters/capabilities`
 - `GET /api/v1/ai-gateway/capabilities`
+- `POST /api/v1/ai-gateway/plans/validate`
+- `POST /api/v1/ai-gateway/tasks`
+- `GET /api/v1/ai-gateway/tasks`
+- `GET /api/v1/ai-gateway/tasks/:taskId`
+- `POST /api/v1/ai-gateway/tasks/:taskId/resume`
+- `POST /api/v1/ai-gateway/tasks/:taskId/cancel`
 - `POST /api/v1/ai-gateway/tools/:toolName/invoke`
 - `POST /api/v1/ai-gateway/resources/read`
 - `POST /api/v1/ai-gateway/prompts/get`

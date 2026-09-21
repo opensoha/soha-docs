@@ -14,7 +14,7 @@
     "screenshots:update": "node scripts/verify-docs-screenshots.mjs --update",
     "verify:tutorial-outputs": "node scripts/verify-tutorial-outputs.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run api:reference:check && npm run verify:tutorial-outputs && node scripts/verify-ai-gateway-docs.mjs && node scripts/verify-contract-docs.mjs && node scripts/verify-docs-drift.mjs"
+    "test": "npm run api:reference:check && npm run verify:tutorial-outputs && node scripts/verify-ai-gateway-docs.mjs && node scripts/verify-contract-docs.mjs && node scripts/verify-docs-drift.mjs && node --test scripts/verify-docs-screenshots.test.mjs"
   },
   "dependencies": {
     "@mdx-js/react": "^3.0.0",

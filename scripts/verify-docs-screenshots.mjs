@@ -1,6 +1,7 @@
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isDeepStrictEqual } from 'node:util'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const manifestPath = 'quality/docs-screenshot-regression.json'
@@ -123,8 +124,15 @@ async function verifyOrUpdateBaseline(manifest, route, viewport, htmlPath, html)
   if (!(await exists(file))) {
     throw new Error(`${file} is missing; run npm run screenshots:update after npm run build`)
   }
-  const existing = await read(file)
-  if (existing !== serialized) {
+  const { renderedLengthFloor, ...expectedMetadata } = JSON.parse(await read(file))
+  const { renderedLengthFloor: currentLengthFloor, ...actualMetadata } = baseline
+  if (!Number.isSafeInteger(renderedLengthFloor) || renderedLengthFloor < 0) {
+    throw new Error(`${file} has an invalid rendered length floor`)
+  }
+  if (currentLengthFloor < renderedLengthFloor) {
+    throw new Error(`${file} rendered HTML is shorter than the recorded floor ${renderedLengthFloor}`)
+  }
+  if (!isDeepStrictEqual(expectedMetadata, actualMetadata)) {
     throw new Error(`${file} is stale; run npm run build && npm run screenshots:update`)
   }
 }

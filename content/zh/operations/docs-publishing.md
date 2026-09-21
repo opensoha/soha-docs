@@ -55,11 +55,13 @@ The broken-link gate has two layers: the Nextra/Next build validates routable pa
 The Screenshot regression gate is driven by
 `quality/docs-screenshot-regression.json`. The manifest records the required
 desktop and mobile viewport coverage, source document for each route, and the
-DOM/content assertions that a screenshot runner must capture before a release.
+DOM/content assertions checked against built HTML. The current checker does not
+capture screenshots or execute viewport-specific browser interactions.
 After a local or CI build, run `npm run screenshots:check` to verify the
 rendered Nextra routes against the checked-in baseline records under
 `quality/screenshots/baseline`. When an intentional docs or Web-facing route
-change updates the rendered pages, run:
+change alters route metadata, assertions or the accepted minimum content size,
+review the change before updating the baseline:
 
 ```bash
 npm run build
@@ -67,9 +69,11 @@ npm run screenshots:update
 npm run screenshots:check
 ```
 
-The baseline records store the route, viewport, source hash, rendered HTML hash,
-and assertion set. They are text artifacts so release reviews can see exactly
-which public docs pages changed.
+The baseline records store route, viewport, source path, assertion set and a
+minimum rendered HTML length. Content growth does not require a new baseline;
+content below that floor, changed metadata and missing assertions still fail.
+These text records contain no source or HTML hashes and do not prove visual or
+interactive acceptance. Review actual pages separately for visual changes.
 
 ## Hosting Workflow
 

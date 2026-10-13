@@ -1,4 +1,5 @@
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { openAPIOperations } from './openapi-operations.mjs'
 
 const repoRoot = new URL('../', import.meta.url)
 const contractsRoot = new URL('../../soha-contracts/', import.meta.url)
@@ -11,7 +12,7 @@ async function readContracts(file) {
 
 async function ensureContractsAvailable() {
   try {
-    await access(new URL('openapi/soha-api.yaml', contractsRoot))
+    await access(new URL('openapi/soha-api.json', contractsRoot))
   } catch {
     throw new Error(
       'missing ../soha-contracts artifacts; checkout soha-contracts as a sibling of soha-docs before generating API reference',
@@ -25,82 +26,6 @@ function normalizeOpenAPIPath(path) {
 
 function operationRoute(operation) {
   return `${operation.method} /api/v1${normalizeOpenAPIPath(operation.path)}`
-}
-
-function parseOpenAPIOperations(raw) {
-  const operations = []
-  let currentPath = ''
-  let currentOperation = null
-
-  for (const line of raw.split(/\r?\n/)) {
-    if (/^[A-Za-z][A-Za-z0-9_-]*:\s*$/.test(line) && line !== 'paths:') {
-      currentPath = ''
-      currentOperation = null
-      continue
-    }
-
-    const pathMatch = line.match(/^  (\/[A-Za-z0-9_./{}-]+):\s*$/)
-    if (pathMatch) {
-      currentPath = pathMatch[1]
-      currentOperation = null
-      continue
-    }
-
-    const methodMatch = line.match(/^    (get|post|put|delete|patch):\s*$/)
-    if (currentPath && methodMatch) {
-      currentOperation = {
-        method: methodMatch[1].toUpperCase(),
-        path: currentPath,
-        tag: '',
-        operationId: '',
-        summary: '',
-        schemaRefs: new Set(),
-      }
-      operations.push(currentOperation)
-      continue
-    }
-
-    if (!currentOperation) {
-      continue
-    }
-
-    const tagMatch = line.match(/^      tags:\s*\[([^\]]+)\]\s*$/)
-    if (tagMatch) {
-      currentOperation.tag = tagMatch[1].split(',')[0].trim()
-      continue
-    }
-
-    const operationIdMatch = line.match(/^      operationId:\s*([A-Za-z0-9_]+)\s*$/)
-    if (operationIdMatch) {
-      currentOperation.operationId = operationIdMatch[1]
-      continue
-    }
-
-    const summaryMatch = line.match(/^      summary:\s*(.+)\s*$/)
-    if (summaryMatch) {
-      currentOperation.summary = summaryMatch[1].trim()
-      continue
-    }
-
-    const schemaRefMatch = line.match(/\$ref:\s*"#\/components\/schemas\/([^"]+)"/)
-    if (schemaRefMatch) {
-      currentOperation.schemaRefs.add(schemaRefMatch[1])
-    }
-  }
-
-  return operations.map((operation) => ({
-    ...operation,
-    schemaRefs: [...operation.schemaRefs].sort(),
-  }))
-}
-
-function parseOpenAPIMetadata(raw) {
-  const title = raw.match(/^  title:\s*([^\n]+)$/m)?.[1]?.trim()
-  const version = raw.match(/^  version:\s*([^\n]+)$/m)?.[1]?.trim()
-  if (!title || !version) {
-    throw new Error('unable to read OpenAPI title/version from ../soha-contracts/openapi/soha-api.yaml')
-  }
-  return { title, version }
 }
 
 function groupOperationsByTag(operations) {
@@ -297,13 +222,14 @@ function renderReference({ metadata, operations, routeMetadata, schemas }) {
 
 async function main() {
   await ensureContractsAvailable()
-  const openapiRaw = await readContracts('openapi/soha-api.yaml')
-  const operations = parseOpenAPIOperations(openapiRaw)
+  const openapi = JSON.parse(await readContracts('openapi/soha-api.json'))
+  const operations = openAPIOperations(openapi)
   if (operations.length === 0) {
-    throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.yaml')
+    throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.json')
   }
 
-  const metadata = parseOpenAPIMetadata(openapiRaw)
+  const metadata = openapi.info
+  if (!metadata?.title || !metadata?.version) throw new Error('OpenAPI title/version is missing')
   const schemas = await schemaArtifacts()
   for (const locale of locales) {
     const docsRoot = new URL(`../content/${locale}/`, import.meta.url)

@@ -313,6 +313,8 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 - `POST /api/v1/ai-gateway/llm/:openaiCompatibleProvider/v1/audio/translations`
 - `GET /api/v1/ai-gateway/llm/gemini/v1beta/models`
 - `POST /api/v1/ai-gateway/llm/gemini/v1beta/models`
+- `POST /api/v1/ai-gateway/llm/gemini/v1beta/models/:geminiModel:generateContent`
+- `POST /api/v1/ai-gateway/llm/gemini/v1beta/models/:geminiModel:streamGenerateContent`
 - `POST /api/v1/ai-gateway/llm/gemini/v1beta/interactions`
 - `POST /api/v1/ai-gateway/llm/cohere/v2/rerank`
 - `GET /api/v1/ai-gateway/llm/anthropic/v1/models`

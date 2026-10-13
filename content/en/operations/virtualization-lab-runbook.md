@@ -142,3 +142,26 @@ Mark each provider separately:
 | Cleanup | Disposable resources are removed without shared-resource damage. |
 
 A provider is not production ready when any required gate is untested, blocked by access, or dependent on an unsupported connection mode.
+
+## Task51 candidate: capacity policy and managed SSH
+
+This workflow applies to candidate Core/Agent/CLI combinations that expose these contracts and live capabilities. Real PVE login acceptance has not been completed for a released version. Missing tools or executor capabilities mean unavailable.
+
+PVE capacity settings independently control CPU (100–800%) and memory (100–150%). A disabled switch uses 100%. Configured budgets and actual CPU/memory/storage availability are separate admission checks; ratios affect only the configured budget. Administrators must confirm a physical source for new connections; aliases share its policy and reservations. Activating an existing unconfigured connection requires a separate review and does not change existing VMs.
+
+PVE SSH cloud-init snippet upload requires an administrator-verified public host key in connection config `sshHostKeys`, keyed by the target node name. The default SSH address is that node name; configure `sshHost` when an explicit node address is needed. Missing or changed keys reject upload. Verify this PVE node key separately from the guest host key and user login key.
+
+Secret Store supports public keys for first initialization, keypairs for initialization and managed login, and passwords for connections. Bind purposes explicitly: `vm_create:vm_cloud_init=<connection>`, `vm:vm_auth=<vm>`, or `vm:vm_exec=<vm>`. New VM `guestAccess.username/publicKeyRefs` pins versions and generates cloud-init. The image must support cloud-init, and account or SSH fields in custom cloud-init cannot conflict with managed initialization. A bounded, single cloud-config may retain supported system/bootstrap fields; Docker runtime-host creation forwards the same public-key references while preserving its registration bootstrap.
+
+A VM login binding records current VM identity, a non-root username, a credential version, independently verified SSH host public key, and an enrolled Agent. It does not modify the guest. Enable `runtime.vm_ssh.connect`; approved commands additionally require `runtime.vm_ssh.execute`. Managed private keys remain on the executor. CLI examples use the local profile:
+
+```bash
+soha compute capacity check --input capacity.json --profile local
+soha secret references credential-id --profile local
+soha compute vms access get vm-id --profile local
+soha compute vms shell vm-id --profile local
+```
+
+Personal Agent discovers `virtualization.vm_ssh.*` from the live manifest and obtains approval for the fixed VM, account, binding revision, and command. Cancel the original task. Dispatched execution without a reliable exit status remains unknown and is never replayed automatically. SSH success does not prove full personal-computer readiness.
+
+Rotation does not update login bindings or keys already injected into the guest. Disable/revoke blocks new Soha use and closes active sessions; removing guest authorized_keys is a separate operation. Reference views distinguish bindings, sessions, and initialization history. Historical references do not assert that the guest still accepts the key.

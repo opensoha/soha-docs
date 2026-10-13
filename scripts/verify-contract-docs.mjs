@@ -1,4 +1,5 @@
 import { access, readFile } from 'node:fs/promises'
+import { openAPIOperations } from './openapi-operations.mjs'
 
 const repoRoot = new URL('../', import.meta.url)
 const docsRoot = new URL('../content/zh/', import.meta.url)
@@ -22,7 +23,7 @@ async function readContracts(file) {
 
 async function ensureContractsAvailable() {
   try {
-    await access(new URL('openapi/soha-api.yaml', contractsRoot))
+    await access(new URL('openapi/soha-api.json', contractsRoot))
   } catch {
     throw new Error(
       'missing ../soha-contracts artifacts; checkout soha-contracts as a sibling of soha-docs before running docs tests',
@@ -32,50 +33,6 @@ async function ensureContractsAvailable() {
 
 function normalizeOpenAPIPath(path) {
   return path.replace(/\{([^}]+)\}/g, ':$1')
-}
-
-function parseOpenAPIOperations(raw) {
-  const operations = []
-  let currentPath = ''
-  let currentOperation = null
-
-  for (const line of raw.split(/\r?\n/)) {
-    const pathMatch = line.match(/^  (\/[A-Za-z0-9_./{}-]+):\s*$/)
-    if (pathMatch) {
-      currentPath = pathMatch[1]
-      currentOperation = null
-      continue
-    }
-
-    const methodMatch = line.match(/^    (get|post|put|delete|patch):\s*$/)
-    if (currentPath && methodMatch) {
-      currentOperation = {
-        method: methodMatch[1].toUpperCase(),
-        path: currentPath,
-        tag: '',
-        operationId: '',
-      }
-      operations.push(currentOperation)
-      continue
-    }
-
-    if (!currentOperation) {
-      continue
-    }
-
-    const tagMatch = line.match(/^      tags:\s*\[([^\]]+)\]\s*$/)
-    if (tagMatch) {
-      currentOperation.tag = tagMatch[1].split(',')[0].trim()
-      continue
-    }
-
-    const operationIdMatch = line.match(/^      operationId:\s*([A-Za-z0-9_]+)\s*$/)
-    if (operationIdMatch) {
-      currentOperation.operationId = operationIdMatch[1]
-    }
-  }
-
-  return operations
 }
 
 function formatOperation(operation) {
@@ -101,7 +58,7 @@ await ensureContractsAvailable()
 
 const [openapiRaw, apiCore, apiContracts, apiGenerated, docsPublishing, envDocs, configTs, ciWorkflow] =
   await Promise.all([
-    readContracts('openapi/soha-api.yaml'),
+    readContracts('openapi/soha-api.json'),
     readDocs('api/core-endpoints.md'),
     readDocs('api/contracts.md'),
     readDocs('api/reference/generated/index.md'),
@@ -111,15 +68,16 @@ const [openapiRaw, apiCore, apiContracts, apiGenerated, docsPublishing, envDocs,
     readDocs('.github/workflows/ci.yml'),
   ])
 
-const openapiVersion = openapiRaw.match(/^  version:\s*([^\n]+)$/m)?.[1]?.trim()
-const openapiTitle = openapiRaw.match(/^  title:\s*([^\n]+)$/m)?.[1]?.trim()
+const openapi = JSON.parse(openapiRaw)
+const openapiVersion = openapi.info?.version
+const openapiTitle = openapi.info?.title
 if (!openapiVersion || !openapiTitle) {
-  throw new Error('unable to read OpenAPI title/version from ../soha-contracts/openapi/soha-api.yaml')
+  throw new Error('unable to read OpenAPI title/version from ../soha-contracts/openapi/soha-api.json')
 }
 
-const operations = parseOpenAPIOperations(openapiRaw)
+const operations = openAPIOperations(openapi)
 if (operations.length === 0) {
-  throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.yaml')
+  throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.json')
 }
 
 requireIncludes(
@@ -158,7 +116,11 @@ const schemaArtifacts = exportedArtifacts.filter((value) => value.endsWith('.sch
 
 for (const schemaFile of schemaArtifacts) {
   const schema = JSON.parse(await readContracts(schemaFile))
-  requireIncludes(`${schemaFile} generated API reference`, apiGenerated, [schemaFile, schema.title, schema.$id])
+  requireIncludes(`${schemaFile} generated API reference`, apiGenerated, [
+    schemaFile,
+    schema.title ?? schemaFile,
+    ...(schema.$id ? [schema.$id] : []),
+  ])
   if (Array.isArray(schema.required) && schema.required.length > 0) {
     requireIncludes(`${schemaFile} generated required fields`, apiGenerated, schema.required)
   }

@@ -303,3 +303,25 @@ AI 层仍保持“分析与建议优先”的安全方向。
 - root cause / performance / trace / inspection review 以及外部 agent 分析应共用统一 artifact 模型，而不是重复造页面协议
 - 新增 agent provider 时只能扩 provider adapter、tool binding、skill binding 和 runner 执行器，不能让页面或业务分析流程直接依赖 provider SDK/CLI
 - 监控工作台到 AI 工作台的 handoff 应保持标准 scope 契约，不再由页面各自定义私有跳转协议
+
+## Knowledge source import permissions
+
+External HTTP, Git and Object connectors can store a versioned importPolicy in
+config to define the users, roles, teams and projects a source may grant. Omission
+defaults to the stable knowledge-base owner; an explicitly empty private scope
+grants nobody. Core clips fetched ACLs before storing documents and chunks, so a
+remote public ACL cannot exceed this ceiling. Shared sources can declare scoped
+grants. Finite grants intersect within the same identity category, without
+inferring membership across categories. Inline imports retain their existing behavior.
+
+Source credentials use `soha://secrets/<id>` (optionally `/versions/<n>`) and the
+`SOURCE` alias through Gateway secretRefs authorization, pinning and
+resolution rather than ordinary plugin input or documents. Runtimes without
+per-call credential delivery reject the invocation. Import permission checks do
+not establish availability of the three fetch plugins. Existing indexes are not
+automatically rewritten; policy editing, revocation of previously indexed data
+and real source fetching still require their own acceptance evidence.
+
+Legacy `secret:` references remain readable configuration. Fetching rejects them
+until an authorized edit selects the intended canonical secret reference; it does
+not guess a secret identity from a legacy name or path.

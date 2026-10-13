@@ -18,6 +18,10 @@ The current backend uses real identity and session handling.
 
 Production-style requests use `Authorization: Bearer <access-token>`.
 
+Protected requests return `401 unauthorized` when an access token expires or its issuance authorization version becomes stale. Clients can use the refresh endpoint and reload the current identity and permissions. A successful refresh only restores access still granted to that account; it does not restore revoked roles, teams, or other grants. Revoked sessions and disabled accounts cannot refresh.
+
+New session access tokens include `authzVersion`; refreshing the same session leaves older versions invalid. For legacy tokens without this field, the server reloads the current identity instead of authorizing embedded memberships. Reading tasks, original conversations, and messages still requires current permission and resource ownership. An authenticated identity without the required permission receives `403 access_denied`; retaining history does not grant access to it.
+
 When `auth.enable_dev_auth` is enabled in `config.yaml`, the backend can still attach the configured bootstrap principal to requests without a bearer token. That fallback is for local development only and does not replace the real password or third-party login paths.
 
 `auth.login_verification.slider_enabled` controls whether the login page renders the frontend slider interaction before password submission.

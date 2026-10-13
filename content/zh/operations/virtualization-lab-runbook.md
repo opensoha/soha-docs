@@ -697,3 +697,26 @@ VM 前缀：
 结论：
 后续动作：
 ```
+
+## Task51 候选版本：容量策略与受管 SSH
+
+以下流程适用于提供这些合同和实时 capability 的候选 Core/Agent/CLI 组合；尚未作为已发布版本的真实 PVE 登录验收。旧版本缺少工具或执行端 capability 时，应显示不可用。
+
+PVE 集群的“容量与超分”分别设置 CPU（100–800%）和内存（100–150%）。开关关闭按 100% 检查。配置预算和实际 CPU/内存/磁盘是两道独立检查；倍率只影响配置预算。新连接需管理员确认物理集群标识，多个入口共用同一 source。存量未配置连接的激活应单独审核，保存策略不会修改既有 VM。
+
+使用 PVE SSH 上传 cloud-init snippet 时，管理员须在连接配置 `sshHostKeys` 中按目标节点名登记可信 SSH 主机公钥。默认 SSH 地址使用该节点名；需要显式 IP 时设置目标节点的 `sshHost`。缺少或变更的 key 会拒绝上传，不忽略主机校验。该 PVE 节点 key 与 VM guest host key、用户登录公钥分别核验。
+
+凭证管理沿用 Secret Store：`ssh_public_key` 仅用于首次初始化，`ssh_keypair` 可用于初始化和受管登录，`ssh_password` 只用于连接。显式授权 `vm_create:vm_cloud_init=<connection>`、`vm:vm_auth=<vm>` 或 `vm:vm_exec=<vm>`。创建使用 `guestAccess.username/publicKeyRefs`，固定版本并生成 cloud-init；镜像必须确认支持 cloud-init，自定义 cloud-init 的账号和 SSH 字段不能与托管初始化冲突；受限解析的单份 cloud-config 可保留支持的系统和 bootstrap 字段。Docker 运行时主机创建也透传相同公钥引用并保留独立注册 bootstrap。
+
+VM 登录绑定保存当前 VM 身份、非 root 用户、凭证版本、已核验的 host 公钥以及指定 Agent。它不修改 guest 配置。Agent 需已登记控制面身份，并显式启用 `runtime.vm_ssh.connect`；获批命令还需 `runtime.vm_ssh.execute`。终端私钥留在受管执行端，CLI 使用本地 profile：
+
+```bash
+soha compute capacity check --input capacity.json --profile local
+soha secret references credential-id --profile local
+soha compute vms access get vm-id --profile local
+soha compute vms shell vm-id --profile local
+```
+
+个人 Agent 只使用实时 manifest 中的 `virtualization.vm_ssh.*` 工具，在审批后执行固定 VM、账号、绑定修订和命令。取消查询原任务；已派发但没有可信退出状态时保留 unknown，不自动重跑。SSH 成功不等于完整个人电脑 ready。
+
+轮换不会自动改变登录绑定或 guest 已注入公钥。禁用/撤销阻止新的 Soha 使用并收敛活动会话，guest authorized_keys 的删除仍是独立操作。实际引用视图区分登录绑定、会话和初始化历史；历史记录不证明 guest 仍接受该公钥。

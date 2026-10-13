@@ -18,6 +18,10 @@ The current backend uses real identity and session handling.
 
 Production-style requests use `Authorization: Bearer <access-token>`.
 
+访问令牌过期或签发时的授权版本失效时，受保护请求返回 `401 unauthorized`。客户端可调用刷新入口，并重新读取当前身份与权限；刷新成功只恢复当前账号仍获准的访问，不会恢复已撤销的角色、团队或其他授权。已撤销会话、停用账号不能刷新。
+
+新会话访问令牌包含 `authzVersion`；同一会话刷新后，旧版本令牌仍然失效。兼容未携带该字段的旧令牌时，服务端重新读取当前身份，不使用令牌内的旧成员关系授权。任务、原会话和消息读取仍须通过当前权限与资源归属检查；身份有效但缺少所需权限时返回 `403 access_denied`，保存历史数据不等于允许读取。
+
 When `auth.enable_dev_auth` is enabled in `config.yaml`, the backend can still attach the configured bootstrap principal to requests without a bearer token. That fallback is for local development only and does not replace the real password or third-party login paths.
 
 `auth.login_verification.slider_enabled` controls whether the login page renders the frontend slider interaction before password submission.

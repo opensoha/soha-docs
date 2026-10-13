@@ -303,3 +303,18 @@ AI 层仍保持“分析与建议优先”的安全方向。
 - root cause / performance / trace / inspection review 以及外部 agent 分析应共用统一 artifact 模型，而不是重复造页面协议
 - 新增 agent provider 时只能扩 provider adapter、tool binding、skill binding 和 runner 执行器，不能让页面或业务分析流程直接依赖 provider SDK/CLI
 - 监控工作台到 AI 工作台的 handoff 应保持标准 scope 契约，不再由页面各自定义私有跳转协议
+
+## 知识来源的导入权限
+
+外部 HTTP、Git 和 Object 来源可在连接器 config 中保存版本化 importPolicy，明确该来源
+能够授予的用户、角色、团队和项目范围。缺省范围属于知识库的稳定 owner；显式 private
+空授权表示拒绝所有人。Core 在写入文档和 chunk 前裁剪抓取结果的 ACL，远端返回 public
+也不能超过这个上限。共享来源可以显式配置 scoped 范围；有限授权按相同身份类别求交，
+不同类别之间不会自动推断成员关系。inline 导入沿用现有行为。
+
+来源凭据通过 Gateway 的 secretRefs 授权、固定和解析，不能放入普通插件输入或文档。
+来源凭据使用 `soha://secrets/<id>`（可选 `/versions/<n>`），通过 `SOURCE` 别名
+进入 Gateway 的引用授权、版本固定和解析。旧 `secret:` 配置仍可读取，但抓取会拒绝，
+直到有权编辑来源的人明确选择相应规范引用；不根据旧名称或路径猜测凭据身份。
+运行时尚未支持逐次凭据传输时，调用会明确拒绝。权限上限验证不表示三个 fetch 插件
+已经可用；旧索引不会自动重写，来源策略编辑、存量数据撤权和实际抓取仍需对应验收。

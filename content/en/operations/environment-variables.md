@@ -54,13 +54,12 @@ CLI and tutorial examples use these client-side variables:
 
 ## Frontend
 
-The current SPA does not expose a documented public env contract.
-
-- API requests always target same-origin `/api/v1`
-- local development relies on the Vite proxy in `web/vite.config.ts`
+- `VITE_API_BASE_URL` overrides the API base; its default is same-origin `/api/v1`
+- the candidate `VITE_BASE_PATH=/team/` build prefixes assets, Router paths and the default API base; export it when building or starting Vite
+- `VITE_API_PROXY_TARGET` selects the development upstream, default `http://127.0.0.1:8080`, in `soha-web/vite.config.ts`
 - the in-app docs page opens `/docs/`; the `soha` server redirects that path to the configured external docs URL by default
 
-If you deploy the frontend and API on separate origins, use a reverse proxy or update `web/src/services/api-client.ts` accordingly.
+For a prefixed production deployment, configure request and cookie-path rewrites as described in [deployment](./deployment.md#deploying-the-candidate-web-under-a-path-prefix). Build-time Web variables are public and must never contain credentials. Prefer a same-origin reverse proxy so browser session cookies and authorization checks use the intended instance.
 
 ## Docs
 
@@ -71,3 +70,11 @@ If you deploy the frontend and API on separate origins, use a reverse proxy or u
 - `DOCS_SHOW_LAST_UPDATE_TIME`: retained for docs workflow compatibility; Nextra does not currently render it
 
 For `https://docs.opensoha.dev/`, build with `DOCS_BASE_URL=/`. For `https://opensoha.dev/docs/`, build with `DOCS_BASE_URL=/docs/`.
+
+## CLI authentication isolation (pending release combination)
+
+- `SOHA_AUTH_CLI_ENABLED`, `SOHA_AUTH_CLI_PUBLIC_URL` and `SOHA_AUTH_CLI_ALLOW_PASSWORD` control new Core session endpoints, disabled by default; see [configuration](./configuration.md). Other CLI TTL/budget fields use the corresponding `SOHA_AUTH_CLI_*` mapping.
+- CLI `SOHA_CONFIG` selects a private configuration path. Use separate paths for worktrees, instances and CI jobs.
+- Providing CLI `SOHA_SERVER` and `SOHA_TOKEN` together enables stateless environment authentication without reading or refreshing a profile. The token is never persisted.
+- Overriding only `SOHA_SERVER` cannot send stored credentials to another origin or deployment path; mismatches return `server_mismatch` before network access.
+- `SOHA_TOKEN` overrides local authentication and is not unset by logout. Remove it from the shell/job environment.

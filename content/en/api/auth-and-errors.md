@@ -53,3 +53,31 @@ When `auth.enable_dev_auth` is enabled in `config.yaml`, the backend can still a
 - `not_found`
 - `cluster_unavailable`
 - `internal_error`
+
+## CLI v2 authentication (pending release combination)
+
+These additive endpoints require a verified Core/Web/CLI combination. Existing `/auth/login`, `/auth/refresh`, Web cookies and App/provider exchanges retain their original protocol.
+
+| Endpoint (below `/api/v1`) | Purpose |
+| --- | --- |
+| `GET /auth/cli/options` | Discover protocol and enabled methods |
+| `POST /auth/cli/device-authorizations` | Create a request-bound six-digit device authorization |
+| `POST /auth/cli/device-authorizations/inspect` | Authenticated browser inspection with request locator and code |
+| `POST /auth/cli/device-authorizations/decision` | Explicit approve/deny bound to the original browser confirmation |
+| `POST /auth/cli/device-token` | Claim with device proof, PKCE and durable request ID |
+| `POST /auth/cli/device-authorizations/cancel` | Cancel with device proof |
+| `POST /auth/cli/password` | Explicit password path subject to verification policy |
+| `POST /auth/cli/refresh` | Rotate an opaque v2 refresh credential |
+| `POST /auth/cli/logout` | Revoke using the refresh proof, including after access expiry |
+| `GET /auth/context` | Confirm a user session, PAT or service-account identity |
+| `GET /auth/cli/sessions` | List the current user's CLI sessions with cursor pagination |
+| `POST /auth/cli/sessions/{id}/revoke` | Revoke an owned session |
+| `GET /ai-gateway/token-rotations/{requestId}` | Recover non-secret Key rotation outcome using independent authentication |
+
+Pending polling returns `409 authorization_pending`; backoff returns `429 slow_down` with `Retry-After`. Claim/refresh recovery is limited to thirty seconds and requires the original credential, request ID and PKCE where applicable. A different refresh request ID reusing a consumed credential revokes the family. Recovery is bounded, not indefinite replay.
+
+Browser inspection/decision requires a real browser session, matching Origin, current ownership and existing MFA step-up where required. Registering another MFA factor also requires recent verification with an existing factor (`403 mfa_required`). An incorrect factor returns `401 mfa_verification_failed` without invalidating the browser session. No automatic password fallback bypasses this policy.
+
+Authentication endpoints use `Cache-Control: no-store` and do not expose CLI credentials through browser cookies. New logout/session-revoke responses may be empty `200` responses. An invalid bearer rejected before protected business handling carries `WWW-Authenticate: Bearer realm="soha", error="invalid_token"`. The CLI retries a write once only with that pre-handler signal; an arbitrary business `401` does not authorize replaying a write.
+
+Typical diagnostics include `server_mismatch`, `credential_store_unavailable`, `credential_save_unconfirmed`, `interactive_auth_required`, `cli_auth_disabled`, `refresh_recovery_expired` and `refresh_reuse_detected`. An offline CLI status is local metadata rather than authentication evidence. See [CLI login](../operations/soha-cli.md#login).

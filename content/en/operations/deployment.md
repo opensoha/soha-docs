@@ -135,3 +135,11 @@ PostgreSQL 18 stores its default `PGDATA` below `/var/lib/postgresql/18/docker`,
 - Keep local k3s for platform control-plane and Kubernetes API-path testing.
 - Validate KubeVirt and PVE features against real external servers or dedicated lab hosts, then register those endpoints in soha.
 - See the [KubeVirt and PVE Virtualization Lab Runbook](./virtualization-lab-runbook.md) for external environment prerequisites and the acceptance checklist.
+
+## CLI sessions across restarts
+
+New CLI v2 endpoints require matching versions and administrator opt-in; see [authentication configuration](./configuration.md#cli-v2-authentication-policy-pending-release-combination). Retain PostgreSQL and the JWT and credential-encryption keys. A normal process restart should not delete valid sessions. Check `readyz`, versions, server/profile selection and `auth status` before distinguishing access expiry, rejected refresh, environment overrides or revocation. Do not clear the database or regenerate keys to troubleshoot login.
+
+### Deploying the candidate Web under a path prefix
+
+Build Web with `VITE_BASE_PATH=/team/`, set the CLI public URL to `https://soha.example/team`, and configure each login provider's frontend callback as `https://soha.example/team/login/callback`. The reverse proxy must strip `/team` from upstream API requests **and rewrite response cookie paths**: `/api/v1/auth` becomes `/team/api/v1/auth`, and `/` becomes `/team/`. Otherwise third-party login can initially succeed while a page reload loses the refresh cookie. Apply the same rules to refresh and logout responses. The Vite development proxy performs these rewrites when a prefix is configured; a production proxy needs its own equivalent configuration.

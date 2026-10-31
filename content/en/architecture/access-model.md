@@ -17,6 +17,14 @@ Permissions are resource-owned keys such as `platform.pods.logs`, `platform.pods
 
 Menu groups and “full control” are editor batch operations only. They expand to exact child keys and do not create wildcard grants.
 
+## Docker Volume Files (Candidate Combination)
+
+The candidate Core authorizes mount metadata separately from file content. `docker.services.view` permits mount metadata; directory listing and file preview require the independent `docker.services.files` permission. The view key and legacy manage/actions keys do not expand to file access.
+
+Default `ops` and `developer` roles explicitly include file access. Custom roles need a separate grant. PAT and service-account key permissions still intersect current role grants: a key capped at view or legacy manage does not gain file access when its role gains files. The Web volume-files entry requires both service inventory and file access; a caller with only file access may still use the authorized file APIs.
+
+This describes the candidate Core with its matching permission catalog and has not been released. Older versions may enforce a different boundary. It does not imply that volume-file CLI commands are available.
+
 ## Scope Inputs
 
 ABAC and scope grants can evaluate user, team, project, tenant/workspace, application, environment, cluster, namespace, resource identity, labels, ownership, request source, and approval state.

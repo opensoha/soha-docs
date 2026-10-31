@@ -10,7 +10,7 @@
 
 Frontend runtime is currently code-first rather than env-first.
 
-- API base path is fixed to `/api/v1` in `soha-web/src/services/api-client.ts`
+- Web 默认请求同源 `/api/v1`；候选前缀构建使用 `<VITE_BASE_PATH>api/v1`，显式设置 `VITE_API_BASE_URL` 时使用该覆盖值
 - local development proxies `/api` to `http://127.0.0.1:8080` in `soha-web/vite.config.ts`
 - the docs surface inside the console opens `/docs/`, which the `soha` server redirects to the configured external docs URL by default
 - there are no checked-in `soha-web/.env.*` templates at the moment
@@ -357,3 +357,31 @@ control_plane:
 ```
 
 The AI workbench and automation policy choose `agentProviderId`; the runner only executes matching `AgentRun` rows. Provider-specific commands and workspaces belong in agent config, not in browser payloads. Hermes skill arguments should come from `AgentSkillBinding.providerSkillRef`, with soha skill ids used only as fallback. External providers should invoke soha read-only tools through `/api/v1/copilot/agent-runs/tool-call`, which validates the runner token, per-run callback token, and permission-filtered `AgentRun.toolBindings` snapshot before recording `ToolExecution`. The built-in Hermes/CLI POC prefetches a small read-only tool context into the provider prompt: events, logs, metrics, traces, delivery releases, delivery builds, execution tasks, platform resource snapshots, Docker operation/service context, virtualization operations, alerts, and OnCall route resolution are currently executable. Prefetch and provider-visible tools still depend on the run's toolset selection, including exact adapter ids such as `logs.v1` or source-kind aliases such as `logs`. Richer provider-native or MCP client tool protocols should still terminate at the same soha tool-call gateway.
+
+## CLI v2 认证策略（待发布组合）
+
+管理员验证匹配的 Core/Web/CLI 后才启用新会话入口。默认关闭；Key 认证与既有 Web/App 登录独立。
+
+```yaml
+auth:
+  cli:
+    enabled: true
+    public_url: https://soha.example.com
+    allow_password: false
+    device_ttl: 5m
+    poll_interval: 5s
+    access_ttl: 15m
+    idle_ttl: 168h
+    absolute_ttl: 720h
+    create_limit: 10
+    source_pending_limit: 5
+    active_grant_limit: 1000
+    source_attempt_limit: 20
+    user_attempt_limit: 5
+```
+
+`public_url` 是外部可访问的控制台地址；非根部署需包含前缀，并让 Web 构建、反向代理和第三方提供商回调使用同一路径。非 loopback 地址要求 HTTPS。设备有效期为 30 秒至 10 分钟，轮询间隔为 1 至 30 秒；会话期限须满足 access ≤ idle ≤ absolute ≤ 365 天，限额均为 1 至 10000。分层限速和状态保存在 PostgreSQL，不能靠重启清零。
+
+所有副本须连接同一个持久数据库，并在每次重启继续使用相同 JWT 与凭据加密密钥。Helm 升级复用 live Secret 中的两把密钥；离线渲染不能证明 live lookup。计划中的密钥迁移需要独立备份、兼容验证和旧密钥保留窗口，不能通过直接覆盖值完成。关闭 `auth.cli.enabled` 阻止新设备/密码会话，但仍允许已有 CLI 会话刷新和撤销。
+
+用法、文件存储风险、Key 导入和恢复见 [CLI 登录](./soha-cli.md#登录)。

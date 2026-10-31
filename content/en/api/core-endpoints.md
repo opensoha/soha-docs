@@ -270,6 +270,10 @@ The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` current
 - `POST /api/v1/ai-gateway/service-accounts/:serviceAccountID/tokens`
 - `POST /api/v1/ai-gateway/service-account-tokens/:tokenID/revoke`
 - `POST /api/v1/ai-gateway/service-account-tokens/:tokenID/rotate`
+- `POST /api/v1/ai-gateway/governed-credentials/personal-access-tokens`
+- `POST /api/v1/ai-gateway/governed-credentials/personal-access-tokens/:tokenID/rotate`
+- `POST /api/v1/ai-gateway/governed-credentials/service-accounts/:serviceAccountID/tokens`
+- `POST /api/v1/ai-gateway/governed-credentials/service-account-tokens/:tokenID/rotate`
 - `GET /api/v1/ai-gateway/audit-logs`
 - `GET /api/v1/ai-gateway/approval-requests`
 - `GET /api/v1/ai-gateway/approval-requests/:requestID/timeline`

@@ -10,7 +10,7 @@ Startup configuration remains file-baselined; product settings and connection in
 
 Frontend runtime is currently code-first rather than env-first.
 
-- API base path is fixed to `/api/v1` in `soha-web/src/services/api-client.ts`
+- Web defaults to same-origin `/api/v1`; the candidate prefix build described below derives `<VITE_BASE_PATH>api/v1`, unless `VITE_API_BASE_URL` explicitly overrides it
 - local development proxies `/api` to `http://127.0.0.1:8080` in `soha-web/vite.config.ts`
 - the docs surface inside the console opens `/docs/`, which the `soha` server redirects to the configured external docs URL by default
 - there are no checked-in `soha-web/.env.*` templates at the moment
@@ -357,3 +357,31 @@ control_plane:
 ```
 
 The AI workbench and automation policy choose `agentProviderId`; the runner only executes matching `AgentRun` rows. Provider-specific commands and workspaces belong in agent config, not in browser payloads. Hermes skill arguments should come from `AgentSkillBinding.providerSkillRef`, with soha skill ids used only as fallback. External providers should invoke soha read-only tools through `/api/v1/copilot/agent-runs/tool-call`, which validates the runner token, per-run callback token, and permission-filtered `AgentRun.toolBindings` snapshot before recording `ToolExecution`. The built-in Hermes/CLI POC prefetches a small read-only tool context into the provider prompt: events, logs, metrics, traces, delivery releases, delivery builds, execution tasks, platform resource snapshots, Docker operation/service context, virtualization operations, alerts, and OnCall route resolution are currently executable. Prefetch and provider-visible tools still depend on the run's toolset selection, including exact adapter ids such as `logs.v1` or source-kind aliases such as `logs`. Richer provider-native or MCP client tool protocols should still terminate at the same soha tool-call gateway.
+
+## CLI v2 authentication policy (pending release combination)
+
+Enable new session endpoints only after verifying matching Core/Web/CLI versions. They default to disabled. Key authentication and existing Web/App login remain separate.
+
+```yaml
+auth:
+  cli:
+    enabled: true
+    public_url: https://soha.example.com
+    allow_password: false
+    device_ttl: 5m
+    poll_interval: 5s
+    access_ttl: 15m
+    idle_ttl: 168h
+    absolute_ttl: 720h
+    create_limit: 10
+    source_pending_limit: 5
+    active_grant_limit: 1000
+    source_attempt_limit: 20
+    user_attempt_limit: 5
+```
+
+`public_url` is the externally reachable console URL. For a path deployment, include the prefix and align the Web build, reverse proxy and provider callbacks. HTTPS is required outside loopback. Device TTL is 30 seconds to 10 minutes, polling is 1 to 30 seconds, and session TTLs must satisfy access ≤ idle ≤ absolute ≤ 365 days. Budgets are between 1 and 10000. Layered limits and state are persisted in PostgreSQL and do not reset on restart.
+
+Every replica must share the persistent database and retain the same JWT and credential-encryption keys after restart. Helm upgrades reuse these keys from the live Secret; offline rendering does not prove live lookup. Deliberate key migration requires separate backups, compatibility verification and a previous-key retention window. Replacing values directly is insufficient. Disabling `auth.cli.enabled` stops new device/password sessions while retaining refresh and revocation for existing sessions.
+
+See [CLI login](./soha-cli.md#login) for usage, file-storage risks, Key import and recovery.

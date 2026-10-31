@@ -135,3 +135,11 @@ PostgreSQL 18 stores its default `PGDATA` below `/var/lib/postgresql/18/docker`,
 - Keep local k3s for platform control-plane and Kubernetes API-path testing.
 - Validate KubeVirt and PVE features against real external servers or dedicated lab hosts, then register those endpoints in soha.
 - 外部环境前置条件与验收清单请参阅 [KubeVirt / PVE 虚拟化实验环境 Runbook](./virtualization-lab-runbook.md)。
+
+## CLI 会话与重启连续性
+
+新 CLI v2 入口仍需匹配版本组合和管理员启用，见 [认证配置](./configuration.md#cli-v2-认证策略待发布组合)。保留 PostgreSQL、JWT 与凭据加密密钥；正常进程重启不应删除有效会话。先检查 `readyz`、版本、选中的 server/profile 和 `auth status`，再判断是访问过期、刷新被拒绝、环境覆盖还是会话撤销。不要为排查登录清空数据库或重新生成密钥。
+
+### 候选 Web 部署在路径前缀下
+
+以 `VITE_BASE_PATH=/team/` 构建 Web，将 CLI public URL 设为 `https://soha.example/team`，并将登录提供商的前端回调设为 `https://soha.example/team/login/callback`。反向代理除了剥除上游 API 请求的 `/team` 前缀，还必须改写响应 cookie 的 Path：`/api/v1/auth` 改为 `/team/api/v1/auth`，`/` 改为 `/team/`。否则第三方登录当时可以成功，刷新页面后却无法发送 refresh cookie。刷新和退出响应也要使用同样的改写规则。配置前缀后的 Vite 开发代理已执行这些改写；生产代理需要配置等效规则。

@@ -24,13 +24,14 @@ Soha 为 Kubernetes 工作负载、应用交付环境和 Docker 项目提供统�
 `Live` 通过 Kubernetes API、已连接的 Soha Agent 或 Docker runtime 读取有界运行时日志，支持快照、绑定查询条件的
 WebSocket ticket、重连、筛选和导出。Kubernetes 与应用交付可以聚合多个已授权来源；Docker 当前只支持运行时日志。
 
-`History` 查询已启用的 Loki、Elasticsearch 或 ClickHouse 数据源。数据源配置入口为：
+`History` 使用 Loki 原生集成。升级后，旧 Elasticsearch 和 ClickHouse Provider 设置可能仍保存在配置中，但 Core
+不再使用它们。通用外部 `logs.query` 能力当前只覆盖持久化集群日志。受支持的 Loki 配置入口为：
 
 ```text
 /monitoring-workbench/log-data-sources
 ```
 
-在持久化数据源配置并通过健康检查前，History 不会伪装成可用。Soha 不把应用日志写入自身 PostgreSQL，也不会把日志
+在配置 Loki 并通过健康检查前，History 不会伪装成可用。Soha 不把应用日志写入自身 PostgreSQL，也不会把日志
 后端凭据暴露给浏览器。
 
 ## 权限边界
@@ -65,17 +66,14 @@ Collector 只读挂载 `/var/log/pods`。可以通过 namespace allowlist 限制
 Kubernetes Secret。
 
 默认 signal allowlist 只有 `logs`，因此升级后仍保持原有 filelog 到 Loki 的链路。运维人员可以明确启用带 TLS 和
-token 的 OTLP receiver，再加入 metrics 和 traces。Metrics 通过 Prometheus Remote Write 导出；Traces 通过
-OTLP/gRPC 导出，通常指向已启用 OTLP trace handler 的 SkyWalking OAP `11800` 端点。这些外部链路必须配置端点
-并引用现有的凭据 Secret。
+token 的 OTLP receiver，再加入 metrics 和 traces。Metrics 通过 Prometheus Remote Write 导出。通用 traces 可通过
+OTLP/gRPC 导出给外部消费者；这不会让 Core 的 Trace Explore 或服务拓扑查询变为可用。这些可选外部链路必须配置
+端点并引用现有的凭据 Secret。
 
 Collector 会补充 Soha workspace 和 Kubernetes cluster 标识，保留应用上报的 OpenTelemetry service identity，
 并拒绝缺少 `service.name` 的 metrics 或 traces。其有界脱敏策略会删除配置的凭据属性并哈希配置的用户标识。
-Soha 仍是控制面和统一查询层；OAP、Prometheus-compatible storage 与 Loki 继续承担分析和存储。
-
-SkyWalking 会把 OTLP Trace 转换成 Zipkin Trace 模型，因此 Soha 的 SkyWalking 数据源使用已启用的 Zipkin query
-端点查询这部分 Trace。该链路支持 Trace Explore，但不意味着 OTLP 输入会自动生成 SkyWalking 原生服务拓扑；服务和
-拓扑视图仍以 SkyWalking 原生服务模型已经分析出数据为前提。
+Soha 仍是控制面和查询层；Prometheus-compatible storage 与 Loki 分别承担 metrics 和 logs 的后端。外部 Trace
+Provider 集成属于后续工作；相关路由和查询 DTO 为兼容性保留，在集成可用前报告能力不可用。
 
 停止采集只会停止新日志写入。卸载 add-on 默认保留 Loki PVC，因此不会在停用采集时静默删除历史日志。
 

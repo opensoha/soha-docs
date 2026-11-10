@@ -1,7 +1,7 @@
 # Monitoring And Alerting
 
 Soha is the control and investigation plane for observability. It does not store raw telemetry or
-replace OpenTelemetry, SkyWalking OAP, Prometheus-compatible storage, Loki, or Grafana.
+replace OpenTelemetry, Prometheus-compatible storage, Loki, or Grafana.
 
 ## Architecture Boundary
 
@@ -10,21 +10,24 @@ standard. It is not an observability backend. Soha uses the following execution 
 
 ```text
 Metrics: OTel Collector or scrape -> Prometheus-compatible backend -> Soha
-Traces:  OTel Collector -> SkyWalking OAP or Jaeger -> Soha
-Logs:    OTel Collector -> Loki, Elasticsearch, or ClickHouse -> Soha
+Traces:  external provider integration is not currently available in Core
+Logs:    runtime logs -> Soha; durable cluster logs -> configured Loki -> Soha
 Alerts:  Soha rules or external alerting systems -> Soha alert events
 ```
 
-SkyWalking OAP remains an external APM analysis backend. Soha queries its service metadata,
-topology, and traces through bounded adapters. Provider credentials remain on the server.
+The observability chart retains optional generic OTLP trace export for external consumers. Core does
+not currently provide Trace Explore or service-topology views; related routes and query DTOs remain
+for compatibility and report the capability as unavailable. External trace-provider integration is
+future work. Existing provider configuration records are preserved during upgrade but are not
+usable by Core.
 
 ## Workbench Information Architecture
 
 The canonical namespace is `/monitoring-workbench`. The four primary directions are:
 
-1. **Services and health**: service inventory, provider freshness, topology context, and active
-   alerts.
-2. **Explore**: one shareable scope and time range across metrics, traces, logs, and events.
+1. **Services and health**: provider freshness and active alerts. Service topology is unavailable.
+2. **Explore**: one shareable scope and time range across metrics, logs, and events. Trace Explore is
+   unavailable.
 3. **Dashboards**: native templates and bounded Grafana JSON import rendered by Soha.
 4. **Alerts and events**: rules, event lifecycle, notification evidence, healing, and on-call.
 
@@ -34,9 +37,9 @@ kept as compatibility redirects.
 
 ## Data Sources And Query State
 
-Built-in adapters support Prometheus metrics, Jaeger and SkyWalking traces, and Loki,
-Elasticsearch, and ClickHouse logs. A provider's code capability is reported separately from its
-runtime state:
+Core supports Prometheus metrics and native Loki log queries. Runtime logs remain available without
+a durable provider. The generic external `logs.query` capability currently queries durable cluster
+logs only. A provider's code capability is reported separately from its runtime state:
 
 - `unconfigured`: no enabled data source exists;
 - `unknown`: the source has not been validated;
@@ -48,15 +51,6 @@ Queries keep scope, absolute time range, filters, signal, and provider-native qu
 versioned context and query snapshot. A query can return `success`, `empty`, `partial`, `no_data`,
 `error`, or `unsupported`. Backend errors are not presented as empty results, and authorization may
 narrow but never broaden the requested scope.
-
-The service APIs use SkyWalking Metadata V2 and topology when a scoped, healthy SkyWalking data
-source is available. Missing identity or version-specific fields are returned as degraded or
-unsupported instead of fabricated health. Trace results can open associated logs with the same
-trace ID, span ID, scope, and time range.
-
-SkyWalking OAP receives OTLP traces over gRPC and converts them to its Zipkin trace model. Soha can
-query those traces through the configured Zipkin query endpoint. Native Metadata V2 service and
-topology views remain conditional on telemetry analyzed by SkyWalking's native service model.
 
 ## Dashboards
 
@@ -97,19 +91,25 @@ current platform owns:
 
 A backend error or missing data does not clear a firing internal alert. Only a definitive healthy
 evaluation that no longer matches can resolve it. The simple rule editor covers validated metric
-rules; provider-specific logs and traces rules remain advanced capabilities.
+rules; provider-specific log rules remain advanced capabilities, while trace rules are unavailable.
 
-Alert details preserve the diagnostic time window and can open metrics, traces, and logs without
-requiring the user to re-enter scope. AI investigation receives the same alert, cluster, namespace,
+Alert details preserve the diagnostic time window and can open metrics and logs without requiring
+the user to re-enter scope. Trace links remain unavailable until an external provider integration is
+delivered. AI investigation receives the same alert, cluster, namespace,
 workload, and time context, while governance actions stay in the monitoring workbench.
+
+Rules that still include an enabled retired log source report missing evidence and do not automatically
+resolve a firing alert from partial results. Disable the retired source or select Loki explicitly before
+revalidating the rule.
 
 ## Deliberate Limits
 
 - Soha does not implement a cross-signal query language or a second telemetry database.
 - The `starter` observability profile is single-replica Loki and is not production HA.
-- Provider configuration or a valid Collector configuration does not prove live data flow. A known
-  metric, trace, and trace-correlated log must be written and queried in each production
-  environment before the corresponding provider is treated as healthy.
+- Provider configuration or a valid Collector configuration does not prove live data flow. Verify
+  metrics and logs against their configured backends in each production environment. The chart's
+  optional OTLP trace export is for external consumers; it does not make Core Trace or topology
+  queries available.
 - Native Nightingale integration, Alertmanager inhibition, subscriptions, recurring maintenance
   windows, rule packs, anomaly detection, SLO burn-rate rules, and an independent Incident model
   are not part of the current baseline. Add them only after a concrete operating need establishes

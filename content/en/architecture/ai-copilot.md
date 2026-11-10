@@ -13,7 +13,7 @@ AI 层需要帮助完成：
 
 - 告警驱动的根因分析
 - 性能抖动与容量异常分析
-- 链路慢点和错误热点分析
+- 链路慢点和错误热点分析（planned; external trace-provider integration is not currently available）
 - 日志、事件、审计、发布、构建的多源证据归并
 - 巡检结果到调查会话的闭环
 - 工具、skills、数据源的会话级装配
@@ -97,6 +97,10 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `trace`
 - `inspection_review`
 
+The `trace` session mode is retained in the session model, but Core currently has no built-in Trace
+Explore, trace-provider execution, or service-topology view. Related routes and query DTOs report the
+capability as unavailable until a future external provider integration is delivered.
+
 ## API Surface
 
 当前已实现或扩展的会话接口：
@@ -151,12 +155,11 @@ Current status:
 - `platform-native.v1`
   - Reads aggregated platform evidence.
 - `logs.v1`
-  - Uses live backend providers.
-  - Supports `es`, `loki`, and `clickhouse`.
+  - The generic `logs.query` capability currently queries durable cluster logs only.
 - `metrics.v1`
   - Uses the Prometheus-backed execution path.
 - `traces.v1`
-  - Uses the Jaeger-backed execution path.
+  - The adapter identifier is retained for compatibility, but trace execution is unavailable in Core.
 
 The control plane has two entry points:
 

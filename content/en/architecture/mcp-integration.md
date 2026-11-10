@@ -40,6 +40,10 @@ Each MCP adapter should register:
 - `traces.v1`
 - `delivery.v1`
 
+The `traces.v1` identifier remains for compatibility, but Core trace execution is unavailable until
+a future external provider integration. The generic external `logs.query` capability currently
+queries durable cluster logs only.
+
 ## Permission Boundary
 
 MCP must not bypass platform authorization. Every MCP capability maps to a platform action and target scope. The platform owns:

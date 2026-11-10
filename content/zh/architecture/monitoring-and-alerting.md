@@ -1,6 +1,6 @@
 # 监控与告警
 
-Soha 是可观测性的控制面和调查入口。它不存储原始遥测数据，也不替代 OpenTelemetry、SkyWalking OAP、
+Soha 是可观测性的控制面和调查入口。它不存储原始遥测数据，也不替代 OpenTelemetry、
 Prometheus-compatible storage、Loki 或 Grafana。
 
 ## 架构边界
@@ -9,20 +9,21 @@ OpenTelemetry 是首选的埋点、Resource identity、采集和传输标准，�
 
 ```text
 Metrics: OTel Collector 或 scrape -> Prometheus-compatible backend -> Soha
-Traces:  OTel Collector -> SkyWalking OAP 或 Jaeger -> Soha
-Logs:    OTel Collector -> Loki、Elasticsearch 或 ClickHouse -> Soha
+Traces:  Core 当前不提供外部 Provider 集成
+Logs:    runtime logs -> Soha；持久化集群日志 -> 已配置 Loki -> Soha
 Alerts:  Soha 规则或外部告警系统 -> Soha 告警事件
 ```
 
-SkyWalking OAP 继续作为外部 APM 分析后端。Soha 通过有界 adapter 查询其服务元数据、拓扑和 Trace；Provider
-凭据始终保留在服务端。
+可观测性 chart 保留面向外部消费者的通用可选 OTLP Trace 导出。Core 当前不提供 Trace Explore 或服务拓扑视图；
+相关路由和查询 DTO 为兼容性保留，并报告能力不可用。外部 Trace Provider 集成属于后续工作。升级时会保留已有
+Provider 配置记录，但 Core 不再使用这些配置。
 
 ## 工作台信息架构
 
 规范入口统一在 `/monitoring-workbench`。四个一级方向是：
 
-1. **服务与健康**：服务清单、Provider 新鲜度、拓扑上下文和活跃告警。
-2. **Explore**：Metrics、Traces、Logs、Events 共享可复制的 scope 和时间范围。
+1. **服务与健康**：Provider 新鲜度和活跃告警；服务拓扑当前不可用。
+2. **Explore**：Metrics、Logs、Events 共享可复制的 scope 和时间范围；Trace Explore 当前不可用。
 3. **Dashboard**：原生模板，以及由 Soha 渲染的有界 Grafana JSON 导入。
 4. **告警与事件**：规则、事件生命周期、通知证据、自愈和值班。
 
@@ -31,8 +32,8 @@ Provider、数据源、集成、规则、通知、自愈和值班页面属于运
 
 ## 数据源与查询状态
 
-内置 adapter 支持 Prometheus metrics、Jaeger 和 SkyWalking traces，以及 Loki、Elasticsearch 和 ClickHouse
-logs。代码能力与运行状态分开表达：
+Core 支持 Prometheus metrics 和 Loki 原生日志查询。无需持久化 Provider 也可读取 runtime logs。通用外部
+`logs.query` 能力当前只查询持久化集群日志。代码能力与运行状态分开表达：
 
 - `unconfigured`：没有已启用的数据源；
 - `unknown`：尚未验证数据源；
@@ -43,13 +44,6 @@ logs。代码能力与运行状态分开表达：
 查询使用版本化 context 和 query snapshot 保存 scope、绝对时间范围、筛选条件、signal 和 Provider 原生查询。
 查询结果可为 `success`、`empty`、`partial`、`no_data`、`error` 或 `unsupported`。后端错误不会伪装成空结果；
 授权可以收紧请求范围，但不能扩大范围。
-
-当存在范围匹配且健康的 SkyWalking 数据源时，服务 API 使用 SkyWalking Metadata V2 和 topology。缺失 identity
-或版本特定字段时返回 degraded 或 unsupported，不伪造健康。Trace 结果可携带相同 trace ID、span ID、scope 和
-时间范围打开关联日志。
-
-SkyWalking OAP 通过 gRPC 接收 OTLP Trace，并将其转换为 Zipkin Trace 模型。Soha 可通过配置的 Zipkin query
-端点查询这些 Trace；Metadata V2 服务和拓扑视图仍以 SkyWalking 原生服务模型已经分析出数据为前提。
 
 ## Dashboard
 
@@ -85,17 +79,20 @@ Alertmanager v1、Grafana Alerting v1 和 Generic Webhook integration 会把外�
 - 对已授权配置写入和手工状态操作记录审计。
 
 后端错误或无数据不会清除正在 firing 的内部告警。只有一次明确成功且不再匹配的评估才能解决告警。普通规则编辑器
-覆盖已验证的 metric rule；Provider 特定的 logs 和 traces rule 仍是高级能力。
+覆盖已验证的 metric rule；Provider 特定的日志规则仍是高级能力，Trace 规则当前不可用。
 
-告警详情保留诊断时间窗，可直接打开 Metrics、Traces 和 Logs，无需重新输入 scope。AI 调查接收相同的 alert、
-cluster、namespace、workload 和时间上下文，治理动作仍留在监控工作台。
+告警详情保留诊断时间窗，可直接打开 Metrics 和 Logs，无需重新输入 scope。Trace 链接在外部 Provider 集成可用前
+仍不可用。AI 调查接收相同的 alert、cluster、namespace、workload 和时间上下文，治理动作仍留在监控工作台。
+
+规则仍包含已启用的退役日志源时，会报告证据缺失。部分结果不会自动恢复正在触发的告警。复验规则前可停用旧源，
+或将规则明确绑定到 Loki。
 
 ## 明确限制
 
 - Soha 不实现跨信号查询语言，也不建设第二套遥测数据库。
 - `starter` 可观测 profile 使用单副本 Loki，不是生产 HA。
-- 数据源配置或 Collector 配置校验通过，不代表真实数据链路已经打通。每个生产环境必须写入并查询一个已知 metric、
-  trace 和带 trace correlation 的 log，之后才能把对应 Provider 视为健康。
+- 数据源配置或 Collector 配置校验通过，不代表真实数据链路已经打通。每个生产环境都应针对已配置的后端验证
+  metrics 和 logs。chart 可选 OTLP Trace 导出面向外部消费者，不会使 Core 的 Trace 或拓扑查询变为可用。
 - Nightingale 原生集成、Alertmanager inhibition、subscription、周期维护窗、rule pack、异常检测、SLO burn-rate rule
   和独立 Incident 模型不属于当前基线。只有明确运维需求确定其生命周期和所有权后再增加。
 - 现有有时限 silence 是当前的抑制机制，但不等同于来源级 inhibition 或周期维护调度器。

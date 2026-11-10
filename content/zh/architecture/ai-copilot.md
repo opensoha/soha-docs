@@ -13,7 +13,7 @@ AI 层需要帮助完成：
 
 - 告警驱动的根因分析
 - 性能抖动与容量异常分析
-- 链路慢点和错误热点分析
+- 链路慢点和错误热点分析（规划方向；当前尚无外部 Trace Provider 集成）
 - 日志、事件、审计、发布、构建的多源证据归并
 - 巡检结果到调查会话的闭环
 - 工具、skills、数据源的会话级装配
@@ -97,6 +97,9 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `trace`
 - `inspection_review`
 
+`trace` 会话模式仍保留在会话模型中，但 Core 当前没有内置 Trace Explore、Trace Provider 执行或服务拓扑视图。
+相关路由和查询 DTO 会保留，并在后续外部 Provider 集成可用前报告能力不可用。
+
 ## API Surface
 
 当前已实现或扩展的会话接口：
@@ -151,12 +154,11 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `platform-native.v1`
   - 已可读平台聚合证据
 - `logs.v1`
-  - 已有真实后端执行层
-  - 支持 `es` / `loki` / `clickhouse`
+  - 通用 `logs.query` 能力当前只查询持久化集群日志
 - `metrics.v1`
   - 已补齐 Prometheus-backed 执行层
 - `traces.v1`
-  - 已补齐 Jaeger-backed 执行层
+  - 适配器标识为兼容性保留，但 Core 当前不提供 Trace 执行能力
 
 控制平面采用双入口：
 

@@ -28,14 +28,16 @@ runtime. It supports snapshots, query-bound WebSocket tickets, reconnect, filter
 Kubernetes and delivery queries can aggregate multiple authorized sources. Docker queries are
 currently runtime-only.
 
-`History` queries an enabled Loki, Elasticsearch, or ClickHouse data source. Configure these
-connections under:
+`History` uses the native Loki integration. Legacy Elasticsearch and ClickHouse provider settings
+may remain in stored configuration after upgrade, but Core no longer uses them. The generic external
+`logs.query` capability currently covers durable cluster logs only. Configure the supported Loki
+connection under:
 
 ```text
 /monitoring-workbench/log-data-sources
 ```
 
-History remains unavailable until a durable data source is configured and healthy. Soha does not
+History remains unavailable until Loki is configured and healthy. Soha does not
 store application logs in its PostgreSQL database, and it does not expose provider credentials to
 the browser.
 
@@ -74,20 +76,17 @@ External credentials are referenced from an existing Kubernetes Secret.
 
 The default signal allowlist contains only `logs`, so an upgrade keeps the original filelog-to-Loki
 pipeline. An operator can explicitly enable an authenticated TLS OTLP receiver and add metrics and
-traces. Metrics are exported through Prometheus Remote Write; traces are exported through OTLP/gRPC,
-typically to a SkyWalking OAP `11800` endpoint with its OTLP trace handler enabled. These external
-pipelines require configured endpoints and existing credential Secrets.
+traces. Metrics are exported through Prometheus Remote Write. Generic traces can be exported through
+OTLP/gRPC to an external consumer; this does not provide Trace Explore or service-topology queries in
+Core. These optional external pipelines require configured endpoints and existing credential
+Secrets.
 
 The collector adds the Soha workspace and Kubernetes cluster identity, preserves application-provided
 OpenTelemetry service identity, and rejects metrics or traces without `service.name`. Its bounded
 redaction policy removes configured credential attributes and hashes configured user identifiers.
-Soha remains the control and query plane: OAP, Prometheus-compatible storage, and Loki remain the
-telemetry analysis and storage backends.
-
-SkyWalking converts OTLP traces to its Zipkin trace model. The Soha SkyWalking data source therefore
-uses the enabled Zipkin query endpoint for those traces. This enables Trace Explore but does not
-claim that OTLP input populates native SkyWalking service topology; native service and topology
-views remain conditional on data analyzed by SkyWalking's native service model.
+Soha remains the control and query plane. Prometheus-compatible storage and Loki remain the metrics
+and logs backends. External trace-provider integration is future work; existing trace routes and
+query DTOs remain for compatibility and report unavailable until that integration exists.
 
 Stopping collection stops new writes. Uninstalling the add-on retains the Loki PVC by default, so
 removing collection does not silently delete historical logs.

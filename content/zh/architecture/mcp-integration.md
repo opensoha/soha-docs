@@ -40,6 +40,9 @@ Each MCP adapter should register:
 - `traces.v1`
 - `delivery.v1`
 
+`traces.v1` 标识为兼容性保留，但 Core 当前没有 Trace 执行能力，需等待后续外部 Provider 集成。通用外部
+`logs.query` 能力当前只查询持久化集群日志。
+
 ## Permission Boundary
 
 MCP must not bypass platform authorization. Every MCP capability maps to a platform action and target scope. The platform owns:

@@ -1,5 +1,51 @@
 # Agent Runtime
 
+## Runtime cutover maintenance (operator)
+
+The Core source candidate provides an offline `runtime-upgrade` command. It is not run by server startup, and its presence in source does not mean it is included in a published image or release. Build it from the matching Core source revision with `GOWORK=off go build -o runtime-upgrade ./cmd/runtime-upgrade`.
+
+Before cutover, stop the old server and worker from accepting new work and take a PostgreSQL custom-format backup of the same database. Set `SOHA_UPGRADE_DATABASE_URL` in the command environment; never put the DSN in command arguments or logs. Restrict the backup path to the operator and ensure the resulting file is a nonempty regular file with mode `0600`.
+
+Use a clean shell without other `PG*` variables. Prepare an operator-only `pg_service.conf` with a `[soha-upgrade]` section specifying the intended host, port, dbname, user and TLS settings; keep credentials in a separate mode `0600` pgpass file. Use these same files and environment for `psql`, `pg_dump` and the maintenance tool.
+
+```bash
+export PGSERVICEFILE=/YOUR_PRIVATE_PATH/pg_service.conf
+export PGPASSFILE=/YOUR_PRIVATE_PATH/pgpass
+export PGSERVICE=soha-upgrade
+export SOHA_UPGRADE_DATABASE_URL="service=$PGSERVICE"
+psql -X -v ON_ERROR_STOP=1 -c 'SELECT current_database(), current_user, inet_server_addr(), inet_server_port()'
+```
+
+Compare the displayed database, user, server address and port with the intended maintenance target. Stop if they differ.
+
+```bash
+umask 077
+pg_dump --format=custom --file "$BACKUP_PATH"
+pg_restore --list "$BACKUP_PATH" >/dev/null
+./runtime-upgrade -mode=dry-run > runtime-upgrade-plan.json
+```
+
+Keep the service configuration and environment unchanged through backup, dry-run and apply. The tool checks only that the backup is a nonempty regular 0600 file and records its SHA-256; it does not verify its database identity or restorability.
+
+Review the dry-run inventory and its SHA-256 `digest` before applying. `pg_restore --list` checks the archive format only; it is not a restore drill. Apply requires the reviewed plan digest and the backup file. If the reviewed inventory contains explicitly selected expired-lease legacy runs, list their exact IDs (up to 1000) using `-quarantine-runs`; otherwise omit that flag:
+
+```bash
+./runtime-upgrade -mode=apply -digest REVIEWED_PLAN_SHA256 -backup "$BACKUP_PATH"
+./runtime-upgrade -mode=apply -digest REVIEWED_PLAN_SHA256 -backup "$BACKUP_PATH" -quarantine-runs RUN_ID_1,RUN_ID_2
+```
+
+The command rechecks that the inventory matches the digest and rejects live leases or other active writers. A quarantined run becomes read-only `unknown` and fenced for reconciliation; quarantine does not prove it stopped, retry it, or translate a Native checkpoint. If inventory or writers change, stop and produce a fresh dry-run for review.
+
+Rollback is checkpoint-scoped and conditional. It only restores session metadata that has not changed since apply; it does not clear the cutover gate or restore runs, memory, or tombstones:
+
+```bash
+./runtime-upgrade -mode=rollback -digest APPLIED_CHECKPOINT_SHA256
+```
+
+Quarantined memory remains inspectable with its server-owned `quarantined` and `quarantineReason` fields, cannot be re-enabled by clients, and may be deleted by its owner. Do not relabel uncertain records as expired or infer a missing owner. This source-candidate procedure is not release or production qualification; dependency, image, and release acceptance remain pending.
+
+For uncertain chat submissions, inspect the original request rather than resending it: `soha ai chat request SESSION --request-id ID`. `native-request` is a compatibility alias. A missing lookup is not proof that the request cannot still commit; reconciliation remains server-authoritative.
+
 ## 定位
 
 soha 的 agent 进程同时承担两类运行时职责：

@@ -4,7 +4,7 @@
 
 启动配置仍以文件为基线；业务设置和连接实例由数据库设置中心持久化。
 
-- startup baseline: `configs/config.yaml`
+- 源码配置模板为 `configs/config.example.yaml`。Compose 将它挂载到 `/app/configs/config.yaml`。本机运行可用私有的 `configs/config.yaml`，也可设置 `SOHA_CONFIG_FILE`。
 - loader: `internal/infrastructure/config`
 - override mechanism: environment variables through Viper when needed
 

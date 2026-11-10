@@ -5,36 +5,36 @@ description: 启动第一个自托管 Soha 控制平面，并验证 health、rea
 
 # 第一次部署
 
-本教程是自托管 Soha 控制平面的冷启动路径。命令需要在相邻的 `soha` 仓库中执行，不是在 `soha-docs` 目录中执行。
+使用已发布的 Core 镜像启动本机 Soha 控制平面。镜像同时提供 API 和内嵌的 Web 控制台。源码构建和 Kubernetes 安装见 [部署指南](../operations/deployment.md)。
 
 ## 前置条件
 
-- Docker 和 Compose 可用。
-- `soha` 仓库已经 checkout 到 `soha-docs` 的同级目录。
-- 本地 shell history 中不要写入生产 secret。
+安装 Docker 和 Compose 插件。在用于克隆 Core 仓库的目录中执行以下命令。
 
 ## 启动 Stack
 
 ```bash
-cd ../soha
-docker compose -f deploy/docker-compose.yaml up -d --build
+git clone --branch v0.1.12 --depth 1 https://github.com/opensoha/soha.git
+cd soha
+SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.12 \
+  docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha
 ```
 
-Compose stack 负责 PostgreSQL 和 API 容器。全新的本地安装会使用仓库 `configs/` 下的配置，并 seed [配置](../operations/configuration.md) 中记录的 bootstrap 账号。
+Compose 启动 PostgreSQL 和 Core，挂载 `configs/config.example.yaml`，默认只通过回环地址提供访问。开放外部访问前，按 [配置指南](../operations/configuration.md) 更换初始凭据和系统密钥。
 
 ## 验证控制平面
 
 Health 和 readiness 都应该返回成功：
 
 ```bash
-curl -sS http://localhost:8080/healthz
-curl -sS http://localhost:8080/readyz
+curl -fsS http://localhost:8080/healthz
+curl -fsS http://localhost:8080/readyz
 ```
 
 再检查 login-provider 边界是否可达：
 
 ```bash
-curl -sS http://localhost:8080/api/v1/auth/providers
+curl -fsS http://localhost:8080/api/v1/auth/providers
 ```
 
 这个检查对应的 API reference 名称是 `GET /api/v1/auth/providers`。
@@ -46,15 +46,15 @@ curl -sS http://localhost:8080/api/v1/auth/providers
 Fixture artifact: [`first-deploy.expected.txt`](/tutorial-fixtures/first-deploy.expected.txt)
 
 ```bash
-curl -sS http://localhost:8080/healthz
-curl -sS http://localhost:8080/readyz
-curl -sS http://localhost:8080/api/v1/auth/providers
+curl -fsS http://localhost:8080/healthz
+curl -fsS http://localhost:8080/readyz
+curl -fsS http://localhost:8080/api/v1/auth/providers
 ```
 
 ```json
-{"status": "ok"}
-{"ready": true}
-{"providers": [{"id": "password", "type": "password", "enabled": true}]}
+{"postgres": "ok", "status": "ok"}
+{"status": "ready"}
+{"items": [{"type": "password", "id": "password", "name": "Password", "enabled": true}]}
 ```
 
 ## 验证 Console 和文档链接
@@ -62,19 +62,19 @@ curl -sS http://localhost:8080/api/v1/auth/providers
 打开 `http://localhost:8080/`。默认本地 bootstrap 账号是：
 
 ```text
-username: admin
-password: soha
+username: opensoha
+password: opensoha
 ```
 
 Console 内的文档入口会打开 `/docs/`。release 模式下，`soha` 会把这个路径重定向到配置的外部文档地址，再由 Nextra locale proxy 路由到 `/zh/docs/...` 或 `/en/docs/...`。文档站本身按 [Docs Publishing](../operations/docs-publishing.md) 描述的托管流程独立发布。
 
 ## 验收标准
 
-- `curl -sS http://localhost:8080/healthz` 返回健康状态。
-- `curl -sS http://localhost:8080/readyz` 返回 ready 状态。
+- `curl -fsS http://localhost:8080/healthz` 返回健康状态。
+- `curl -fsS http://localhost:8080/readyz` 返回 ready 状态。
 - `GET /api/v1/auth/providers` 至少返回一个启用的 provider。
 - Console 可以加载，不需要额外启动 frontend dev server。
 
-## 已知缺口
+## 验证范围
 
-本教程只验证本地控制平面。它还不证明 signed release artifact、Helm install、Docker image CI smoke 或生产回滚路径。
+以上检查覆盖 Core、PostgreSQL、登录提供方和 Web 控制台。安装了额外运行时的环境，应在开放流量前单独验证这些运行时。

@@ -1,5 +1,69 @@
 # Agent Runtime
 
+## dsh 部署候选版
+
+Core `v0.1.12` 使用该版本自带的运行时。下面的 dsh、Hindsight 和运行配置说明适用于源码候选版。部署前核对配套的 Core、Web、Contracts 和 dsh 镜像。Kubernetes 安装使用 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 中与候选组合匹配的 Chart。
+
+构建 dsh 镜像需要包含 `agent/dsh-runtime.schema.json` 的兼容 Contracts 发行版。Contracts `v0.1.29` 缺少该 schema。
+
+- 新 Chat 和 Heya 依赖 dsh。在私有网络部署 dsh，向 Core 和 dsh 提供同一服务令牌文件，再启用 `dsh_runtime.enabled`。所有 Core worker 都能读取加密检查点后才启用 `security.protected_durable_storage`。仍需恢复检查点时，保留受保护存储和原安装的有效凭据加密密钥。
+- Hindsight 可选。启用前将 Core 迁移至 `0145`，为 Hindsight 配置独立 PostgreSQL 和凭据、配套保护网关以及仅授权所用模型的 Gateway 令牌。
+- 使用运行配置和托管资产前，将 Core 迁移至 `0147`，并确认 dsh 报告 `runtime-assembly-v1`。注册表、Skill 文件和 MCP 凭据只挂载到 dsh。
+- 升级和回滚时保留单写者 dsh journal。已部署过早期候选且 PVC 未设置保留策略的安装，先保持 dsh 启用并沿用原 claim 执行一次升级。确认 Helm release 清单已包含保留注解，再停用 dsh。重装时通过 `dshRuntime.existingClaim` 引用保留的 claim。
+- Core `/readyz` 检查 PostgreSQL。开放流量前检查 dsh 鉴权健康，并确认一条 Chat 和一条有资格的 Heya 请求都完成且留下对应 Run。轮换共享服务令牌时，暂停准入、排空受影响的运行，再协调重启 Core 副本和对应运行时。
+
+## Runtime 切换维护（运维）
+
+使用与 Core 同一修订版的离线 `runtime-upgrade` 工具。源码构建依赖匹配且已发布的 Contracts。核对依赖后执行 `GOWORK=off go build -o runtime-upgrade ./cmd/runtime-upgrade`。在维护窗口排空旧运行并停止旧写入者，再运行该工具。
+
+先备份目标 PostgreSQL，再执行 schema 或应用变更。dry-run 和 apply 要求 schema 已包含 `0143` 和 `0144`。保持旧写入者停止，并沿用该安装的迁移流程应用 schema。
+
+使用不含其他 `PG*` 环境变量的干净 shell。准备仅运维人员可读的 `pg_service.conf`，在 `[soha-upgrade]` 节指定预期 host、port、dbname、user 和 TLS 配置；凭据放在独立的 0600 权限 pgpass 文件中。`psql`、`pg_dump` 和维护工具共用这些文件和环境。
+
+```bash
+export PGSERVICEFILE=/YOUR_PRIVATE_PATH/pg_service.conf
+export PGPASSFILE=/YOUR_PRIVATE_PATH/pgpass
+export PGSERVICE=soha-upgrade
+export SOHA_UPGRADE_DATABASE_URL="service=$PGSERVICE"
+psql -X -v ON_ERROR_STOP=1 -c 'SELECT current_database(), current_user, inet_server_addr(), inet_server_port()'
+```
+
+将显示的数据库、用户、服务器地址和端口与预期维护目标核对；不一致时停止。
+
+```bash
+umask 077
+BACKUP_PATH=$(mktemp /YOUR_PRIVATE_PATH/soha-before-dsh.XXXXXX)
+pg_dump --format=custom --file "$BACKUP_PATH"
+pg_restore --list "$BACKUP_PATH" >/dev/null
+```
+
+完成所需的 schema 迁移后生成计划。
+
+```bash
+./runtime-upgrade -mode=dry-run > /YOUR_PRIVATE_PATH/runtime-upgrade-plan.json
+```
+
+备份、dry-run 和 apply 期间保持 service 配置与环境不变。工具只检查备份是非空的 0600 普通文件并记录 SHA-256，不验证备份的数据库身份或可恢复性。
+
+审核 dry-run 清单及其中的 SHA-256 `digest` 后再 apply。`pg_restore --list` 只检查归档格式，不等同于恢复演练。Apply 必须提供已审核的计划 digest 和备份文件。若清单中的旧运行租约已过期且需明确隔离，使用 `-quarantine-runs` 指定精确 ID（最多 1000 个）；否则省略该参数：
+
+```bash
+./runtime-upgrade -mode=apply -digest REVIEWED_PLAN_SHA256 -backup "$BACKUP_PATH"
+./runtime-upgrade -mode=apply -digest REVIEWED_PLAN_SHA256 -backup "$BACKUP_PATH" -quarantine-runs RUN_ID_1,RUN_ID_2
+```
+
+命令会复核清单 digest，并拒绝仍有有效租约或其他活跃写入者的情况。隔离后的旧运行状态为只读 `unknown` 并加 fence，等待核对；隔离不代表已确认停止，不会重试运行，也不会转换 Native checkpoint。若清单或写入状态变化，应停止操作并重新生成、审核 dry-run。
+
+回滚仅针对对应 checkpoint，并且有条件地恢复未变化的 session metadata；不会清除切换 gate，也不会恢复 Run、记忆或 tombstone：
+
+```bash
+./runtime-upgrade -mode=rollback -digest APPLIED_CHECKPOINT_SHA256
+```
+
+被隔离的记忆仍可通过服务端字段 `quarantined` 与 `quarantineReason` 查看；客户端不能解除隔离，记录所有者可以删除。不要将状态不明的记录标为过期，也不要推断缺失的所有者。本流程属于源码候选说明，不代表已发布或通过生产资格；依赖、镜像与发布验收仍待完成。
+
+使用候选版 CLI 时，若聊天提交结果不确定，查询原请求，不要重新发送：`soha ai chat request SESSION --request-id ID`。`native-request` 是兼容别名。查询无结果不能证明原请求不会稍后提交；后续核对由服务端负责。
+
 ## 定位
 
 soha 的 agent 进程同时承担两类运行时职责：

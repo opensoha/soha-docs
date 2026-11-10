@@ -1,58 +1,28 @@
-# Deployment
+# 部署
 
-## Runtime Shape
+## 安装已发布版本
 
-- soha can ship as a single-binary application container
-- `soha-web` builds the Vite SPA console and publishes a `dist` artifact
-- `soha` copies the web artifact into `internal/staticassets/web/dist` and embeds it into the server binary at build time
-- `soha-docs` builds and publishes the Nextra website and documentation site independently
-- `soha-agent` builds the remote cluster agent and optional Hermes provider runner independently
-- `soha-operator` 独立提供可选的集群内 `WorkloadCronJob` 控制器
-- `cmd/server` serves the HTTP API and SPA, and redirects `/docs/` to the configured docs URL by default
-- PostgreSQL is the durable system of record
-- deployment assets pin pgvector 0.8.5 on PostgreSQL 18.4 for fresh local, manifest, and Helm installs
-- cluster credentials are provided by environment configuration or future secret providers
+Core 镜像同时提供 API 和内嵌的 Web 控制台，应用数据存放在 PostgreSQL。文档站、远程集群 Agent 和可选的 Operator 分别发布。
 
-## Repo Deployment Assets
+用 Compose 在本机安装 Core `v0.1.12` 时，按 [第一次部署](../tutorials/first-deploy.md) 操作。Kubernetes 可使用发行版本的 `deploy/deployment.yaml`，或从 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 选择兼容的 Chart。升级时一并核对清单或 Chart 与镜像版本。开放外部访问前更换初始凭据和系统密钥。 [配置指南](./configuration.md)
 
-Deployment assets now live under `deploy/`.
+Core `v0.1.12` 使用该版本自带的运行时。dsh 和 Hindsight 的部署说明适用于 [dsh 候选版](./agent-runtime.md)。
 
-- `deploy/Dockerfile`
-- `deploy/docker-compose.yaml`
-- `configs/config.yaml`
-- `configs/config.compose.yaml`
-- `deploy/deployment.yaml`
-- sibling repository `../soha-helm/charts/soha/`
-- sibling repository `../soha-helm/charts/soha-operator/`
-- sibling repository `../soha-operator/config/default/`
+## 从源码构建
 
-Use these paths as the default baseline for image build, local stack startup, raw Kubernetes rollout, and Helm packaging. The optional Hermes provider runner is built from sibling repository `../soha-agent`. `configs/config.compose.yaml` is the app-container config for compose; it points the database host at the `postgres` service and does not seed host-local kubeconfig paths.
+准备支持 BuildKit 的 Docker、Compose、Make 和 Web CI 声明的 Node 版本。把版本匹配的 Core 和 Web 检出到相邻目录，并按 Core `go.mod` 中固定的版本准备 Contracts 构建上下文。按 tag 发布时使用对应版本的 Web 产物。
 
-## Quick Commands
-
-Build the application image from the `soha` repository:
+在 `soha` 仓库执行以下命令。
 
 ```bash
+npm --prefix ../soha-web ci
 make deploy-image
+docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha
 ```
 
-Start the local single-project stack:
+`make deploy-image` 构建 Web，将产物放入 `internal/staticassets/web/dist` 后构建本地 Core 镜像。Compose 默认挂载 `configs/config.example.yaml`，并将数据库主机设为 `postgres`。如需沿用私有配置，设置 `SOHA_COMPOSE_CONFIG_FILE=../configs/config.yaml`。相对路径以 `deploy/` 为基准。
 
-```bash
-docker compose -f deploy/docker-compose.yaml up -d --build
-```
-
-Lint the Helm chart:
-
-```bash
-helm lint ../soha-helm/charts/soha
-```
-
-Run Hermes as the first external Agent Runtime provider:
-
-```bash
-make init-hermes
-```
+本地 Chart 可用 `helm template soha ../soha-helm/charts/soha` 渲染，并按该 Chart 标明的镜像版本部署。
 
 ## Soha Operator
 
@@ -81,45 +51,23 @@ Operator `v0.1.0` 默认使用公开的多架构镜像 `ghcr.io/opensoha/soha-op
 - frontend dev server at `http://localhost:5173`
 - docs dev server at `http://localhost:3000/`
 
-## Hermes Agent Runner with Docker
+## Docker 部署 Hermes Runner
 
-Hermes is deployed as a provider runner, not as a browser-facing dependency of the console. The runner image in [`soha-agent/deploy/Dockerfile.hermes-agent-runner`](https://github.com/opensoha/soha-agent/blob/main/deploy/Dockerfile.hermes-agent-runner) inherits from the official `nousresearch/hermes-agent` image and adds the `soha-agent` binary. The unified compose file in [`deploy/docker-compose.yaml`](https://github.com/opensoha/soha/blob/main/deploy/docker-compose.yaml) defines the local soha stack and optional Hermes runner service:
+发布版 Compose 为显式选择 Hermes 的工作负载提供独立 Runner。请选择与 Core 兼容的 Runner 镜像。下列命令沿用 [第一次部署](../tutorials/first-deploy.md) 的 Core Compose 项目及其密钥配置。
 
-- mounts persistent Hermes state at the `soha-hermes-data` volume (`/opt/data`)
-- mounts provider workspaces at `soha-hermes-runtime` (`/var/lib/soha-agent-runtime`)
-- claims only `hermes` Agent Runtime runs
-- executes Hermes through `hermes chat -Q -q`
-- callbacks to the soha control plane with status, tool calls, and `AnalysisArtifact` results
+```bash
+SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.12 \
+SOHA_HERMES_IMAGE=ghcr.io/opensoha/soha-hermes-agent:v0.1.12 \
+SOHA_HERMES_BIND=127.0.0.1 \
+  docker compose -f deploy/docker-compose.yaml --profile hermes up -d --no-build hermes-agent-runner
+```
 
-Initialize Hermes once if provider credentials or local Hermes state need setup:
+Runner 通过 Compose 网络访问 `http://soha:8080`，并使用 Core 配置的执行 Runner 令牌。保留存放状态和工作目录的 `soha-hermes-data` 和 `soha-hermes-runtime` 卷。需要初始化提供方凭据时，使用 `hermes-setup` profile。
 
 ```bash
 docker compose -f deploy/docker-compose.yaml --profile hermes-setup run --rm hermes-agent-setup
+docker compose -f deploy/docker-compose.yaml --profile hermes logs --tail 50 hermes-agent-runner
 ```
-
-Start the runner against a host-run local development API:
-
-```bash
-make init-hermes
-```
-
-The default `init-hermes` endpoint is `http://host.docker.internal:8080`, which matches `make dev` when the Go API runs on the host. For a remote control plane, override the control-plane URL and token:
-
-```bash
-HERMES_CONTROL_PLANE_URL=http://host.docker.internal:8080 \
-SOHA_EXECUTION_RUNNER_TOKEN=replace-with-runtime-token \
-make init-hermes
-```
-
-Operational checks:
-
-```bash
-docker compose -f deploy/docker-compose.yaml logs -f hermes-agent-runner
-docker compose -f deploy/docker-compose.yaml exec hermes-agent-runner hermes --version
-curl -s http://localhost:8080/api/v1/copilot/agent-runs
-```
-
-Do not commit real provider keys or runner tokens. Store Hermes model credentials in the mounted Hermes data volume through the `hermes-setup` compose profile or inject them through your runtime secret manager.
 
 ## PostgreSQL 18.4 and pgvector 0.8.5
 

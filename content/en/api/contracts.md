@@ -7,11 +7,13 @@
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.23`
+- OpenAPI version: `0.1.29`
 - Source artifact: `openapi/soha-api.yaml`
 - Generated artifact: `openapi/soha-api.json`
 - Go artifact package: `github.com/opensoha/soha-contracts/openapi`
 - npm package: `@opensoha/contracts`
+
+This page and the generated index use the published Contracts `v0.1.29` revision pinned in docs CI. Check the deployed Core version and its capabilities before using an operation.
 
 ## 契约目录
 

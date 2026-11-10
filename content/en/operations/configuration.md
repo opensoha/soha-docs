@@ -4,7 +4,7 @@
 
 Startup configuration remains file-baselined; product settings and connection instances are persisted by the database-backed settings center.
 
-- startup baseline: `configs/config.yaml`
+- The source template is `configs/config.example.yaml`. Compose mounts it at `/app/configs/config.yaml`. Local runs can use a private `configs/config.yaml` or set `SOHA_CONFIG_FILE`.
 - loader: `internal/infrastructure/config`
 - override mechanism: environment variables through Viper when needed
 

@@ -1,10 +1,22 @@
 # Agent Runtime
 
+## dsh deployment candidate
+
+Core `v0.1.12` uses the runtime shipped with that release. The following dsh, Hindsight and runtime profile instructions apply to the source candidate. Before deploying it, verify a matching Core, Web, Contracts and dsh image combination. For Kubernetes, use the compatible chart from the [Soha Helm repository](https://github.com/opensoha/soha-helm).
+
+The dsh image requires a compatible Contracts release containing `agent/dsh-runtime.schema.json`. This schema is absent from Contracts `v0.1.29`.
+
+- New Chat and Heya require dsh. Deploy the dsh service on a private network, share its service-token file with Core and enable `dsh_runtime.enabled`. Enable `security.protected_durable_storage` only after all Core workers can read encrypted checkpoints. Keep the installation's active credential encryption key and protected storage while existing checkpoints need recovery.
+- Hindsight is optional. Before enabling it, apply Core migrations through `0145`. Use its own PostgreSQL database and credentials, the matching protection gateway and a Gateway token scoped to the configured models.
+- Before using runtime profiles and managed assets, apply Core migrations through `0147` and check that dsh reports `runtime-assembly-v1`. Mount the registry, Skill files and MCP credentials only in the dsh workload.
+- Preserve the single-writer dsh journal during upgrades and rollback. If you installed an earlier candidate with an unprotected Helm PVC, first upgrade with dsh enabled and the original claim. Confirm the retention annotation is in the Helm release manifest before disabling dsh. On reinstall, use `dshRuntime.existingClaim` to reference the retained claim.
+- Core `/readyz` checks PostgreSQL. Verify authenticated dsh health and a completed Chat and eligible Heya request with their corresponding Runs before opening traffic. When rotating a shared service token, pause admission, drain affected runs and restart Core replicas and the corresponding runtime together.
+
 ## Runtime cutover maintenance (operator)
 
-The Core source candidate provides an offline `runtime-upgrade` command. It is not run by server startup, and its presence in source does not mean it is included in a published image or release. Build it from the matching Core source revision with `GOWORK=off go build -o runtime-upgrade ./cmd/runtime-upgrade`.
+Use the offline `runtime-upgrade` tool from the same Core revision. Its source build requires the matching released Contracts dependency. Use `GOWORK=off go build -o runtime-upgrade ./cmd/runtime-upgrade` after verifying that dependency. Run this tool during a maintenance window after draining legacy work and stopping its writers.
 
-Before cutover, stop the old server and worker from accepting new work and take a PostgreSQL custom-format backup of the same database. Set `SOHA_UPGRADE_DATABASE_URL` in the command environment; never put the DSN in command arguments or logs. Restrict the backup path to the operator and ensure the resulting file is a nonempty regular file with mode `0600`.
+Back up the target PostgreSQL database before schema or application changes. The maintenance tool requires schema migrations `0143` and `0144` before dry-run or apply. Apply them using the installation's migration procedure while the old writers stay stopped.
 
 Use a clean shell without other `PG*` variables. Prepare an operator-only `pg_service.conf` with a `[soha-upgrade]` section specifying the intended host, port, dbname, user and TLS settings; keep credentials in a separate mode `0600` pgpass file. Use these same files and environment for `psql`, `pg_dump` and the maintenance tool.
 
@@ -20,9 +32,15 @@ Compare the displayed database, user, server address and port with the intended 
 
 ```bash
 umask 077
+BACKUP_PATH=$(mktemp /YOUR_PRIVATE_PATH/soha-before-dsh.XXXXXX)
 pg_dump --format=custom --file "$BACKUP_PATH"
 pg_restore --list "$BACKUP_PATH" >/dev/null
-./runtime-upgrade -mode=dry-run > runtime-upgrade-plan.json
+```
+
+After applying the prerequisite schema migrations, generate the plan.
+
+```bash
+./runtime-upgrade -mode=dry-run > /YOUR_PRIVATE_PATH/runtime-upgrade-plan.json
 ```
 
 Keep the service configuration and environment unchanged through backup, dry-run and apply. The tool checks only that the backup is a nonempty regular 0600 file and records its SHA-256; it does not verify its database identity or restorability.
@@ -44,7 +62,7 @@ Rollback is checkpoint-scoped and conditional. It only restores session metadata
 
 Quarantined memory remains inspectable with its server-owned `quarantined` and `quarantineReason` fields, cannot be re-enabled by clients, and may be deleted by its owner. Do not relabel uncertain records as expired or infer a missing owner. This source-candidate procedure is not release or production qualification; dependency, image, and release acceptance remain pending.
 
-For uncertain chat submissions, inspect the original request rather than resending it: `soha ai chat request SESSION --request-id ID`. `native-request` is a compatibility alias. A missing lookup is not proof that the request cannot still commit; reconciliation remains server-authoritative.
+With the candidate CLI, for uncertain chat submissions, inspect the original request rather than resending it: `soha ai chat request SESSION --request-id ID`. `native-request` is a compatibility alias. A missing lookup is not proof that the request cannot still commit; reconciliation remains server-authoritative.
 
 ## 定位
 

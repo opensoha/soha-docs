@@ -182,11 +182,11 @@ The control plane has two entry points:
 
 ## Agent Runtime
 
-Ordinary Chat and Heya use the built-in `dsh` provider by default. Core calls the separately operated Node dsh runtime directly; the request path does not hop through the Go Agent. If dsh is unavailable, the request fails explicitly: it does not fall back to the former Native execution loop. The `internal` and `native` provider identifiers are compatibility aliases for new requests, not separate execution engines.
+Core `v0.1.12` uses the runtime shipped with that release. In the dsh source candidate, Core sends ordinary Chat and Heya requests directly to the separate Node dsh service. Requests fail when dsh is unavailable. The `internal` and `native` provider identifiers are compatibility aliases for dsh on new requests.
 
 核心对象：
 
-- `AgentProvider`: executor catalog; `dsh` is the built-in default for Chat and Heya. Explicit external Hermes/CLI providers remain available for their configured protocols.
+- `AgentProvider`: executor catalog. In the dsh candidate, `dsh` is the built-in default for Chat and Heya. Explicit external Hermes/CLI providers remain available for their configured protocols.
 - `AgentCapability`: soha 平台能力，包括 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`post_deploy_observation`、`platform_resource_diagnosis`、`docker_diagnosis`、`virtualization_diagnosis`、`oncall_brief`
 - `AgentToolBinding`: capability 到 MCP adapter、平台只读工具或 provider 原生工具的映射
 - `AgentSkillBinding`: soha skill 到 Hermes skill、prompt template 或后续 provider skill 的映射
@@ -222,7 +222,7 @@ Agent Runtime 输出统一回写为 soha `AnalysisArtifact`，继续复用证据
 - 支持通过 `mode=trace` 和 `mode=inspection_review` 在同一会话画布内切换链路分析和巡检复盘
 - `会话级工具集` 抽屉现在直接展示有效执行策略，并可编辑 adapter 选择、`adapter.tool` 级禁用清单、预算覆盖和 scope override
 - `显式分析` 会先打开确认弹窗，让用户选择 provider、analysis profile、可运行分析模式、编辑本轮分析目标，并预览会话 scope 与工具集来源，然后再调用会话分析接口；当前可运行模式为 `root_cause`、`performance`、`trace` 和 `inspection_review`，后端会拒绝 `general`，成功后会把所选 mode 与 `agentProviderId` 写回会话 metadata
-- Ordinary Chat and Heya use dsh by default and retain Core-owned authorization, Heya gates, approvals, budgets, audit, and domain analysis. Explicitly selected external Hermes/CLI providers use their own configured protocols; they are not fallback paths.
+- In the dsh candidate, ordinary Chat and Heya use dsh by default and retain Core-owned authorization, Heya gates, approvals, budgets, audit, and domain analysis. Explicitly selected external Hermes/CLI providers use their own configured protocols; they are not fallback paths.
 - 会话内所有 assistant 消息携带的 `analysisArtifacts` 会汇总成“分析工件历史”，用户可以在根因、性能、链路和巡检复盘工件之间切换图谱、证据和建议
 
 ### `/ai-workbench/root-cause` 与 `/ai-workbench/performance`

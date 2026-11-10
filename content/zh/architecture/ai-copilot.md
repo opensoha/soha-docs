@@ -182,11 +182,11 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 
 ## Agent Runtime
 
-普通 Chat 和 Heya 默认使用内置 `dsh` provider。Core 直接调用独立运行的 Node dsh 服务，请求不会经 Go Agent 转发。dsh 不可用时请求明确失败，不回退到旧 Native 执行循环。`internal` 和 `native` provider 标识是新请求的兼容别名，不代表独立执行引擎。
+Core `v0.1.12` 使用该版本自带的运行时。在 dsh 源码候选版中，Core 将普通 Chat 和 Heya 请求直接发往独立的 Node dsh 服务。dsh 不可用时请求明确失败。新请求中的 `internal` 和 `native` provider 标识是 dsh 的兼容别名。
 
 核心对象：
 
-- `AgentProvider`: 执行器目录；`dsh` 是 Chat 和 Heya 的内置默认项。显式配置的 Hermes/CLI 外部 provider 仍可按各自协议使用。
+- `AgentProvider`: 执行器目录。dsh 候选版的 Chat 和 Heya 内置默认项为 `dsh`。显式配置的 Hermes/CLI 外部 provider 仍可按各自协议使用。
 - `AgentCapability`: soha 平台能力，包括 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`post_deploy_observation`、`platform_resource_diagnosis`、`docker_diagnosis`、`virtualization_diagnosis`、`oncall_brief`
 - `AgentToolBinding`: capability 到 MCP adapter、平台只读工具或 provider 原生工具的映射
 - `AgentSkillBinding`: soha skill 到 Hermes skill、prompt template 或后续 provider skill 的映射
@@ -222,7 +222,7 @@ Agent Runtime 输出统一回写为 soha `AnalysisArtifact`，继续复用证据
 - 支持通过 `mode=trace` 和 `mode=inspection_review` 在同一会话画布内切换链路分析和巡检复盘
 - `会话级工具集` 抽屉现在直接展示有效执行策略，并可编辑 adapter 选择、`adapter.tool` 级禁用清单、预算覆盖和 scope override
 - `显式分析` 会先打开确认弹窗，让用户选择 provider、analysis profile、可运行分析模式、编辑本轮分析目标，并预览会话 scope 与工具集来源，然后再调用会话分析接口；当前可运行模式为 `root_cause`、`performance`、`trace` 和 `inspection_review`，后端会拒绝 `general`，成功后会把所选 mode 与 `agentProviderId` 写回会话 metadata
-- 普通 Chat 和 Heya 默认使用 dsh，同时由 Core 保留授权、Heya gate、审批、预算、审计和领域分析职责。显式选择的 Hermes/CLI 外部 provider 按已配置协议运行，不作为故障回退。
+- dsh 候选版的普通 Chat 和 Heya 默认使用 dsh，同时由 Core 保留授权、Heya gate、审批、预算、审计和领域分析职责。显式选择的 Hermes/CLI 外部 provider 按已配置协议运行，不作为故障回退。
 - 会话内所有 assistant 消息携带的 `analysisArtifacts` 会汇总成“分析工件历史”，用户可以在根因、性能、链路和巡检复盘工件之间切换图谱、证据和建议
 
 ### `/ai-workbench/root-cause` 与 `/ai-workbench/performance`

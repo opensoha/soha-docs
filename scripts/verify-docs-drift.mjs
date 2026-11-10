@@ -645,9 +645,9 @@ async function verifyTutorialCoverage() {
     [
       'tutorials/first-deploy.md',
       [
-        'docker compose -f deploy/docker-compose.yaml up -d --build',
-        'curl -sS http://localhost:8080/healthz',
-        'curl -sS http://localhost:8080/readyz',
+        'docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha',
+        'curl -fsS http://localhost:8080/healthz',
+        'curl -fsS http://localhost:8080/readyz',
         'GET /api/v1/auth/providers',
       ],
     ],

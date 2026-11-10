@@ -1,5 +1,51 @@
 # Agent Runtime
 
+## Runtime 切换维护（运维）
+
+Core 源码候选版本提供离线 `runtime-upgrade` 命令；服务启动时不会自动执行。源码中存在该命令不代表它已打入已发布镜像或版本。使用匹配的 Core 源码版本构建：`GOWORK=off go build -o runtime-upgrade ./cmd/runtime-upgrade`。
+
+切换前，先停止旧 server 和 worker 接收新任务，并备份同一个 PostgreSQL 数据库。将 `SOHA_UPGRADE_DATABASE_URL` 设置在命令环境中，勿把 DSN 放入参数或日志。备份路径仅供运维人员访问，生成的文件必须是非空普通文件且权限为 `0600`。
+
+使用不含其他 `PG*` 环境变量的干净 shell。准备仅运维人员可读的 `pg_service.conf`，在 `[soha-upgrade]` 节指定预期 host、port、dbname、user 和 TLS 配置；凭据放在独立的 0600 权限 pgpass 文件中。`psql`、`pg_dump` 和维护工具共用这些文件和环境。
+
+```bash
+export PGSERVICEFILE=/YOUR_PRIVATE_PATH/pg_service.conf
+export PGPASSFILE=/YOUR_PRIVATE_PATH/pgpass
+export PGSERVICE=soha-upgrade
+export SOHA_UPGRADE_DATABASE_URL="service=$PGSERVICE"
+psql -X -v ON_ERROR_STOP=1 -c 'SELECT current_database(), current_user, inet_server_addr(), inet_server_port()'
+```
+
+将显示的数据库、用户、服务器地址和端口与预期维护目标核对；不一致时停止。
+
+```bash
+umask 077
+pg_dump --format=custom --file "$BACKUP_PATH"
+pg_restore --list "$BACKUP_PATH" >/dev/null
+./runtime-upgrade -mode=dry-run > runtime-upgrade-plan.json
+```
+
+备份、dry-run 和 apply 期间保持 service 配置与环境不变。工具只检查备份是非空的 0600 普通文件并记录 SHA-256，不验证备份的数据库身份或可恢复性。
+
+审核 dry-run 清单及其中的 SHA-256 `digest` 后再 apply。`pg_restore --list` 只检查归档格式，不等同于恢复演练。Apply 必须提供已审核的计划 digest 和备份文件。若清单中的旧运行租约已过期且需明确隔离，使用 `-quarantine-runs` 指定精确 ID（最多 1000 个）；否则省略该参数：
+
+```bash
+./runtime-upgrade -mode=apply -digest REVIEWED_PLAN_SHA256 -backup "$BACKUP_PATH"
+./runtime-upgrade -mode=apply -digest REVIEWED_PLAN_SHA256 -backup "$BACKUP_PATH" -quarantine-runs RUN_ID_1,RUN_ID_2
+```
+
+命令会复核清单 digest，并拒绝仍有有效租约或其他活跃写入者的情况。隔离后的旧运行状态为只读 `unknown` 并加 fence，等待核对；隔离不代表已确认停止，不会重试运行，也不会转换 Native checkpoint。若清单或写入状态变化，应停止操作并重新生成、审核 dry-run。
+
+回滚仅针对对应 checkpoint，并且有条件地恢复未变化的 session metadata；不会清除切换 gate，也不会恢复 Run、记忆或 tombstone：
+
+```bash
+./runtime-upgrade -mode=rollback -digest APPLIED_CHECKPOINT_SHA256
+```
+
+被隔离的记忆仍可通过服务端字段 `quarantined` 与 `quarantineReason` 查看；客户端不能解除隔离，记录所有者可以删除。不要将状态不明的记录标为过期，也不要推断缺失的所有者。本流程属于源码候选说明，不代表已发布或通过生产资格；依赖、镜像与发布验收仍待完成。
+
+聊天提交结果不确定时，查询原请求，不要重新发送：`soha ai chat request SESSION --request-id ID`。`native-request` 是兼容别名。查询无结果不能证明原请求不会稍后提交；后续核对由服务端负责。
+
 ## 定位
 
 soha 的 agent 进程同时承担两类运行时职责：

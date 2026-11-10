@@ -182,17 +182,19 @@ The control plane has two entry points:
 
 ## Agent Runtime
 
-soha 现在把 AI 执行器抽象为 Agent Runtime，而不是把页面或分析流程直接绑定到 Hermes。
+Ordinary Chat and Heya use the built-in `dsh` provider by default. Core calls the separately operated Node dsh runtime directly; the request path does not hop through the Go Agent. If dsh is unavailable, the request fails explicitly: it does not fall back to the former Native execution loop. The `internal` and `native` provider identifiers are compatibility aliases for new requests, not separate execution engines.
 
 核心对象：
 
-- `AgentProvider`: 执行器目录，当前内置 `internal` 和 `hermes`
+- `AgentProvider`: executor catalog; `dsh` is the built-in default for Chat and Heya. Explicit external Hermes/CLI providers remain available for their configured protocols.
 - `AgentCapability`: soha 平台能力，包括 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`post_deploy_observation`、`platform_resource_diagnosis`、`docker_diagnosis`、`virtualization_diagnosis`、`oncall_brief`
 - `AgentToolBinding`: capability 到 MCP adapter、平台只读工具或 provider 原生工具的映射
 - `AgentSkillBinding`: soha skill 到 Hermes skill、prompt template 或后续 provider skill 的映射
 - `AgentRun`: 外部 provider 的 durable 异步执行记录，统一承载状态、scope、toolset、skills、回调 token、工具执行和输出工件
 
-Hermes Agent 是首个外部 provider。AI 工作台和 automation policy 只选择 `agentProviderId` 和 capability；真正的 Hermes 调用由独立 agent runner 通过 claim/callback 完成。后续接入 OpenClaw、internal agent 或其它 agent 时，只扩 provider adapter 和 runner 执行器，不重写会话页、自动化策略和业务分析流程。
+Core keeps session and Run facts, authorization, Heya eligibility and environment gates, approvals, budgets, audit, and domain analysis responsibilities. The dsh runtime owns the model/tool loop and calls Core through its authenticated runtime interface and authorized tool bridge. Explicit Hermes or other CLI providers remain separate external integrations; they are not implicit defaults or failure fallbacks for Chat/Heya.
+
+Historical Native runs remain readable as history. In-flight legacy runs must be drained or explicitly quarantined through the offline maintenance procedure before cutover; do not translate Native checkpoints or approvals into a live dsh run. See [Agent Runtime operations](../operations/agent-runtime).
 
 Agent Runtime 输出统一回写为 soha `AnalysisArtifact`，继续复用证据、假设、建议、关系图、工具调用记录和数据源快照。权限、菜单、预算、数据源脱敏、审计和高风险操作边界仍由 soha 控制。
 
@@ -220,7 +222,7 @@ Agent Runtime 输出统一回写为 soha `AnalysisArtifact`，继续复用证据
 - 支持通过 `mode=trace` 和 `mode=inspection_review` 在同一会话画布内切换链路分析和巡检复盘
 - `会话级工具集` 抽屉现在直接展示有效执行策略，并可编辑 adapter 选择、`adapter.tool` 级禁用清单、预算覆盖和 scope override
 - `显式分析` 会先打开确认弹窗，让用户选择 provider、analysis profile、可运行分析模式、编辑本轮分析目标，并预览会话 scope 与工具集来源，然后再调用会话分析接口；当前可运行模式为 `root_cause`、`performance`、`trace` 和 `inspection_review`，后端会拒绝 `general`，成功后会把所选 mode 与 `agentProviderId` 写回会话 metadata
-- 选择 `internal` provider 时继续使用 soha 内置同步分析；选择 `hermes` 或其它外部 provider 时创建 `AgentRun` 并由 runner 异步回写分析工件
+- Ordinary Chat and Heya use dsh by default and retain Core-owned authorization, Heya gates, approvals, budgets, audit, and domain analysis. Explicitly selected external Hermes/CLI providers use their own configured protocols; they are not fallback paths.
 - 会话内所有 assistant 消息携带的 `analysisArtifacts` 会汇总成“分析工件历史”，用户可以在根因、性能、链路和巡检复盘工件之间切换图谱、证据和建议
 
 ### `/ai-workbench/root-cause` 与 `/ai-workbench/performance`

@@ -724,7 +724,7 @@ async function verifyChineseTutorialLocalization() {
 }
 
 async function verifyGatewayEndpointStatus() {
-  const openapi = await readFile(new URL('../../soha-contracts/openapi/soha-api.yaml', import.meta.url), 'utf8')
+  const openapi = await readFile(new URL('../../soha/contracts/openapi/soha-api.yaml', import.meta.url), 'utf8')
   const contracted = new Set(parseOpenAPIOperations(openapi))
   const apiCore = await read('api/core-endpoints.md')
 

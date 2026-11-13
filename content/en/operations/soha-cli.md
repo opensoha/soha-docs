@@ -24,10 +24,10 @@ npx -y @opensoha/cli@latest setup --client codex --mode both
 npx -y @opensoha/cli@0.1.0 version --json
 ```
 
-`setup` writes the verified cached binary path into the MCP configuration, so starting the Agent does not download the binary again. Run the latest `setup` again to upgrade. For development, build the binary from the `soha-cli` source and add it to `PATH`:
+`setup` writes the verified cached binary path into the MCP configuration, so starting the Agent does not download the binary again. Run the latest `setup` again to upgrade. For development, build the binary from the Root `soha/cli` source and add it to `PATH`:
 
 ```bash
-cd ../soha-cli
+cd ../soha/cli
 go run ./cmd/soha help
 go build -o ./bin/soha ./cmd/soha
 mkdir -p ~/.local/bin

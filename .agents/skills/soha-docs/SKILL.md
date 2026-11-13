@@ -12,7 +12,7 @@ Soha server source tree.
 
 ## Workflow
 
-1. Identify the authoritative product repository or `../soha-contracts`
+1. Identify the authoritative product repository or `../soha/contracts`
    contract before documenting behavior.
 2. Edit the matching `content/en` and `content/zh` pages when the promise is
    shared. Keep locale `_meta.ts` navigation aligned.

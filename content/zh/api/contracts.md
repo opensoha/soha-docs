@@ -7,13 +7,13 @@ Root `soha/contracts` 是跨仓库共享契约源头。任何影响公开行为�
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.29`
+- OpenAPI version: `0.2.0`
 - Source artifact: `openapi/soha-api.yaml`
 - Generated artifact: `openapi/soha-api.json`
-- Go artifact package: `github.com/opensoha/soha-contracts/openapi`
+- Go artifact package: `github.com/opensoha/soha/contracts/openapi`
 - npm package: `@opensoha/contracts`
 
-本页与生成索引使用文档 CI 固定的 Root 提交。保留的 schema 版本 `0.1.29` 不代表新 Go 路径已经发布；历史已发布 Go 入口仍为 `github.com/opensoha/soha-contracts`，源码候选使用 `github.com/opensoha/soha/contracts`。外部正式依赖切换前必须核实新版本公开可获取。
+本页与生成索引使用已发布 SDK 标签 `contracts/v0.2.0`，文档 CI 固定到其准确 Root 源码提交。npm 使用 `@opensoha/contracts@0.2.0`，官方 Go proxy 使用 `github.com/opensoha/soha/contracts@v0.2.0`。历史 `github.com/opensoha/soha-contracts` 版本继续保留。
 
 ## 契约目录
 
@@ -308,10 +308,10 @@ This list mirrors `../soha/contracts/openapi/soha-api.yaml`. Paths use the docs 
 
 ## 稳定入口
 
-历史已发布 SDK import 入口保留：
+已发布 SDK 0.2.0 的 import 入口：
 
 ```text
-github.com/opensoha/soha-contracts/gen/go/sohaapi
+github.com/opensoha/soha/contracts/gen/go/sohaapi
 @opensoha/contracts/gen/ts/sohaapi
 ```
 
@@ -319,7 +319,7 @@ github.com/opensoha/soha-contracts/gen/go/sohaapi
 
 ## 依赖方向
 
-- `soha` 依赖 `soha-contracts`，公开契约以 `soha-contracts` 为 source of truth。
+- Root `soha/contracts` 是公开契约源码的真实源；独立发布的 SDK 通过公开 Go module 和 npm 版本消费。
 - `soha-web` 通过 TypeScript SDK 和 HTTP API 访问 core。
 - `soha-cli` 通过 Go SDK DTO / client 和 HTTP API 访问 core。
 - `soha-agent` 通过 Agent protocol 和 generated SDK client 访问 runner-facing API。

@@ -1,26 +1,26 @@
 # API 与 Contracts
 
-`soha-contracts` 是跨仓库共享契约源头。任何影响公开行为、wire shape、Agent protocol、MCP manifest、Skill manifest、Plugin manifest、事件 envelope 或鉴权 claims 的变更，都应先进入 contracts，再更新消费者仓库。
+Root `soha/contracts` 是跨仓库共享契约源头。任何影响公开行为、wire shape、Agent protocol、MCP manifest、Skill manifest、Plugin manifest、事件 envelope 或鉴权 claims 的变更，都应先进入 contracts，再更新消费者仓库。
 
-当前 docs CI 会读取 sibling checkout `../soha-contracts`。本页维护契约版本和重点说明；完整 operation 与 JSON Schema 覆盖由生成的 [API reference](./reference/generated/index.md) 校验。缺少 sibling 仓库时，`npm test` 会失败并提示先 checkout `soha-contracts`。
+当前 docs CI 固定 Root `soha` 的提交并读取 `../soha/contracts`。本页维护契约版本和重点说明；完整 operation 与 JSON Schema 覆盖由生成的 [API reference](./reference/generated/index.md) 校验。缺少 sibling 仓库时，`npm test` 会失败并提示先 checkout Root `soha`。
 
 ## 当前契约版本
 
 - OpenAPI title: `Soha API`
-- OpenAPI version: `0.1.29`
+- OpenAPI version: `0.2.0`
 - Source artifact: `openapi/soha-api.yaml`
 - Generated artifact: `openapi/soha-api.json`
-- Go artifact package: `github.com/opensoha/soha-contracts/openapi`
+- Go artifact package: `github.com/opensoha/soha/contracts/openapi`
 - npm package: `@opensoha/contracts`
 
-本页与生成索引使用文档 CI 固定的已发布 Contracts `v0.1.29`。调用接口前请核对目标实例的 Core 发行版本和能力。
+本页与生成索引使用已发布 SDK 标签 `contracts/v0.2.0`，文档 CI 固定到其准确 Root 源码提交。npm 使用 `@opensoha/contracts@0.2.0`，官方 Go proxy 使用 `github.com/opensoha/soha/contracts@v0.2.0`。历史 `github.com/opensoha/soha-contracts` 版本继续保留。
 
 ## 契约目录
 
-代表性公开 artifact；完整清单以生成的 [API reference](./reference/generated/index.md) 和 `soha-contracts/package.json` 为准：
+代表性公开 artifact；完整清单以生成的 [API reference](./reference/generated/index.md) 和 `soha/contracts/package.json` 为准：
 
 ```text
-soha-contracts/
+soha/contracts/
   openapi/
     soha-api.yaml
     soha-api.json
@@ -235,11 +235,11 @@ The foundational npm exports include:
 
 ## Generated API Reference
 
-The generated API reference path is documented in [API Reference 生成路径](./reference.md). It consumes `../soha-contracts/openapi/soha-api.yaml`, public JSON Schemas, contract examples, and the docs-owned core route metadata overlay.
+The generated API reference path is documented in [API Reference 生成路径](./reference.md). It consumes `../soha/contracts/openapi/soha-api.yaml`, public JSON Schemas, contract examples, and the docs-owned core route metadata overlay.
 
 ## Public OpenAPI Operation Index
 
-This list mirrors `../soha-contracts/openapi/soha-api.yaml`. Paths use the docs convention `:param` for OpenAPI `{param}` placeholders.
+This list mirrors `../soha/contracts/openapi/soha-api.yaml`. Paths use the docs convention `:param` for OpenAPI `{param}` placeholders.
 
 - `GET /api/v1/healthz`
 - `GET /api/v1/readyz`
@@ -308,10 +308,10 @@ This list mirrors `../soha-contracts/openapi/soha-api.yaml`. Paths use the docs 
 
 ## 稳定入口
 
-SDK import 路径应保持稳定：
+已发布 SDK 0.2.0 的 import 入口：
 
 ```text
-github.com/opensoha/soha-contracts/gen/go/sohaapi
+github.com/opensoha/soha/contracts/gen/go/sohaapi
 @opensoha/contracts/gen/ts/sohaapi
 ```
 
@@ -319,7 +319,7 @@ github.com/opensoha/soha-contracts/gen/go/sohaapi
 
 ## 依赖方向
 
-- `soha` 依赖 `soha-contracts`，公开契约以 `soha-contracts` 为 source of truth。
+- Root `soha/contracts` 是公开契约源码的真实源；独立发布的 SDK 通过公开 Go module 和 npm 版本消费。
 - `soha-web` 通过 TypeScript SDK 和 HTTP API 访问 core。
 - `soha-cli` 通过 Go SDK DTO / client 和 HTTP API 访问 core。
 - `soha-agent` 通过 Agent protocol 和 generated SDK client 访问 runner-facing API。
@@ -341,4 +341,4 @@ Docs 仓库应持续校验：
 - `api/core-endpoints.md` 覆盖 OpenAPI 中的 AI Gateway 与 MCP endpoints。
 - 本页覆盖 OpenAPI operation index。
 - 本页覆盖 npm package 导出的 OpenAPI 与 JSON Schema artifact。
-- 发布 workflow checkout sibling `soha-contracts` 后运行 docs consistency tests。
+- 发布 workflow checkout 固定提交的 Root `soha` 后运行 docs consistency tests。

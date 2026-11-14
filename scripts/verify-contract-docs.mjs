@@ -3,7 +3,7 @@ import { openAPIOperations } from './openapi-operations.mjs'
 
 const repoRoot = new URL('../', import.meta.url)
 const docsRoot = new URL('../content/zh/', import.meta.url)
-const contractsRoot = new URL('../../soha-contracts/', import.meta.url)
+const contractsRoot = new URL('../../soha/contracts/', import.meta.url)
 
 async function readDocs(file) {
   const root =
@@ -26,7 +26,7 @@ async function ensureContractsAvailable() {
     await access(new URL('openapi/soha-api.json', contractsRoot))
   } catch {
     throw new Error(
-      'missing ../soha-contracts artifacts; checkout soha-contracts as a sibling of soha-docs before running docs tests',
+      'missing ../soha/contracts artifacts; checkout opensoha/soha as ../soha (contracts/ subdirectory) before running docs tests',
     )
   }
 }
@@ -72,12 +72,12 @@ const openapi = JSON.parse(openapiRaw)
 const openapiVersion = openapi.info?.version
 const openapiTitle = openapi.info?.title
 if (!openapiVersion || !openapiTitle) {
-  throw new Error('unable to read OpenAPI title/version from ../soha-contracts/openapi/soha-api.json')
+  throw new Error('unable to read OpenAPI title/version from ../soha/contracts/openapi/soha-api.json')
 }
 
 const operations = openAPIOperations(openapi)
 if (operations.length === 0) {
-  throw new Error('no operations parsed from ../soha-contracts/openapi/soha-api.json')
+  throw new Error('no operations parsed from ../soha/contracts/openapi/soha-api.json')
 }
 
 requireIncludes(
@@ -86,7 +86,7 @@ requireIncludes(
   operations.map(formatOperation),
 )
 requireIncludes('Generated API reference metadata', apiGenerated, [
-  `Generated from \`../soha-contracts/openapi/soha-api.yaml\` (${openapiTitle} ${openapiVersion}).`,
+  `Generated from \`../soha/contracts/openapi/soha-api.yaml\` (${openapiTitle} ${openapiVersion}).`,
   '## Operation Index',
   '## JSON Schema Artifacts',
 ])
@@ -177,8 +177,8 @@ requireIncludes('docs publish env contract', docsPublishing + envDocs + configTs
   "process.env.DOCS_BASE_URL ?? '/'",
 ])
 
-requireIncludes('docs CI sibling contracts checkout', ciWorkflow, [
-  'repository: opensoha/soha-contracts',
-  'path: soha-contracts',
+requireIncludes('docs CI Root contracts checkout', ciWorkflow, [
+  'repository: opensoha/soha',
+  'path: soha',
   'working-directory: soha-docs',
 ])

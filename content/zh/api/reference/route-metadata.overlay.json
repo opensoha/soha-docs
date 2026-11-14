@@ -16,7 +16,7 @@
         {
           "label": "Response fixture",
           "kind": "contract-example",
-          "path": "../soha-contracts/examples/openapi/gateway-manifest-envelope.json"
+          "path": "../soha/contracts/examples/openapi/gateway-manifest-envelope.json"
         },
         {
           "label": "HTTP request",
@@ -43,12 +43,12 @@
         {
           "label": "Request fixture",
           "kind": "contract-example",
-          "path": "../soha-contracts/examples/openapi/tool-invocation-request.json"
+          "path": "../soha/contracts/examples/openapi/tool-invocation-request.json"
         },
         {
           "label": "Response fixture",
           "kind": "contract-example",
-          "path": "../soha-contracts/examples/openapi/tool-invocation-result-envelope.json"
+          "path": "../soha/contracts/examples/openapi/tool-invocation-result-envelope.json"
         }
       ]
     },
@@ -944,12 +944,12 @@
         {
           "label": "Request fixture",
           "kind": "contract-example",
-          "path": "../soha-contracts/examples/openapi/agent-run-tool-call-request.json"
+          "path": "../soha/contracts/examples/openapi/agent-run-tool-call-request.json"
         },
         {
           "label": "Response fixture",
           "kind": "contract-example",
-          "path": "../soha-contracts/examples/openapi/agent-tool-call-result-envelope.json"
+          "path": "../soha/contracts/examples/openapi/agent-tool-call-result-envelope.json"
         }
       ]
     },

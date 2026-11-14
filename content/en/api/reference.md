@@ -5,7 +5,7 @@ description: 定义 OpenSoha API reference 的生成输入、输出路径和发�
 
 # API Reference 生成路径
 
-OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生成的 reference index。手写页面用于重点说明；生成页面负责完整 operation 和 JSON Schema 覆盖。Docs tests 会对 `../soha-contracts` 做一致性校验，并检查两个 locale 的生成页面没有漂移。
+OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生成的 reference index。手写页面用于重点说明；生成页面负责完整 operation 和 JSON Schema 覆盖。Docs tests 会对 `../soha/contracts` 做一致性校验，并检查两个 locale 的生成页面没有漂移。
 
 - Generated reference: [`/docs/api/reference/generated/`](./reference/generated/index.md)
 - Source command: `npm run api:reference:generate`
@@ -17,9 +17,9 @@ OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生�
 
 生成器只消费发布契约源：
 
-- `../soha-contracts/openapi/soha-api.yaml`
-- `../soha-contracts/*/*.schema.json`
-- `../soha-contracts/examples/**`
+- `../soha/contracts/openapi/soha-api.yaml`
+- `../soha/contracts/*/*.schema.json`
+- `../soha/contracts/examples/**`
 - `api/reference/route-metadata.overlay.json`，用于为已覆盖核心 route 补充实现状态、权限、scope、审计说明和 examples。
 
 The generator must not read `soha-web` or runtime implementations as the public API source of truth.

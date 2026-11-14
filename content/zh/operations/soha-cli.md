@@ -24,10 +24,10 @@ npx -y @opensoha/cli@latest setup --client codex --mode both
 npx -y @opensoha/cli@0.1.0 version --json
 ```
 
-`setup` 会把已校验的缓存二进制路径写入 MCP 配置，因此 Agent 每次启动 MCP 时不需要重新走 npm 下载。升级时重新执行最新的 `setup`。开发环境也可以从 `soha-cli` 源码构建并把二进制放入 `PATH`：
+`setup` 会把已校验的缓存二进制路径写入 MCP 配置，因此 Agent 每次启动 MCP 时不需要重新走 npm 下载。升级时重新执行最新的 `setup`。开发环境也可以从 Root `soha/cli` 源码构建并把二进制放入 `PATH`：
 
 ```bash
-cd ../soha-cli
+cd ../soha/cli
 go run ./cmd/soha help
 go build -o ./bin/soha ./cmd/soha
 mkdir -p ~/.local/bin

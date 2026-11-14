@@ -247,7 +247,7 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 
 ## AI Gateway APIs
 
-The public OpenAPI contract in `../soha-contracts/openapi/soha-api.yaml` currently covers the Gateway, token, audit, approval, governance, and MCP capability boundaries below:
+The public OpenAPI contract in `../soha/contracts/openapi/soha-api.yaml` currently covers the Gateway, token, audit, approval, governance, and MCP capability boundaries below:
 
 - `GET /api/v1/ai-gateway/capabilities`
 - `POST /api/v1/ai-gateway/plans/validate`
@@ -352,7 +352,7 @@ Planned relay contracts in the same OpenAPI artifact, not routed by the backend 
 
 Public OpenAPI contract status:
 
-- Contracted Gateway runtime, token, audit, approval, governance, and MCP capability endpoints are listed above and are checked against `../soha-contracts/openapi/soha-api.yaml`.
+- Contracted Gateway runtime, token, audit, approval, governance, and MCP capability endpoints are listed above and are checked against `../soha/contracts/openapi/soha-api.yaml`.
 - Pending contracts addition: the console management endpoints below are implemented by the core/web Gateway workbench, but are not yet included in the public OpenAPI artifact.
 
 - `GET /api/v1/ai-gateway/ai-clients`

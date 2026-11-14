@@ -18,9 +18,9 @@ jobs:
           path: soha-docs
       - uses: actions/checkout@v7
         with:
-          repository: opensoha/soha-contracts
-          ref: 7911c05328e704ca8bb490042fa3a25be29f273e # v0.1.29
-          path: soha-contracts
+          repository: opensoha/soha
+          ref: f160aa3ae7fc0d7e9215cc0f330f88cabad084d8 # Published SDK contracts/v0.2.0
+          path: soha
       - uses: actions/setup-node@v6
         with:
           node-version: "22"

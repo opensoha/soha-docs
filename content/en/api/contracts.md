@@ -13,7 +13,7 @@ Root `soha/contracts` 是跨仓库共享契约源头。任何影响公开行为�
 - Go artifact package: `github.com/opensoha/soha/contracts/openapi`
 - npm package: `@opensoha/contracts`
 
-This page and the generated index use the published SDK tag `contracts/v0.2.0`, pinned to its exact Root source commit in docs CI. Install `@opensoha/contracts@0.2.0` from npm or `github.com/opensoha/soha/contracts@v0.2.0` from the official Go proxy. Existing legacy versions under `github.com/opensoha/soha-contracts` remain available.
+This page and the generated index use the published SDK tag `contracts/v0.2.0`, pinned to its exact Root source commit in docs CI. Install `@opensoha/contracts@0.2.0` from npm or `github.com/opensoha/soha/contracts@v0.2.0` from the official Go proxy. Legacy source and original release files are preserved in the Root unpublished archive; old repository URLs and import paths may stop resolving after legacy repository deletion.
 
 ## 契约目录
 

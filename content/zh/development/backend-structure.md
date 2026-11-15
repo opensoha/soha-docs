@@ -27,7 +27,7 @@
 
 ## 模块化单体约定
 
-后端保持单仓库、单 `go.mod` 的模块化单体形态。`cmd/server` 是当前管理控制面入口；远程集群 agent 和 runner 入口位于独立仓库 `github.com/opensoha/soha-agent`。未来如果增加内网安全工作台或设备上报能力，优先通过明确 API/契约边界新增独立入口或仓库，而不是把高频设备上报直接塞进 `cmd/server` 的 Gin handler。
+后端保持单仓库、单 `go.mod` 的模块化单体形态。`cmd/server` 是当前管理控制面入口；远程集群 agent 和 runner 位于主仓 `github.com/opensoha/soha` 的 `agent/` 独立 Go 子模块。未来如果增加内网安全工作台或设备上报能力，优先通过明确 API/契约边界新增独立入口或仓库，而不是把高频设备上报直接塞进 `cmd/server` 的 Gin handler。
 
 新增入口必须复用 `internal/bootstrap`、`internal/infrastructure`、`internal/repository` 和 `internal/application` 中的稳定能力。只有入口生命周期、监听地址、认证方式、队列/worker 循环等运行形态差异应该留在 `cmd/**` 或专门的 bootstrap 文件中。
 

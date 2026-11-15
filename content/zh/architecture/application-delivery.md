@@ -177,7 +177,7 @@ CLI 可用 `soha delivery workflows` 保存流程、`soha delivery batches` 发�
 | YAML / Kustomize | 固定资源包、部署 commit、环境入口和镜像 digest；Direct 或 Agent 执行预检、apply 和当前版本健康检查 |
 | Helm | 固定公共/私有 HTTPS 或 OCI Chart；支持检查默认 values/schema、环境覆盖、镜像字段映射、首次安装、升级和选择历史 revision 回滚；Direct / Agent 均使用原生 Helm 历史 |
 
-Buildpacks 支持 `pack` 与无 daemon 的 Podman 两条专用 runner 路径，管理员固定 builder/run image/lifecycle digest、工具版本、架构、应用白名单与超时。Podman 在隔离 Linux 主机或虚拟机内使用独占存储目录，不连接 Docker daemon；`pack` 路径仍需其容器后端。已验收 pack 0.40.9、Podman 5.7.0：arm64 的 Go、Node、Java、Python 为原生执行，amd64 四语言在 Apple Silicon 上通过仿真验收，不能作为原生性能结论。私有 HTTPS/SSH、固定 gitlink 子模块、私有 registry、digest 与 SBOM 均纳入验收。源码凭据使用临时 Secret 租约，不注入普通构建变量。取消须等待进程和容器清理；清理状态未知时 runner 拒绝下一任务。缓存上限不等于进程峰值资源配额。安装、权限与崩溃恢复步骤见 [Agent Buildpacks runner](https://github.com/opensoha/soha-agent#buildpacks-runner)。
+Buildpacks 支持 `pack` 与无 daemon 的 Podman 两条专用 runner 路径，管理员固定 builder/run image/lifecycle digest、工具版本、架构、应用白名单与超时。Podman 在隔离 Linux 主机或虚拟机内使用独占存储目录，不连接 Docker daemon；`pack` 路径仍需其容器后端。已验收 pack 0.40.9、Podman 5.7.0：arm64 的 Go、Node、Java、Python 为原生执行，amd64 四语言在 Apple Silicon 上通过仿真验收，不能作为原生性能结论。私有 HTTPS/SSH、固定 gitlink 子模块、私有 registry、digest 与 SBOM 均纳入验收。源码凭据使用临时 Secret 租约，不注入普通构建变量。取消须等待进程和容器清理；清理状态未知时 runner 拒绝下一任务。缓存上限不等于进程峰值资源配额。安装、权限与崩溃恢复步骤见 [Agent Buildpacks runner](https://github.com/opensoha/soha/tree/main/agent#buildpacks-runner)。
 
 Helm 预检不安装资源，确认后才执行冻结的 Chart 和 values。Chart 包与敏感 values 不进入普通历史响应。当前服务交付限制在绑定 namespace 内，拒绝 Chart CRD、跨范围资源、外部 schema 引用及模板 lookup；集群扩展请使用专用安装流程。现有应用托管 release 不能通过旧 Helm 写接口绕过计划。确认响应丢失或回调失败后会核对原生 revision 并复用原任务；不会把未知结果当作成功。
 

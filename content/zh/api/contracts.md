@@ -13,7 +13,7 @@ Root `soha/contracts` 是跨仓库共享契约源头。任何影响公开行为�
 - Go artifact package: `github.com/opensoha/soha/contracts/openapi`
 - npm package: `@opensoha/contracts`
 
-本页与生成索引使用已发布 SDK 标签 `contracts/v0.2.0`，文档 CI 固定到其准确 Root 源码提交。npm 使用 `@opensoha/contracts@0.2.0`，官方 Go proxy 使用 `github.com/opensoha/soha/contracts@v0.2.0`。历史 `github.com/opensoha/soha-contracts` 版本继续保留。
+本页与生成索引使用已发布 SDK 标签 `contracts/v0.2.0`，文档 CI 固定到其准确 Root 源码提交。npm 使用 `@opensoha/contracts@0.2.0`，官方 Go proxy 使用 `github.com/opensoha/soha/contracts@v0.2.0`。历史源码和原始发行附件保全在主仓未发布归档中；旧仓删除后，旧下载地址和导入路径可能失效。
 
 ## 契约目录
 

@@ -29,7 +29,7 @@ OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生�
 不运行文档生成器也可以消费同一版本的契约：
 
 - npm：`@opensoha/contracts/openapi/soha-api.yaml` 和 `@opensoha/contracts/openapi/soha-api.json`。
-- Go：`github.com/opensoha/soha-contracts/openapi`，提供内嵌 YAML/JSON、版本和 SHA-256 元数据。
+- Go：`github.com/opensoha/soha/contracts/openapi`，提供内嵌 YAML/JSON、版本和 SHA-256 元数据。
 - 运行中的 Soha：启用 Swagger 后可访问 `/swagger/openapi.yaml` 和 `/swagger/openapi.json`。
 
 服务端响应包含 `X-Soha-Contracts-Version` 与 `X-Soha-Contracts-SHA256`。Soha 直接返回已发布的契约内容，不在运行时生成第二份规范。

@@ -47,13 +47,13 @@ AI Client / soha / MCP
 - `diagnose`
 - `completion bash|zsh`
 
-CLI 代码位于独立仓库 `github.com/opensoha/soha-cli`，入口为 `cmd/soha`。已落地的命令面覆盖 profile/context 管理、capability manifest 查看、人工 Gateway tool 调用、resource/prompt 排查、PAT 和 service account token 管理、Gateway audit 查询、governance status、approval timeline 和处理、MCP 配置生成、skill 安装、diagnose 以及 shell completion。
+CLI 代码位于主仓 `github.com/opensoha/soha` 的 `cli/` 独立 Go 子模块，入口为 `cli/cmd/soha`。已落地的命令面覆盖 profile/context 管理、capability manifest 查看、人工 Gateway tool 调用、resource/prompt 排查、PAT 和 service account token 管理、Gateway audit 查询、governance status、approval timeline 和处理、MCP 配置生成、skill 安装、diagnose 以及 shell completion。
 
 CLI 只负责认证、配置、MCP 启动和人工兜底命令。所有真实平台动作必须调用 soha API。本地 profile 默认存储在 `~/.soha/config.json`，文件权限为 `0600`，`profile show` 只能展示脱敏 token。
 
 `soha MCP Server` 通过 `GET /api/v1/ai-gateway/capabilities` 动态获取当前身份可用 tools、resources、prompts 和 skills。MCP 可以隐藏无权工具，但隐藏工具不是安全边界；后端应用层必须对每次工具调用再次校验权限、scope、grant 和风险策略。
 
-`soha Skills` 负责告诉 AI “如何按 soha 规范工作”，例如开发者应用接入、测试发布验证、SRE 只读排障和安全变更流程。官方 Skills 位于独立仓库 `github.com/opensoha/soha-skills`。Skills 不直接赋权。
+`soha Skills` 负责告诉 AI “如何按 soha 规范工作”，例如开发者应用接入、测试发布验证、SRE 只读排障和安全变更流程。官方 Skills 位于主仓 `github.com/opensoha/soha` 的 `skills/` 目录。Skills 不直接赋权。
 
 ## 身份模型
 

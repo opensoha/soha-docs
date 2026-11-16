@@ -696,7 +696,7 @@ soha skill install \
 soha skill install --all
 ```
 
-默认来源是 `opensoha/soha-skills` 的最新稳定 GitHub Release，不从 branch 安装，也不提供 `--skills-version`。仅在可复现安装或回滚时使用 `--source github:opensoha/soha-skills@v0.1.0`。本地 checkout、release tarball 和 HTTPS release URL 仍可通过 `--source` 使用。默认安装目录为 `~/.soha/skills`；`--scope project` 使用当前仓库的 `.soha/skills`，显式 `--dest` 或 `SOHA_SKILLS_DIR` 会覆盖默认值。
+默认来源是 `opensoha/soha` 中最新稳定的 `skills/v*` GitHub Release，不从 branch 安装，也不提供 `--skills-version`。仅在可复现安装或回滚时使用 `--source github:opensoha/soha@skills/v0.1.4`。既有固定值如 `github:opensoha/soha-skills@v0.1.0` 仍可用于历史恢复，但前提是旧仓库 URL 仍可访问。本地 checkout、release tarball 和 HTTPS release URL 仍可通过 `--source` 使用。默认安装目录为 `~/.soha/skills`；`--scope project` 使用当前仓库的 `.soha/skills`，显式 `--dest` 或 `SOHA_SKILLS_DIR` 会覆盖默认值。
 
 安装和更新会先生成完整 staging 目录，再切换 active generation；旧 generation 可回滚，操作会写入本地 JSONL 安装审计：
 

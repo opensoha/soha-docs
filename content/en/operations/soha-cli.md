@@ -705,7 +705,7 @@ Install all Skills:
 soha skill install --all
 ```
 
-The default source is the latest stable `opensoha/soha-skills` GitHub Release, never a branch. Pin a release for reproducible installs or rollback with `--source github:opensoha/soha-skills@v0.1.0`. Local checkouts, release tarballs, and HTTPS release URLs remain supported through `--source`. The default destination is `~/.soha/skills`; `--scope project` uses `.soha/skills` in the current repository, while explicit `--dest` or `SOHA_SKILLS_DIR` values override the default.
+The default source is the latest stable `skills/v*` GitHub Release in `opensoha/soha`, never a branch. Pin a release for reproducible installs or rollback with `--source github:opensoha/soha@skills/v0.1.4`. Existing pins such as `github:opensoha/soha-skills@v0.1.0` remain supported for historical recovery while their old repository URLs resolve. Local checkouts, release tarballs, and HTTPS release URLs remain supported through `--source`. The default destination is `~/.soha/skills`; `--scope project` uses `.soha/skills` in the current repository, while explicit `--dest` or `SOHA_SKILLS_DIR` values override the default.
 
 Install and update stage a complete generation before activation. The previous verified generation remains available for rollback, and operations append to the local JSONL installation audit:
 

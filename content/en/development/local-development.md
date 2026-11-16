@@ -26,11 +26,13 @@ JWT, runner, webhook, and credential encryption all use `soha-123456789012345678
 ## Initialize Local Development Dependencies
 
 ```bash
+npm ci
 make init
 ```
 
-这会执行 `go mod tidy`、安装本地开发需要的 npm 依赖，然后启动 PostgreSQL 和本地 `k3s server` 调试集群，并等待它们就绪。
-`k3s` kubeconfig 会写到 `./.dev/k3s/kubeconfig.yaml`，默认开发配置会把它注册为 `local-k3s`。
+Run the Make commands from the Root `soha` checkout.
+
+`npm ci` installs the Node dependencies from the Root lockfile. `make init` checks Go module hygiene against the same-checkout SDK and initializes the selected database mode. `DEV_DB_MODE` defaults to `external`, so initialization uses the database configured in `configs/config.yaml` without starting a local database. To start the Compose PostgreSQL service instead, run `make DEV_DB_MODE=local init`.
 
 ## Start Backend and Frontend
 
@@ -40,8 +42,8 @@ make
 
 当前前端本地开发不依赖仓库内的前端 env 模板文件。默认行为是：
 
-- `soha-web/src/services/api-client.ts` 使用同源 `/api/v1`
-- `soha-web/vite.config.ts` 把 `/api` 代理到 `http://127.0.0.1:8080`
+- `web/src/services/api-client.ts` 使用同源 `/api/v1`
+- `web/vite.config.ts` 把 `/api` 代理到 `http://127.0.0.1:8080`
 - `soha` 默认把 `/docs/` 重定向到配置的外部文档地址
 - 本地需要联调文档时，可以启动 `soha-docs` dev server，并让前端或后端使用 docs proxy 模式
 
@@ -51,7 +53,6 @@ make
 make init
 make dev-api
 make dev-web
-make dev-docs
 ```
 
 ## Start Docs
@@ -64,7 +65,9 @@ npm run dev
 
 `soha-docs` 是独立 Next.js/Nextra 站点。官方 i18n 路由使用 `/zh`、`/zh/docs/...`、`/en` 和 `/en/docs/...`；未带 locale 的 `/` 与 `/docs/...` 会通过 `nextra/locales` 代理按 `NEXT_LOCALE` 或浏览器语言跳转。发布到 `https://docs.opensoha.dev/` 时应按发布目标设置 `DOCS_BASE_URL`。
 
-## MVP Runtime Notes
+## Historical MVP Runtime Notes
+
+The following describes the earlier MVP development setup; the current Make targets do not bootstrap a local Kubernetes cluster.
 
 The backend bootstraps a local development cluster from `configs/config.yaml` and reads the generated kubeconfig from `./.dev/k3s/kubeconfig.yaml`.
 

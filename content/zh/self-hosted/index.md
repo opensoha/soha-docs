@@ -5,15 +5,15 @@
 ## 运行模型
 
 - `soha` server 提供 HTTP API、鉴权、RBAC、审计、AI Gateway、MCP / Skills registry、插件安装记录和 Web 控制台入口。
-- `soha-web` 独立构建 Vite SPA，release 时以版本化 artifact 交给 `soha` 嵌入。
+- Root `soha/web` 源码构建为 Vite SPA，release 时将版本化 artifact 交给 `soha` 嵌入。
 - `soha-docs` 独立发布，`soha` 通过配置的外部 docs URL 链接文档。
-- `soha-agent` 和 runner 通过公开 API / Agent protocol 连接控制平面。
+- Root `soha/agent` 和 runner 通过公开 API / Agent protocol 连接控制平面。Core、Web、Contracts、CLI、Agent、Connectors 和 Skills 同属 Root `soha` 仓库；文档站、Operator 和 Helm charts 保留为独立仓库。
 
 ## Web 资源模式
 
 `soha` 需要支持三种 Web 资源模式：
 
-- `embed`：release 默认模式，服务内嵌 `soha-web` dist artifact。
+- `embed`：release 默认模式，服务内嵌 `soha/web` dist artifact。
 - `dir`：从配置的本地目录读取 dist，便于本地或私有构建。
 - `proxy`：开发模式，代理到 Vite dev server。
 

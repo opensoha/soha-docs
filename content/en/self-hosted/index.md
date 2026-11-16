@@ -7,15 +7,15 @@ Self-hosted Soha is the default delivery model for the open-source distribution.
 ## Runtime Model
 
 - `soha` server provides HTTP API, authentication, RBAC, audit, AI Gateway, MCP / Skills registry, plugin installation records, and the Web console entry.
-- `soha-web` is built independently as a Vite SPA; during release, it's delivered as a versioned artifact embedded in `soha`.
+- The Root `soha/web` source is built as a Vite SPA; its versioned artifact is embedded in the `soha` release.
 - `soha-docs` is published independently; `soha` links to documentation via a configured external docs URL.
-- `soha-agent` and runners connect to the control plane through the public API / Agent protocol.
+- Root `soha/agent` and runners connect to the control plane through the public API / Agent protocol. Core, Web, Contracts, CLI, Agent, Connectors and Skills share the Root `soha` repository; the docs site, Operator and Helm charts remain independent repositories.
 
 ## Web Resource Modes
 
 `soha` needs to support three Web resource modes:
 
-- `embed`: Default release mode, the server embeds the `soha-web` dist artifact.
+- `embed`: Default release mode, the server embeds the `soha/web` dist artifact.
 - `dir`: Read dist from a configured local directory, convenient for local or private builds.
 - `proxy`: Development mode, proxy to the Vite dev server.
 

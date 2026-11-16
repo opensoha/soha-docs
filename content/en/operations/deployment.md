@@ -10,12 +10,12 @@ Core `v0.1.12` uses the runtime shipped with that release. The dsh and Hindsight
 
 ## Build from source
 
-Use Docker with BuildKit, Compose, Make and the Node version declared in Web CI. Check out matching Core and Web revisions in sibling directories. Check out Contracts at the version pinned in Core's `go.mod` for the build context. Tagged builds use the Web artifact for the corresponding release.
+Use Docker with BuildKit, Compose, Make and the Node version declared in Web CI. Check out the matching Root `soha` revision; it contains Core, Web (`web/`) and Contracts (`contracts/`) in one source tree. Tagged builds use the Web artifact for the corresponding release.
 
 Run from the `soha` checkout:
 
 ```bash
-npm --prefix ../soha-web ci
+npm ci
 make deploy-image
 docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha
 ```

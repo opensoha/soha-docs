@@ -56,7 +56,7 @@ CLI and tutorial examples use these client-side variables:
 
 - `VITE_API_BASE_URL` overrides the API base; its default is same-origin `/api/v1`
 - the candidate `VITE_BASE_PATH=/team/` build prefixes assets, Router paths and the default API base; export it when building or starting Vite
-- `VITE_API_PROXY_TARGET` selects the development upstream, default `http://127.0.0.1:8080`, in `soha-web/vite.config.ts`
+- `VITE_API_PROXY_TARGET` selects the development upstream, default `http://127.0.0.1:8080`, in `../soha/web/vite.config.ts`
 - the in-app docs page opens `/docs/`; the `soha` server redirects that path to the configured external docs URL by default
 
 For a prefixed production deployment, configure request and cookie-path rewrites as described in [deployment](./deployment.md#deploying-the-candidate-web-under-a-path-prefix). Build-time Web variables are public and must never contain credentials. Prefer a same-origin reverse proxy so browser session cookies and authorization checks use the intended instance.

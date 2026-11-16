@@ -12,8 +12,10 @@ Soha server source tree.
 
 ## Workflow
 
-1. Identify the authoritative product repository or `../soha/contracts`
-   contract before documenting behavior.
+1. Identify the repository that owns the product behavior before documenting
+   it. Root `../soha` owns Core and its six components, with `contracts/` as the
+   public contract source; independently owned products use their own source
+   repositories. The docs site remains an independent repository.
 2. Edit the matching `content/en` and `content/zh` pages when the promise is
    shared. Keep locale `_meta.ts` navigation aligned.
 3. When API references change, generate pages with `npm run api:reference:generate`; do not

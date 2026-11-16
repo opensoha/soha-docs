@@ -85,7 +85,7 @@ The release publishing path is a host-managed Next.js deployment, not GitHub Pag
 - Leave the output directory empty or automatic so the host detects Next.js.
 - Configure the production domain as `docs.opensoha.dev` in the host and DNS provider.
 - Do not add `public/CNAME` or `.github/workflows/publish.yml`; those are GitHub Pages-specific artifacts.
-- Keep the CI workflow checking out `opensoha/soha-contracts` next to `soha-docs` so docs consistency tests can validate OpenAPI and JSON Schema artifacts.
+- The CI workflow checks out the pinned `opensoha/soha` Root revision next to `soha-docs`; contracts inputs are read from `../soha/contracts`.
 - Verification before deploy: `npm ci`, `npm run typecheck`, `npm test`, and `npm run build`.
 
 Set deployment environment variables when publishing outside the defaults:
@@ -94,7 +94,7 @@ Set deployment environment variables when publishing outside the defaults:
 - `DOCS_BASE_URL`
 - `DOCS_SHOW_LAST_UPDATE_TIME`
 
-The CI workflow uses the same sibling `soha-contracts` checkout and runs the same docs consistency tests before every build.
+The CI workflow uses the same pinned Root checkout and runs docs consistency tests against its `contracts/` module before every build.
 
 ## English Content Strategy
 

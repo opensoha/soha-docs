@@ -320,9 +320,9 @@ github.com/opensoha/soha/contracts/gen/go/sohaapi
 ## 依赖方向
 
 - Root `soha/contracts` 是公开契约源码的真实源；独立发布的 SDK 通过公开 Go module 和 npm 版本消费。
-- `soha-web` 通过 TypeScript SDK 和 HTTP API 访问 core。
-- `soha-cli` 通过 Go SDK DTO / client 和 HTTP API 访问 core。
-- `soha-agent` 通过 Agent protocol 和 generated SDK client 访问 runner-facing API。
+- Root `soha/web` 通过 TypeScript SDK 和 HTTP API 访问 core。
+- Root `soha/cli` 通过 Go SDK DTO / client 和 HTTP API 访问 core。
+- Root `soha/agent` 通过 Agent protocol 和 generated SDK client 访问 runner-facing API。
 - 外部实现通过公开包、API、SDK 或构建产物组合 core 能力。
 
 ## 校验

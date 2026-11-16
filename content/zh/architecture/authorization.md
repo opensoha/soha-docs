@@ -87,6 +87,6 @@ Gateway 管理按资源拆分，包括 `ai.gateway.clients.manage`、`ai.gateway
 - Token 权限上限限制 PAT 与服务账号。
 - operation 与 audit 记录变更和授权结果。
 
-`soha-contracts` 负责公共目录与决策结构；`internal/application/access` 负责公共权限、ABAC 与范围组合；各领域服务负责资源属性、运行时状态、审批上下文和最终变更校验。
+Root `soha/contracts` 负责公共目录与决策结构；`internal/application/access` 负责公共权限、ABAC 与范围组合；各领域服务负责资源属性、运行时状态、审批上下文和最终变更校验。
 
 实际分配步骤见[角色授权分配](../operations/role-authorization-assignment.md)。

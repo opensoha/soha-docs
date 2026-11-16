@@ -204,7 +204,7 @@ control_plane:
 启动方式：
 
 ```bash
-cd ../soha-agent
+cd ../soha/agent
 go run ./cmd/agent
 ```
 
@@ -221,7 +221,7 @@ SOHA_AGENT_CONFIG_FILE=/abs/path/to/agent.config.yaml go run ./cmd/agent
 - runner 会把 soha run 输入、tool binding 快照、skill binding 快照转换为 prompt，并优先把 `AgentSkillBinding.providerSkillRef` 作为 Hermes skill 参数传给 CLI；只有没有 provider skill ref 时才回退到 soha skill id。
 - runner 提供 `agent-runs/tool-call` 客户端 helper，provider adapter 可以用它执行 run 快照中授权的只读工具；默认 Hermes CLI POC 会预取一小批只读工具结果并注入 prompt，包括日志、指标、链路、事件、交付发布/构建和告警上下文，但不假设某个 Hermes 私有 tool-call 协议。
 - runner 在 provider 命令运行期间会周期性回调 `running` heartbeat，保持控制面的 `lastHeartbeatAt` 新鲜；如果控制面回调响应返回 `canceled`、`callback_timeout`、`failed` 或 `completed` 等终态，runner 会取消本地 provider 进程，不再提交最终 completed 回调。
-- `soha-agent/internal/agent/runner` 具备不依赖真实 Hermes 安装的 smoke 覆盖：fake control plane 可验证 claim -> running callback -> tool-call prefetch -> CLI provider -> completed callback -> `AnalysisArtifact` 的完整协议链路。真实环境仍应把 `hermes_command` 指向 Hermes CLI 做最后端到端验证。
+- `soha/agent/internal/agent/runner` 具备不依赖真实 Hermes 安装的 smoke 覆盖：fake control plane 可验证 claim -> running callback -> tool-call prefetch -> CLI provider -> completed callback -> `AnalysisArtifact` 的完整协议链路。真实环境仍应把 `hermes_command` 指向 Hermes CLI 做最后端到端验证。
 - runner 回调中的 `analysisArtifacts` 优先作为最终工件；如果缺失，runner 和控制面会用 provider 输出摘要合成基础 `AnalysisArtifact`，并保留 provider 返回的 evidence、hypotheses、recommendations、graph、toolExecutions、dataSourceSnapshot 以及 runner 自己的工具执行记录。
 
 runner 侧已经按 provider 分发执行器。Hermes 是内置默认 executor；其它 CLI 型 provider 可以先通过 `control_plane.agent_runtime.providers.<providerKind>` 配置接入，例如：

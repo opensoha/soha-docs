@@ -2,9 +2,9 @@
 
 > **🚧 Translation in Progress**: This page is being translated from Chinese. Some sections may still contain Chinese text.
 
-Repository-specific engineering rules live with each code repository under
-`.agents/skills/`. Cross-repository ownership and dependency rules live in the
-OpenSoha workspace `AGENTS.md`.
+Core and its six components share the Root `soha/.agents/skills/` development
+rules. Independently owned repositories maintain their own skills. Cross-repository
+ownership and dependency rules live in the OpenSoha workspace `AGENTS.md`.
 
 This directory only retains public architecture documentation focused on domains and topics, and no longer duplicates the following engineering memory content:
 

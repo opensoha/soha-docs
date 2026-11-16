@@ -10,12 +10,10 @@ Core `v0.1.12` 使用该版本自带的运行时。dsh 和 Hindsight 的部署�
 
 ## 从源码构建
 
-准备支持 BuildKit 的 Docker、Compose、Make 和 Web CI 声明的 Node 版本。把版本匹配的 Core 和 Web 检出到相邻目录，并按 Core `go.mod` 中固定的版本准备 Contracts 构建上下文。按 tag 发布时使用对应版本的 Web 产物。
-
-在 `soha` 仓库执行以下命令。
+准备支持 BuildKit 的 Docker、Compose、Make 和 Web CI 声明的 Node 版本。检出匹配版本的 Root `soha` 仓库；Core、Web（`web/`）和 Contracts（`contracts/`）都位于同一源码树中。按 tag 发布时使用对应版本的 Web 产物。在 `soha` 仓库执行以下命令。
 
 ```bash
-npm --prefix ../soha-web ci
+npm ci
 make deploy-image
 docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha
 ```

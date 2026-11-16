@@ -56,7 +56,7 @@ CLI and tutorial examples use these client-side variables:
 
 - `VITE_API_BASE_URL` 覆盖 API 地址，默认同源 `/api/v1`
 - 候选 `VITE_BASE_PATH=/team/` 构建为资源、Router 和默认 API 地址增加前缀；在构建或启动 Vite 时显式导出该变量
-- `VITE_API_PROXY_TARGET` 选择开发代理上游，默认 `http://127.0.0.1:8080`，配置源为 `soha-web/vite.config.ts`
+- `VITE_API_PROXY_TARGET` 选择开发代理上游，默认 `http://127.0.0.1:8080`，配置源为 `../soha/web/vite.config.ts`
 - the in-app docs page opens `/docs/`; the `soha` server redirects that path to the configured external docs URL by default
 
 生产前缀部署还需配置请求与 cookie 路径改写，见 [部署说明](./deployment.md#候选-web-部署在路径前缀下)。Web 构建变量会公开到浏览器，不得包含凭据。优先使用同源反向代理，让浏览器会话 cookie 和授权校验归属预期实例。

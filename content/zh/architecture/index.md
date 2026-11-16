@@ -1,7 +1,7 @@
 # 架构入口
 
-各代码仓库的工程执行规则位于各自仓库的 `.agents/skills/`；跨仓库所有权和依赖规则
-位于 OpenSoha 工作区根 `AGENTS.md`。
+Core 及其六个组件共用 Root `soha/.agents/skills/` 中的开发规则；独立所有的仓库维护
+各自的 skills。跨仓库所有权和依赖规则位于 OpenSoha 工作区根 `AGENTS.md`。
 
 本目录只保留面向领域和专题的公共架构文档，不再重复维护以下工程记忆内容：
 

@@ -87,6 +87,6 @@ Gateway administration is split by resource, including `ai.gateway.clients.manag
 - token permission caps restrict PATs and service accounts.
 - operation and audit records capture mutation and authorization outcomes.
 
-`soha-contracts` owns the public catalog and decision shapes. `internal/application/access` owns common permission, ABAC, and scope composition. Each domain service owns resource attributes, runtime state checks, approval context, and final mutation enforcement.
+Root `soha/contracts` owns the public catalog and decision shapes. `internal/application/access` owns common permission, ABAC, and scope composition. Each domain service owns resource attributes, runtime state checks, approval context, and final mutation enforcement.
 
 See [Role Authorization Assignment](../operations/role-authorization-assignment.md) for the operator workflow.

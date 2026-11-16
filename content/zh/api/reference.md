@@ -22,7 +22,7 @@ OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生�
 - `../soha/contracts/examples/**`
 - `api/reference/route-metadata.overlay.json`，用于为已覆盖核心 route 补充实现状态、权限、scope、审计说明和 examples。
 
-生成器不得读取 `soha-web` 或运行时实现作为公开 API source of truth。
+生成器不得读取 Root `soha/web` 或运行时实现作为公开 API source of truth。
 
 ## 契约分发
 

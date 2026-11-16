@@ -11,9 +11,9 @@
 Frontend runtime is currently code-first rather than env-first.
 
 - Web 默认请求同源 `/api/v1`；候选前缀构建使用 `<VITE_BASE_PATH>api/v1`，显式设置 `VITE_API_BASE_URL` 时使用该覆盖值
-- local development proxies `/api` to `http://127.0.0.1:8080` in `soha-web/vite.config.ts`
+- local development proxies `/api` to `http://127.0.0.1:8080` in `../soha/web/vite.config.ts`
 - the docs surface inside the console opens `/docs/`, which the `soha` server redirects to the configured external docs URL by default
-- there are no checked-in `soha-web/.env.*` templates at the moment
+- there are no checked-in `../soha/web/.env.*` templates at the moment
 
 Docs runtime is independent.
 

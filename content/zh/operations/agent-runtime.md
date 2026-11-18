@@ -1,10 +1,10 @@
 # Agent Runtime
 
-## dsh 部署候选版
+## dsh 与 Hindsight 部署说明
 
-Core `v0.1.12` 使用该版本自带的运行时。下面的 dsh、Hindsight 和运行配置说明适用于源码候选版。部署前核对配套的 Core、Web、Contracts 和 dsh 镜像。Kubernetes 安装使用 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 中与候选组合匹配的 Chart。
+Core `v0.1.13` 默认关闭 `dsh_runtime` 与 `hindsight`（Core `v0.1.12` 及更早版本使用旧内置运行时）。部署并启用 dsh、Hindsight 或运行配置前，请核对配套的 Core（如 `ghcr.io/opensoha/soha:v0.1.13`，已内嵌同提交 Web）、Contracts `v0.2.0` 与 dsh 运行时镜像（`ghcr.io/opensoha/soha-dsh:v0.2.0`，随 `agent/v0.2.0` 发布）。Kubernetes 安装使用 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 中匹配的 Chart（面向 Core `v0.1.13` / Agent `v0.2.0` 的新版 Chart 发布前，请核对 Chart 的 `appVersion`）。
 
-构建 dsh 镜像需要包含 `agent/dsh-runtime.schema.json` 的兼容 Contracts 发行版。Contracts `v0.1.29` 缺少该 schema。
+构建 dsh 镜像依赖包含 `agent/dsh-runtime.schema.json` 的 Contracts `v0.2.0` 或更高兼容版本；旧版 Contracts `v0.1.29` 及更早版本不包含该 schema。
 
 - 新 Chat 和 Heya 依赖 dsh。在私有网络部署 dsh，向 Core 和 dsh 提供同一服务令牌文件，再启用 `dsh_runtime.enabled`。所有 Core worker 都能读取加密检查点后才启用 `security.protected_durable_storage`。仍需恢复检查点时，保留受保护存储和原安装的有效凭据加密密钥。
 - Hindsight 可选。启用前将 Core 迁移至 `0145`，为 Hindsight 配置独立 PostgreSQL 和凭据、配套保护网关以及仅授权所用模型的 Gateway 令牌。
@@ -262,17 +262,10 @@ control_plane:
 - Agent 只作为可插拔执行器，不能绕过 soha 的 MCP adapter、scope、toolset、tool-call 网关和 analysis profile 合约。
 - 高风险写操作不能自动挂到聊天链路，必须先落到对应业务模块的 durable operation 或 approval 流程。
 
-## 远程集群 Agent 范围
+## 远程集群 Agent 与 AI Agent Runtime 的边界
 
-同一个 `soha-agent` 二进制仍保留远程集群 agent 能力：
+同一个 `soha-agent` 二进制同时承担远程集群连接模式（`agent`）与控制面 Runner 执行器两类角色，但两者的协议与授权边界严格分离：
 
-- `GET /healthz`
-- `GET /api/v1/healthz`
-- `GET /api/v1/platform/summary`
-- `GET /api/v1/platform/namespaces`
-- `GET /api/v1/platform/workloads/pods?namespace=default`
-- `GET /api/v1/platform/workloads/deployments?namespace=default`
-- `POST /api/v1/platform/actions/deployments/restart`
-- `POST /api/v1/platform/actions/deployments/scale`
-
-当前远程集群 agent 仍是较小范围能力，日志、YAML、事件、exec 和 rollout history 需要继续按平台 agent 语义补齐，不能和 AI Agent Runtime 的 provider 执行链路混用。
+- **远程 Kubernetes 集群 Agent**：由内网集群主动向 Soha 建立反向长连接（详见 [多集群模型](../architecture/multi-cluster-model.md) 与 [Kubernetes 工作台](./kubernetes-workbench.md)），按安装预设（`read-only`、`workbench`、`legacy`）、显式 `security.allowed_actions` 白名单与集群内 RBAC 提供资源读写、有界日志、YAML、事件、工作负载操作、节点排水、Pod exec、端口转发以及可选启用的 Helm / CRD 动作，并可通过认证接口 `GET /api/v1/diagnostics/actions` 核对动作就绪度；其实际可用范围以平台能力矩阵为准。
+- **Docker 主机运行时代理**：在显式配置对应动作（如 `docker.runtime.logs.v1`、`docker.runtime.files.v1`、`docker.runtime.terminal.v1`）与 `control_plane.docker.operation_kinds` 时，为已登记主机和项目提供受控日志、安全卷浏览、容器终端与 Runner 操作回调。
+- **AI Agent Runtime 执行器**：通过 Runner 轮询与回调协议执行受控 `AgentRun`，不能直接越权访问未授权集群动作，也不能将平台集群 Agent 通道与 AI Provider 执行链路混用。

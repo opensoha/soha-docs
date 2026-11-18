@@ -46,6 +46,8 @@ secrets:
 
 ## 高风险能力
 
-当插件声明 mutate、execute、高权限 connector、外部 provider key 或高成本模型调用能力时，安装界面和 CLI 应要求管理员显式确认。确认记录应进入审计日志。
+Web 安装界面提供安装前确认，展示插件声明的权限、密钥需求和风险。当前 `soha plugin install` CLI 会直接提交安装请求，没有交互式管理员确认步骤；使用 CLI 前应先通过 `soha plugin show <id>` 和 manifest 人工核对这些声明，不应依赖命令额外提示确认。
+
+安装仍受服务端权限校验并记录安装审计；安装审计不等同于独立的人工审批或 CLI 确认记录。声明 mutate、execute、高权限 connector、外部 provider key 或高成本模型调用能力的插件，需要在安装前完成相应人工审查，实际调用继续受运行时授权与策略约束。
 
 插件不能绕过 Soha Gateway 直接访问受保护资源。所有调用必须终止在 Soha Gateway、受控 connector API、MCP server 或已声明的外部进程边界。

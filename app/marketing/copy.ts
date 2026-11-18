@@ -1,0 +1,51 @@
+export const marketingCopy = {
+  zh: {
+    nav: ['产品能力', '自托管部署', '文档', '菜单', '跳至主要内容'],
+    title: ['Soha，解决中小企业', '运维难题'],
+    lead: '为有自建业务的小团队，连接内网访问、资源管理、应用交付与问题调查。',
+    start: '开始使用', docs: '阅读文档', source: '查看源代码',
+    hostLabel: '部署在你的环境', hostTitle: '开源核心，自托管运行',
+    hostLead: '保留对业务系统和运维环境的掌控。选择部署方式，再按需要接入资源与工具。',
+    hostLink: '查看部署指南', community: 'OpenSoha 开源社区', license: 'Apache 2.0 许可证',
+    preview: {
+      heading: '围绕日常工作，连接运维能力',
+      tabs: ['内网访问', '资源管理', '应用交付', '监控与 AI'],
+      label: '探索 Soha 产品能力',
+      titles: ['找到业务系统的访问入口', '从资源找到管理动作', '让应用、环境与交付任务对应', '从问题线索开始调查'],
+      bodies: ['集中管理内网业务入口，让团队从这里访问自己的系统。', '管理 Kubernetes、虚拟机与 Docker 资源，保留操作记录。', '围绕应用与目标环境执行交付，查看过程与结果。', '结合日志、指标与告警，用受权限约束的 AI 工具辅助调查。'],
+      links: ['了解内网访问', '了解资源管理', '了解应用交付', '了解 AI 辅助调查'],
+      diagrams: ['业务系统通过访问入口连接团队', '运行资源关联管理操作与审计记录', '应用关联环境与执行任务', '监控线索关联受控调查和审计记录'],
+      access: ['业务系统', '内网服务', 'Soha 访问入口', '团队'],
+      resources: ['Kubernetes', '虚拟机', 'Docker', '查看资源', '执行操作', '审计记录'],
+      delivery: ['应用', '交付对象', '环境', '运行目标', '执行任务', '过程与结果', '关联每次变更的上下文'],
+      investigation: ['日志', '指标', '告警', 'AI 辅助调查', '受控工具调用', '审计记录'],
+    },
+  },
+  en: {
+    nav: ['Capabilities', 'Self-hosting', 'Docs', 'Menu', 'Skip to main content'],
+    title: ['Soha. Operations', 'for smaller teams'],
+    lead: 'Connect access, resources, delivery, and investigation for your small or medium-sized business.',
+    start: 'Get started', docs: 'Read the docs', source: 'View source',
+    hostLabel: 'Deploy in your environment', hostTitle: 'Open source, self-hosted',
+    hostLead: 'Keep control of your business systems and operations environment. Deploy Soha, then connect the resources and tools you need.',
+    hostLink: 'Deployment guide', community: 'The OpenSoha community', license: 'Apache 2.0 license',
+    preview: {
+      heading: 'Operations, organized around the work',
+      tabs: ['Internal access', 'Resources', 'Delivery', 'Monitoring & AI'],
+      label: 'Explore Soha capabilities',
+      titles: ['Find the way into your business systems', 'From resources to management actions', 'Connect applications, targets, and delivery', 'Investigate from the evidence'],
+      bodies: ['Manage internal entry points so your team can access its own business systems.', 'Manage Kubernetes, virtual machines, and Docker resources with operation records.', 'Execute delivery for an application and its target environment. Review the process and results.', 'Use logs, metrics, and alerts as context for AI-assisted investigation with permissioned tools.'],
+      links: ['Explore internal access', 'Explore resources', 'Explore application delivery', 'Explore AI-assisted investigation'],
+      diagrams: ['Business systems connect to the team through access entry points', 'Runtime resources connect to management actions and audit records', 'Applications connect to environments and execution tasks', 'Monitoring evidence connects to controlled investigation and audit records'],
+      access: ['Business systems', 'Internal services', 'Soha access', 'Team'],
+      resources: ['Kubernetes', 'Virtual machines', 'Docker', 'View resources', 'Run operations', 'Audit records'],
+      delivery: ['Application', 'Delivery object', 'Environment', 'Runtime target', 'Execution task', 'Process & results', 'Keep every change in context'],
+      investigation: ['Logs', 'Metrics', 'Alerts', 'AI investigation', 'Permissioned tools', 'Audit records'],
+    },
+  },
+}
+
+export const previewRoutes = [
+  '/docs/operations/network-access', '/docs/architecture/multi-cluster-model',
+  '/docs/tutorials/first-delivery', '/docs/architecture/ai-copilot',
+]

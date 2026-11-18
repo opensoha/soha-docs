@@ -16,15 +16,15 @@ soha mcp
 
 ## 安装、npx 与本地构建
 
-`@opensoha/cli` 是原生 Go CLI 的轻量 npm 启动器。它下载与 npm 包版本匹配的平台二进制，核对 `checksums.txt` 后按版本缓存。该包会由首个包含 npm 发布步骤的 tag release 发布；在 registry 尚未出现该包时，npx 会返回 `E404`，此时应先使用原生 GitHub Release 二进制。发布后，交互式安装使用 `@latest`，CI 应固定 npm 版本：
+`@opensoha/cli` 是原生 Go CLI 的轻量 npm 启动器，由主仓 `opensoha/soha` 的 `cli/v*` 发布工作流构建并签名发布（当前已验证版本为 `0.2.1`；`cli/v0.2.0` 仅发布了原生归档与容器镜像，未发布 npm 包）。启动器从对应 GitHub Release 下载与平台匹配的原生二进制，核对 `checksums.txt` 后按版本缓存。交互式安装使用 `@latest`，CI 应固定精确版本：
 
 ```bash
 npx -y @opensoha/cli@latest mcp
 npx -y @opensoha/cli@latest setup --client codex --mode both
-npx -y @opensoha/cli@0.1.0 version --json
+npx -y @opensoha/cli@0.2.1 version --json
 ```
 
-`setup` 会把已校验的缓存二进制路径写入 MCP 配置，因此 Agent 每次启动 MCP 时不需要重新走 npm 下载。升级时重新执行最新的 `setup`。开发环境也可以从 Root `soha/cli` 源码构建并把二进制放入 `PATH`：
+也可以直接从主仓 [CLI Release](https://github.com/opensoha/soha/releases/tag/cli%2Fv0.2.1) 下载并校验平台归档，或使用 Go 子模块安装：`go install github.com/opensoha/soha/cli/cmd/soha@v0.2.1`（历史 `v0.1.x` 原独立仓库归档退役后，旧仓库 URL 与旧 Go 导入路径可能停止解析）。`setup` 会把已校验的缓存二进制路径写入 MCP 配置，因此 Agent 每次启动 MCP 时不需要重新走 npm 下载。升级时重新执行最新的 `setup`。开发环境也可以从 Root `soha/cli` 源码构建并把二进制放入 `PATH`：
 
 ```bash
 cd ../soha/cli
@@ -477,7 +477,7 @@ soha capabilities --profile local --domain platform --output json
 - `mcp_tool_grants` 是否把 tool 收窄掉。
 - `ai_access_policies` 或 `ai_gateway_skill_bindings` 是否把当前 AI client、角色或主体收窄掉。
 
-## Tool Call
+## 工具调用（Tool Call）
 
 人工兜底调用 Gateway tool：
 
@@ -544,7 +544,7 @@ soha service-account rotation-status --profile local --request-id REQUEST_UUID -
 
 CLI 在发送前保存非秘密请求 ID，并打印到 stderr。响应丢失后先查询原 ID；服务端把替代 Key、旧 Key 撤销和结果关联放在同一事务里。恢复结果只返回替代 Key ID 与完成状态，不会再次返回明文。未保存的新明文无法恢复，可撤销替代 Key 后重新生成。Web 同样保留当前标签页的轮换核对记录。不要改用新请求 ID 来猜测原轮换是否完成。
 
-## Audit
+## 审计查询（Audit）
 
 查询 Gateway audit：
 
@@ -555,7 +555,7 @@ soha audit list --profile local --actor user-1 --from 2026-05-29T00:00:00Z
 
 支持 actor、actor type、AI client、skill、tool、risk level、result、action、from/to 和 limit 过滤。时间使用 RFC3339。
 
-## Governance
+## 治理状态（Governance）
 
 查询 Gateway 治理健康和运营指标：
 
@@ -566,7 +566,7 @@ soha governance status --profile local --window-hours 48 --json
 
 `governance status` 调用 `GET /api/v1/ai-gateway/governance/status`，默认统计最近 24 小时审计；显式 `--window-hours` 只接受 1 到 168，避免直接 API 请求触发异常大窗口扫描。输出包括健康状态、health checks、调用成功/拒绝/失败数、pending approval 数、approval SLA 摘要、PAT/service token 的 last-used/过期/未使用提醒、AI client 注册审批状态、budget/rate-limit/redaction/resource-scope 覆盖度和异常调用 finding。普通文本输出会把每个 health check 的状态、名称、count 和脱敏消息打印出来，也会把 finding 的 actor、subject、AI client、approval request、policy、grant、tool 和 risk level 一并打印，并展示结构化 `recommendationAction` 的 action、target、refs 和 count，便于定位 `approval_sla_due_soon`、`stale_gateway_approvals`、`high_risk_allow_without_approval` / `high_risk_grant_without_approval` 以及 `high_risk_allow_without_resource_scope` / `high_risk_grant_without_resource_scope` 这类治理告警；普通文本输出还会展示 redaction hit summary，包括 total matches、命中 audit 数、input/output target、主要 match type/classifier/field path/policy/tool。`policyCoverage` 会同时展示 total 与 active policy/grant/binding 数量，`redactionPolicyState` 会把 input `redactionPolicy`、`outputRedactionPolicy` 和 response/output redaction aliases 计为 configured，disabled policy、expired grant 和 disabled binding 不会把 coverage state 标记为 `configured`；没有任何 active `resourceScopes` 覆盖时，后端会通过 `resource_scope_coverage` health check 和 recommendation action 提醒补齐跨环境访问约束；`--json` 保留完整脱敏 DTO，包括 approvals、riskCounts、pendingApprovalClientIds、redaction summary、activeAccessPolicies、activeToolGrants、resourceScopeState、resourceScopedAccessPolicies、`recommendationActions` 和 token due/stale day 字段。已配置的 `rateLimit`、调用次数型 `budget`、token/cost budget、strict/sanitize input redaction、output redaction 和 `resourceScopes` 会在后端 invocation 前强制执行；CLI 只展示脱敏治理摘要。
 
-## Approval Requests
+## 审批请求（Approval Requests）
 
 治理输出或 Console 中看到 approval request id 后，可以从 CLI 继续查询和处理：
 
@@ -724,7 +724,7 @@ soha diagnose --profile local --tool k8s.pods.logs --ai-client-id codex-local --
 
 传入 `--cluster-capability` 时，`diagnose` 会读取平台能力矩阵并展示指定 capability 的 Direct/Agent 支持状态、原因、required scopes、risk level、审批要求和 `docsUrl`。这条路径用于排查某个集群连接模式为什么不能执行 YAML、CRD、Helm、logs、exec、port-forward 或 Docker runtime 操作。
 
-## Completion
+## Shell 自动补全（Completion）
 
 ```bash
 soha completion bash

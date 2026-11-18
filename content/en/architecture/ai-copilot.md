@@ -2,39 +2,39 @@
 
 ## Goal
 
-soha 的 AI 层已经从单一聊天页升级为面向运维中后台的 AIOps assistant workbench。
+The AI layer in soha has evolved from a single chat page into an AIOps assistant workbench built for platform operations.
 
-当前目标分成两个层面：
+Its design centers on two layers:
 
-1. 一个总入口 `/ai-workbench`
-2. 一组工作台型子页面，承载调查、巡检自动化、工具装配
+1. A unified entry point at `/ai-workbench`
+2. A set of workbench subpages covering investigation, inspection automation, and tool assembly
 
-AI 层需要帮助完成：
+The AI layer supports:
 
-- 告警驱动的根因分析
-- 性能抖动与容量异常分析
-- 链路慢点和错误热点分析（planned; external trace-provider integration is not currently available）
-- 日志、事件、审计、发布、构建的多源证据归并
-- 巡检结果到调查会话的闭环
-- 工具、skills、数据源的会话级装配
+- Alert-driven root-cause analysis
+- Performance jitter and capacity anomaly analysis
+- Trace latency bottleneck and error hotspot analysis (planned; external trace-provider integration is not currently available)
+- Multi-source evidence correlation across logs, events, audit trails, releases, and builds
+- Closed-loop handoff from inspection findings into investigation sessions
+- Session-scoped assembly of tools, skills, and data sources
 
 ## Current Implemented Surface
 
-当前前后端已经实现以下能力：
+Implemented frontend and backend routes:
 
-- 总入口:
+- Overview entry:
   - `/ai-workbench`
-- 调查工作台:
+- Investigation workbench:
   - `/ai-workbench/chat`
   - `/ai-workbench/root-cause`
   - `/ai-workbench/performance`
-- 巡检与自动化:
+- Inspection and automation:
   - `/ai-workbench/inspection`
-- 工具与技能:
+- Tools and skills:
   - `/ai-workbench/tool-settings`
   - `/ai-workbench/model-settings`
 
-兼容旧入口仍保留跳转：
+Legacy routes retained as compatibility redirects:
 
 - `/ai-observe`
 - `/ai-observe/workbench`
@@ -51,14 +51,14 @@ AI 层需要帮助完成：
 
 ## Session Model
 
-AI 调查以会话为一等对象，而不是临时聊天记录。
+AI investigations treat sessions as first-class durable objects rather than ephemeral chat transcripts.
 
-持久化基础表仍然是：
+Core persistence tables remain:
 
 - `ai_sessions`
 - `ai_messages`
 
-但 `ai_sessions.metadata` 现在承载工作台元数据：
+While `ai_sessions.metadata` now carries structured workbench metadata:
 
 - `mode`
 - `status`
@@ -71,7 +71,7 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `tags`
 - `archivedAt`
 
-其中 `scope` 现在也是监控工作台向 AI 工作台 handoff 的标准载体，统一承接：
+Within metadata, `scope` serves as the standard handoff payload from the monitoring workbench into the AI workbench, carrying:
 
 - `alertId`
 - `clusterId`
@@ -79,17 +79,17 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `workload`
 - `timeRangeMinutes`
 
-其中 `toolset` 已经进入后端执行路径：
+And `toolset` is enforced in the backend execution path:
 
-- `enabledAdapterIds` 用于限制本会话可用 MCP adapter
-- `disabledToolNames` 用于屏蔽具体工具名或 `adapter.tool` 形式的工具
-- `budgetOverrides.maxEvidenceItems` 用于限制会话分析证据数量
-- `budgetOverrides.timeoutSeconds` 用于限制单次分析工具运行时长
-- `scopeOverrides` 会叠加到会话 scope，再进入根因、性能和链路分析
+- `enabledAdapterIds` restricts which MCP adapters are available in the session
+- `disabledToolNames` blocks specific tool names or qualified `adapter.tool` identifiers
+- `budgetOverrides.maxEvidenceItems` caps the number of evidence items collected per analysis
+- `budgetOverrides.timeoutSeconds` bounds the execution timeout for individual analysis tool runs
+- `scopeOverrides` merges over the session scope before root-cause, performance, or trace analysis runs
 
-会话工具装配读取 `/api/v1/copilot/workbench/catalog`，该接口面向 `observe.ai.chat` / `observe.ai.view` / `settings.ai.view` 用户返回安全目录摘要：adapter 元数据、数据源启用状态、分析模板摘要、skill 摘要、agent provider、capability、tool binding 和 skill binding。全量 AI Provider 配置和密钥仍只允许通过 `settings.ai.view` 访问。
+Session tool assembly reads `/api/v1/copilot/workbench/catalog`, which returns a safe catalog summary to users holding `observe.ai.chat` / `observe.ai.view` / `settings.ai.view`: adapter metadata, data-source enablement status, analysis profile summaries, skill summaries, agent providers, capabilities, tool bindings, and skill bindings. Full AI Provider configurations and secrets remain restricted to `settings.ai.view`.
 
-当前会话模式：
+Supported session modes:
 
 - `general`
 - `root_cause`
@@ -103,7 +103,7 @@ capability as unavailable until a future external provider integration is delive
 
 ## API Surface
 
-当前已实现或扩展的会话接口：
+Implemented and extended session endpoints:
 
 - `GET /api/v1/copilot/sessions`
 - `GET /api/v1/copilot/sessions/:sessionID`
@@ -113,14 +113,14 @@ capability as unavailable until a future external provider integration is delive
 - `GET /api/v1/copilot/sessions/:sessionID/messages`
 - `POST /api/v1/copilot/sessions/:sessionID/messages`
 
-消息发送不再只返回纯消息列表，当前返回 envelope：
+Sending a message returns an envelope rather than a bare message list:
 
 - `messages`
 - `toolCalls`
 - `analysisArtifacts`
 - `sessionPatch`
 
-分析运行接口当前基于统一工件方向扩展：
+Analysis and agent-execution endpoints built around the unified artifact model:
 
 - `GET /api/v1/copilot/root-cause/runs`
 - `POST /api/v1/copilot/root-cause/runs`
@@ -131,18 +131,18 @@ capability as unavailable until a future external provider integration is delive
 - `POST /api/v1/copilot/agent-runs/claim`
 - `POST /api/v1/copilot/agent-runs/callback`
 
-当前 `ai_root_cause_runs` 已承载：
+`ai_root_cause_runs` currently stores:
 
 - `kind`
 - `session_id`
 - `tool_executions`
-- 原有 root-cause 证据、假设、建议和数据源快照字段
+- Existing root-cause evidence, hypotheses, recommendations, and data-source snapshot fields
 
 ## Data Sources And MCP
 
-当前 AIOps 工具能力继续通过 MCP adapter 抽象暴露。
+AIOps tool capabilities continue to be exposed through the MCP adapter abstraction.
 
-已注册 adapter：
+Registered adapters:
 
 - `platform-native.v1`
 - `logs.v1`
@@ -161,16 +161,16 @@ Current status:
 - `traces.v1`
   - The adapter identifier is retained for compatibility, but trace execution is unavailable in Core.
 
-The control plane has two entry points:
+The control plane has three entry points:
 
 1. Settings > AI
    - Global provider, data source, analysis profile, and automation policy configuration.
 2. `/ai-workbench/tools`
-   - 兼容旧入口，实际跳转到 `/ai-workbench/tool-settings`
+   - Legacy compatibility route that redirects to `/ai-workbench/tool-settings`.
 3. `/ai-workbench/tool-settings`
-   - 会话级临时 toolset 和 skill 装配入口
+   - Entry point for session-scoped toolset overrides and skill assembly.
 
-全局 skill registry 现在采用企业 skill definition，而不是仅保留简单展示项：
+The global skill registry uses structured enterprise skill definitions rather than display-only entries:
 
 - `id`
 - `name`
@@ -185,129 +185,129 @@ The control plane has two entry points:
 
 ## Agent Runtime
 
-Core `v0.1.12` uses the runtime shipped with that release. In the dsh source candidate, Core sends ordinary Chat and Heya requests directly to the separate Node dsh service. Requests fail when dsh is unavailable. The `internal` and `native` provider identifiers are compatibility aliases for dsh on new requests.
+Core `v0.1.12` and earlier used the legacy built-in runtime. Starting in Core `v0.1.13`, `dsh_runtime` is disabled by default; once enabled alongside the matching `soha-dsh:v0.2.0` service, Core sends ordinary Chat and Heya requests directly to the separate Node dsh service. Requests fail explicitly when dsh is disabled or unavailable rather than falling back to Native. The `internal` and `native` provider identifiers are compatibility aliases for dsh on new requests.
 
-核心对象：
+Core objects:
 
-- `AgentProvider`: executor catalog. In the dsh candidate, `dsh` is the built-in default for Chat and Heya. Explicit external Hermes/CLI providers remain available for their configured protocols.
-- `AgentCapability`: soha 平台能力，包括 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`post_deploy_observation`、`platform_resource_diagnosis`、`docker_diagnosis`、`virtualization_diagnosis`、`oncall_brief`
-- `AgentToolBinding`: capability 到 MCP adapter、平台只读工具或 provider 原生工具的映射
-- `AgentSkillBinding`: soha skill 到 Hermes skill、prompt template 或后续 provider skill 的映射
-- `AgentRun`: 外部 provider 的 durable 异步执行记录，统一承载状态、scope、toolset、skills、回调 token、工具执行和输出工件
+- `AgentProvider`: executor catalog. With dsh enabled, `dsh` is the built-in default for Chat and Heya. Explicit external Hermes/CLI providers remain available for their configured protocols.
+- `AgentCapability`: soha platform capabilities, including `root_cause`, `performance`, `trace`, `inspection_review`, `delivery_failure`, `post_deploy_observation`, `platform_resource_diagnosis`, `docker_diagnosis`, `virtualization_diagnosis`, and `oncall_brief`
+- `AgentToolBinding`: maps a capability to MCP adapters, read-only platform tools, or native provider tools
+- `AgentSkillBinding`: maps a soha skill to a Hermes skill, prompt template, or future provider skill
+- `AgentRun`: durable asynchronous execution record for external providers, storing status, scope, toolset, skills, callback token, tool executions, and output artifacts
 
 Core keeps session and Run facts, authorization, Heya eligibility and environment gates, approvals, budgets, audit, and domain analysis responsibilities. The dsh runtime owns the model/tool loop and calls Core through its authenticated runtime interface and authorized tool bridge. Explicit Hermes or other CLI providers remain separate external integrations; they are not implicit defaults or failure fallbacks for Chat/Heya.
 
 Historical Native runs remain readable as history. In-flight legacy runs must be drained or explicitly quarantined through the offline maintenance procedure before cutover; do not translate Native checkpoints or approvals into a live dsh run. See [Agent Runtime operations](../operations/agent-runtime).
 
-Agent Runtime 输出统一回写为 soha `AnalysisArtifact`，继续复用证据、假设、建议、关系图、工具调用记录和数据源快照。权限、菜单、预算、数据源脱敏、审计和高风险操作边界仍由 soha 控制。
+Agent Runtime outputs normalize back into soha `AnalysisArtifact` records, reusing evidence, hypotheses, recommendations, relationship graphs, tool invocation logs, and data-source snapshots. Permissions, menus, budgets, data-source redaction, auditing, and high-risk operation boundaries remain governed by soha.
 
 ## Frontend Shape
 
 ### `/ai-workbench`
 
-总入口负责：
+The overview entry provides:
 
-- 助手欢迎
-- 最近调查
-- 最近分析
-- 风险雷达
-- 快捷跳转到工作台、巡检自动化、工具技能
+- Assistant welcome view
+- Recent investigations
+- Recent analyses
+- Risk radar
+- Quick links to investigation, inspection automation, and tool/skill settings
 
 ### `/ai-workbench/chat`
 
-调查工作台使用 Ant Design X + antd 组合：
+The investigation workbench combines Ant Design X and `antd`:
 
-- 左侧 `Conversations`
-- 中间 `Bubble.List` + `Sender` + `Prompts`
-- 右侧上下文 / 证据 / 假设 / 建议面板
-- `ThoughtChain` 抽屉显示工具链与分析步骤
-- 当当前会话 scope 携带 `alertId` 时，工作台支持回跳原始监控告警详情
-- 支持通过 `mode=trace` 和 `mode=inspection_review` 在同一会话画布内切换链路分析和巡检复盘
-- `会话级工具集` 抽屉现在直接展示有效执行策略，并可编辑 adapter 选择、`adapter.tool` 级禁用清单、预算覆盖和 scope override
-- `显式分析` 会先打开确认弹窗，让用户选择 provider、analysis profile、可运行分析模式、编辑本轮分析目标，并预览会话 scope 与工具集来源，然后再调用会话分析接口；当前可运行模式为 `root_cause`、`performance`、`trace` 和 `inspection_review`，后端会拒绝 `general`，成功后会把所选 mode 与 `agentProviderId` 写回会话 metadata
+- Left pane: `Conversations`
+- Center pane: `Bubble.List` + `Sender` + `Prompts`
+- Right pane: context / evidence / hypotheses / recommendations panel
+- `ThoughtChain` drawer displaying the tool invocation chain and analysis steps
+- When the current session scope carries `alertId`, the workbench supports jumping back to the originating monitoring alert detail
+- Supports switching into trace analysis and inspection review within the same session canvas via `mode=trace` and `mode=inspection_review`
+- The Session Toolset drawer displays the effective execution policy directly and allows editing adapter selection, `adapter.tool` blocklists, budget overrides, and scope overrides
+- Running an explicit analysis opens a confirmation modal first so the user can choose the provider, analysis profile, and runnable analysis mode, edit the analysis objective for the round, and preview the session scope and toolset source before calling the session analysis API; runnable modes are `root_cause`, `performance`, `trace`, and `inspection_review` (`general` is rejected by the backend), and upon success the chosen mode and `agentProviderId` are written back to session metadata
 - In the dsh candidate, ordinary Chat and Heya use dsh by default and retain Core-owned authorization, Heya gates, approvals, budgets, audit, and domain analysis. Explicitly selected external Hermes/CLI providers use their own configured protocols; they are not fallback paths.
-- 会话内所有 assistant 消息携带的 `analysisArtifacts` 会汇总成“分析工件历史”，用户可以在根因、性能、链路和巡检复盘工件之间切换图谱、证据和建议
+- All `analysisArtifacts` attached to assistant messages in the session aggregate into an Analysis Artifact History view, allowing users to switch graphs, evidence, and recommendations across root-cause, performance, trace, and inspection-review artifacts
 
-### `/ai-workbench/root-cause` 与 `/ai-workbench/performance`
+### `/ai-workbench/root-cause` and `/ai-workbench/performance`
 
-根因和性能模式复用同一个会话画布，但入口路径直接表达当前分析类型，避免通过旧 `investigation?mode=*` 私有跳转协议承载主要 IA。
+Root-cause and performance modes reuse the same session canvas while expressing the active analysis type directly in the route path rather than relying on legacy `investigation?mode=*` redirect parameters as the primary information architecture.
 
 ### `/ai-workbench/inspection`
 
-当前是巡检任务、运行记录和自动化策略的统一入口。
+Unified entry point for inspection tasks, run records, and automation policies.
 
-`/ai-workbench/inspection` 现在不是只读列表：
+`/ai-workbench/inspection` is an interactive workspace rather than a read-only list:
 
-- 支持在 AI 工作台内直接新建和编辑巡检任务
-- 巡检任务表单会按平台、集群、命名空间三种 scope 收敛输入
-- 巡检任务可选择 `mode=inspection` 的分析模板，写入 task metadata 的 `analysisProfileId`，后端执行时可据此覆盖巡检 playbooks 和数据源约束
-- 巡检任务现在支持删除；删除入口在工作台内受 `observe.ai.inspection.manage` 控制，后端按创建者隔离并依赖数据库级联清理关联巡检运行
-- 任务创建、编辑、立即执行和巡检运行转调查会话都在同一工作区完成，并继续受 `observe.ai.inspection.manage`、`observe.ai.inspection.run` 和 `observe.ai.chat` 权限控制；巡检运行转调查会话还必须具备 `observe.ai.view`，调查会话生成巡检任务还必须具备 `observe.ai.chat`
-- 从调查会话生成巡检任务时，工作台会优先附带当前可用的 inspection profile，避免会话转巡检后丢失 profile 驱动的检查契约
-- 自动化策略页签支持直接新建和编辑触发类型、分析类型、分析模板、修复策略、去重窗口、冷却时间和启用状态
-- 自动化策略读取、创建、编辑和删除继续使用后端 `/api/v1/copilot/automation-policies` 合约，并受 `settings.ai.manage` 权限控制；缺少该权限时工作台不得主动拉取策略列表，只展示明确的权限边界
-- 自动化策略表单必须从工作台安全目录里的分析模板摘要选择 `analysisProfileId`，并从 agent provider 目录选择 `agentProviderId`；当前执行器只支持 `alert_webhook` 触发类型，未接入执行器的触发类型不得作为可运行策略选项暴露
-- 自动化策略的可运行分析类型包括 `root_cause`、`performance`、`trace` 和 `inspection_review`；外部 provider 还可以通过 Agent Runtime 扩展到交付失败、发布后观察、平台资源诊断、Docker/虚拟化诊断和值班摘要等 capability
-- 告警级别、状态、最小持续时间、标签匹配、分析时间范围和审批角色会写入结构化 `triggerConditions` / `approvalPolicy`，避免在工作台里只创建不可触发的空策略
-- 自动化执行器会把内置根因、性能和链路分析运行写入带 policy 前缀的 `dedupKey`；外部 provider 会把相同去重上下文写入 `AgentRun.input`。`dedupWindowSeconds` 负责同一告警指纹去重，`cooldownSeconds > 0` 负责策略级冷却，避免不同告警在冷却期内重复触发
+- Supports creating and editing inspection tasks directly inside the AI workbench
+- The inspection task form scopes inputs across platform, cluster, and namespace levels
+- Inspection tasks can select an `mode=inspection` analysis profile stored in task metadata as `analysisProfileId`, allowing backend execution to override inspection playbooks and data-source constraints
+- Inspection tasks support deletion; the delete action in the workbench requires `observe.ai.inspection.manage`, isolates tasks by creator on the backend, and cascades cleanup to associated inspection runs in PostgreSQL
+- Creating, editing, immediately executing tasks, and converting an inspection run into an investigation session all happen within the same workspace under `observe.ai.inspection.manage`, `observe.ai.inspection.run`, and `observe.ai.chat`; converting an inspection run into an investigation session additionally requires `observe.ai.view`, and generating an inspection task from an investigation session requires `observe.ai.chat`
+- When generating an inspection task from an investigation session, the workbench attaches the active inspection profile when available so profile-driven check contracts are preserved
+- The Automation Policies tab supports creating and editing trigger types, analysis types, analysis profiles, remediation policies, deduplication windows, cooldown intervals, and enablement status
+- Reading, creating, editing, and deleting automation policies continue to use `/api/v1/copilot/automation-policies` gated by `settings.ai.manage`; without that permission, the workbench does not fetch the policy list proactively and instead renders an explicit permission boundary
+- The automation policy form selects `analysisProfileId` from analysis profile summaries in the safe workbench catalog and `agentProviderId` from the agent provider catalog; the executor currently supports only the `alert_webhook` trigger type, and unimplemented trigger types are not exposed as runnable options
+- Runnable analysis types for automation policies include `root_cause`, `performance`, `trace`, and `inspection_review`; external providers can also extend via Agent Runtime to capabilities such as delivery failure, post-deploy observation, platform resource diagnosis, Docker/virtualization diagnosis, and on-call briefs
+- Alert severity, status, minimum duration, label matchers, analysis time window, and approval roles are persisted into structured `triggerConditions` / `approvalPolicy` fields so policies created in the workbench are actionable rather than empty shells
+- The automation executor writes a policy-prefixed `dedupKey` on built-in root-cause, performance, and trace analysis runs, while external providers receive the same deduplication context in `AgentRun.input`. `dedupWindowSeconds` deduplicates identical alert fingerprints, and `cooldownSeconds > 0` enforces policy-level cooldowns so distinct alerts do not re-trigger repeatedly during the cooldown window
 
-巡检结果进入会话时不再只创建一个空调查：
+Promoting inspection results into a session initializes rich investigation context rather than an empty chat:
 
-- 后端会把巡检 task 的 `clusterId` / `namespace` 写入会话 scope
-- 会话 `pinnedContext` 保留 `inspectionRunId`、`inspectionTaskId`、严重度和状态
-- 首条 assistant 消息会携带 `inspection_review` 分析工件
-- 该工件把 findings 转成 evidence、recommendations 和左到右关系图，供会话右侧证据面板直接渲染
+- The backend writes the inspection task's `clusterId` / `namespace` into the session scope
+- Session `pinnedContext` retains `inspectionRunId`, `inspectionTaskId`, severity, and status
+- The initial assistant message carries an `inspection_review` analysis artifact
+- That artifact converts findings into evidence, recommendations, and a left-to-right relationship graph rendered directly in the right-hand evidence panel
 
 ### `/ai-workbench/tool-settings`
 
-当前展示：
+Displays:
 
 - MCP adapters
-- 全局数据源镜像
-- 会话级 toolset 装配入口
-- 企业 skill registry
-- Agent Provider / Capability / Tool Binding / Skill Binding 安全目录
+- Mirrored global data-source status
+- Session-scoped toolset assembly controls
+- Enterprise skill registry
+- Safe catalog of Agent Providers / Capabilities / Tool Bindings / Skill Bindings
 
-工具装配入口必须与后端执行契约保持一致：
+Tool assembly controls stay aligned with the backend execution contract:
 
-- 禁用工具保存为 `adapter.tool` 形式，避免同名工具误伤其它 adapter
-- 空 adapter 列表表示自动选择；推荐预设会优先启用已注册且有数据源支撑的 adapter
-- 预算覆盖只保存正数，避免 `0` 被误解释成有效限制
-- scope override 写入结构化 `clusterId`、`namespace`、`workload`、`service`、`alertId` 和 `timeRangeMinutes`
+- Disabled tools are stored in qualified `adapter.tool` form so identically named tools on other adapters are unaffected
+- An empty adapter list denotes automatic selection; recommended presets preferentially enable registered adapters backed by active data sources
+- Budget overrides persist positive values only so `0` is never misinterpreted as an active cap
+- Scope overrides write structured `clusterId`, `namespace`, `workload`, `service`, `alertId`, and `timeRangeMinutes` fields
 
 ### `/ai-workbench/model-settings`
 
-在 AI 工作台内嵌全局 AI 设置，继续使用 `settings.ai.view` / `settings.ai.manage` 权限键。
+Embeds global AI settings inside the AI workbench, continuing to enforce `settings.ai.view` / `settings.ai.manage`.
 
 ## Safety And Execution Model
 
-AI 层仍保持“分析与建议优先”的安全方向。
+The AI layer maintains an analysis-and-recommendation-first safety posture.
 
-当前重点是：
+Current priorities:
 
-- 聚合上下文
-- 调用读型工具
-- 生成证据、假设、建议
-- 把工具调用和分析工件沉淀进会话
-- 将外部 agent 输出转换成 soha `AnalysisArtifact`
+- Aggregate operational context
+- Invoke read-only tools
+- Produce evidence, hypotheses, and recommendations
+- Persist tool invocations and analysis artifacts into sessions
+- Normalize external agent outputs into soha `AnalysisArtifact` records
 
-当前没有把高风险执行动作直接挂入聊天自动执行链。
+High-risk mutating actions are not wired into unguarded chat auto-execution chains.
 
-应用接入规范生成与平台交付编排不归 AI 工作台，而归应用交付工作台；AI 工作台只负责暴露能被企业 AI coding 客户端和 Agent Runtime 发现和调用的 MCP/skills 能力。
+Application onboarding spec generation and platform delivery orchestration belong to the application delivery workbench rather than the AI workbench; the AI workbench only exposes MCP/skills capabilities discoverable and invokable by enterprise AI coding clients and Agent Runtime.
 
 ## Near-Term Expectations
 
-本阶段之后，AI 相关功能应默认遵守以下规则：
+Ongoing AI functionality follows these engineering rules:
 
-- 新的 AI 页面优先接入 AI 工作台，而不是继续新增独立传统表格页
-- 会话相关增强优先扩 `metadata`，避免过早拆分调查实体模型
-- 新的数据源或工具能力需要同时考虑：
-  - 全局配置
-  - 会话级装配
-  - 分析工件落盘
-- root cause / performance / trace / inspection review 以及外部 agent 分析应共用统一 artifact 模型，而不是重复造页面协议
-- 新增 agent provider 时只能扩 provider adapter、tool binding、skill binding 和 runner 执行器，不能让页面或业务分析流程直接依赖 provider SDK/CLI
-- 监控工作台到 AI 工作台的 handoff 应保持标准 scope 契约，不再由页面各自定义私有跳转协议
+- New AI surfaces integrate into the AI workbench rather than adding standalone legacy table pages
+- Session-related enhancements extend `metadata` first before splitting out separate investigation entity tables
+- Every new data source or tool capability accounts for:
+  - Global configuration
+  - Session-scoped assembly
+  - Durable analysis artifact persistence
+- Root-cause, performance, trace, inspection-review, and external agent analyses share the unified artifact model rather than inventing per-page protocols
+- Adding a new agent provider extends only the provider adapter, tool bindings, skill bindings, and runner executor; UI pages and domain analysis flows never depend directly on a provider SDK or CLI
+- Handoffs from the monitoring workbench into the AI workbench preserve the standard `scope` contract rather than defining ad-hoc per-page redirect parameters
 
 ## Knowledge source import permissions
 

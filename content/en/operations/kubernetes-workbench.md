@@ -59,7 +59,7 @@ The preset includes namespace and workload summaries, ConfigMap metadata, Secret
 
 The public OpenAPI contract is the source of truth for SDK and HTTP clients. It covers the reviewed structured-read surface for cluster inventory, workloads, configuration metadata, RBAC, networking, storage, CRDs, Helm metadata, events, logs, and metrics. Raw Secret data, raw custom-resource YAML, Helm values, terminal and stream transports, and general mutation routes remain internal unless a separate contract explicitly exposes a guarded workflow.
 
-The `soha` CLI does not duplicate this API as a Kubernetes command tree. It installs the official Skill and MCP configuration, discovers the live Gateway manifest, and invokes only visible tools:
+For AI and MCP clients, the `soha` CLI installs the official Skill and MCP configuration, discovers the live Gateway manifest, and invokes only tools visible to the caller's identity (bounded conditional `soha k8s` workbench subcommands available in candidate CLI builds for human and scripted operations are documented in [Soha CLI](./soha-cli.md)):
 
 ```bash
 soha setup --client codex --mode both --base-url https://soha.example.com

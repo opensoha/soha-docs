@@ -1,133 +1,133 @@
-# 应用交付 DevOps 工作台方案
+# Delivery DevOps Workbench
 
-## 目标
+## Goal
 
-应用交付工作台需要面向开发和测试人员提供一个以应用为核心的 DevOps 操作面。
+The application delivery workbench provides developers and testers with an application-centric DevOps operating surface.
 
-它不是单纯的流水线列表，也不是 Kubernetes 资源页面的包装，而是把应用、环境、服务、容器、构建、测试、发布、交付物和运行态证据组织到同一个应用上下文中。
+Rather than acting as a flat pipeline list or a thin wrapper around raw Kubernetes resource pages, it organizes applications, environments, services, containers, builds, tests, releases, deliverables, and runtime evidence inside one unified application context.
 
-设计参考 Zadig 的产品组织方式：
+Its product organization draws inspiration from Zadig:
 
-- 项目/应用是研发交付的业务单元，聚合服务、环境、构建、测试、工作流和版本。
-- 环境承载一组服务及其配置，是开发联调、测试验证和生产发布的目标空间。
-- 工作流由阶段和任务组成，阶段通常串行推进，阶段内任务可以串行或并发。
-- 构建、部署、测试、发布、通知、配置变更等任务都应成为可编排能力。
+- Projects/applications serve as the business unit of engineering delivery, aggregating services, environments, builds, tests, workflows, and versions.
+- Environments host a set of services and their configurations as target spaces for developer integration, test verification, and production release.
+- Workflows consist of stages and jobs; stages typically advance sequentially, while jobs within a stage can run sequentially or in parallel.
+- Builds, deployments, tests, releases, notifications, and configuration changes are all first-class orchestratable capabilities.
 
-参考资料：
+References:
 
-- [Zadig 核心概念](https://docs.koderover.com/zadig/cn/Zadig%20v3.4/quick-start/concepts/)
-- [Zadig 项目手册](https://docs.koderover.com/zadig/en/Zadig%20v3.4/project-manual/)
-- [Zadig 环境服务概览](https://docs.koderover.com/zadig/en/Zadig%20v4.0/env/overview/)
-- [Zadig 工作流任务](https://docs.koderover.com/zadig/cn/Zadig%20v4.1/project/workflow-jobs/)
-- [Zadig 构建配置](https://docs.koderover.com/zadig/en/Zadig%20v4.2/project/build/)
+- [Zadig Core Concepts](https://docs.koderover.com/zadig/cn/Zadig%20v3.4/quick-start/concepts/)
+- [Zadig Project Manual](https://docs.koderover.com/zadig/en/Zadig%20v3.4/project-manual/)
+- [Zadig Environment Service Overview](https://docs.koderover.com/zadig/en/Zadig%20v4.0/env/overview/)
+- [Zadig Workflow Jobs](https://docs.koderover.com/zadig/cn/Zadig%20v4.1/project/workflow-jobs/)
+- [Zadig Build Configuration](https://docs.koderover.com/zadig/en/Zadig%20v4.2/project/build/)
 
-soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications`、`application_build_sources`、`application_environments`、`release_targets`、`workflow_templates`、`release_bundles`、`execution_tasks` 和 `execution_logs`，新的设计应优先复用这些对象，并补齐应用服务、容器组件、测试运行和交付物策略。
+soha does not copy Zadig's object naming verbatim. Because the control plane already owns `applications`, `application_build_sources`, `application_environments`, `release_targets`, `workflow_templates`, `release_bundles`, `execution_tasks`, and `execution_logs`, this design reuses those objects first and extends them with application services, container components, test runs, and artifact policies.
 
-## 设计原则
+## Design Principles
 
-- 应用优先：研发和测试从应用进入，而不是从集群、命名空间或流水线进入。
-- 环境分层：开发、测试、预发、生产使用同一绑定模型，但 UI 语义、审批、权限和默认动作不同。
-- 服务可见：一个应用可以包含多个服务，每个服务可以包含多个容器、端口、配置、构建来源和部署目标。
-- 交付物不可变：一次构建或组合发布产出的镜像、包、SBOM、测试报告和部署证据应沉淀为可追踪交付物。
-- DAG 编排：CI/CD 流程使用显式 DAG 描述依赖、并发、失败分支、审批和回滚，不用隐式前端步骤拼装。
-- 开发自助：开发人员可以围绕自己的服务触发构建、部署开发环境、查看日志和回滚。
-- 测试闭环：测试人员可以按环境和版本查看待测内容、触发测试、确认报告并推动升级。
-- 平台守边界：API 服务只做控制面编排，真实构建、测试、发布动作进入执行平面或 runner，不在 Gin handler 中直接执行长任务。
+- Application-first: developers and testers enter from applications rather than clusters, namespaces, or standalone pipelines.
+- Layered environments: development, test, pre-production, and production share one binding model while differing in UI semantics, approvals, permissions, and default actions.
+- Service visibility: an application can contain multiple services, each with multiple containers, ports, configurations, build sources, and deployment targets.
+- Immutable deliverables: images, packages, SBOMs, test reports, and deployment evidence produced by a build or composite release are captured as traceable deliverables.
+- Explicit DAG orchestration: CI/CD flows use explicit DAG definitions for dependencies, concurrency, failure branches, approvals, and rollbacks rather than implicit frontend step stitching.
+- Developer self-service: developers can trigger builds, deploy to development environments, inspect logs, and roll back around their own services.
+- Closed-loop testing: testers can inspect candidate changes by environment and version, trigger test suites, review reports, and drive promotion decisions.
+- Clear platform boundary: the API server performs control-plane orchestration only; real build, test, and release work runs in the execution plane or dedicated runners, never inline inside Gin handlers.
 
-## 用户视角
+## User Perspectives
 
-### 开发视角
+### Developer Perspective
 
-开发人员的主路径：
+Primary developer workflow:
 
-1. 进入应用中心，选择自己负责的应用。
-2. 在应用详情中选择服务组件，例如 `api`、`worker`、`frontend`。
-3. 选择代码分支、提交、构建来源和镜像标签策略。
-4. 触发 CI：拉代码、构建镜像、单测、扫描、产出交付物。
-5. 将产物部署到开发环境或联调环境。
-6. 查看服务运行状态、Pod、日志、事件、最近执行任务和失败原因。
-7. 必要时重试、回滚、重启服务或只更新某个容器镜像。
+1. Open the Application Center and select an owned application.
+2. Select a service component inside application detail, such as `api`, `worker`, or `frontend`.
+3. Choose a Git branch, commit, build source, and image tag strategy.
+4. Trigger CI: check out source code, build images, run unit tests, run scans, and produce deliverables.
+5. Deploy produced artifacts to a development or shared integration environment.
+6. Inspect service runtime health, Pods, logs, events, recent execution tasks, and failure reasons.
+7. Retry, roll back, restart a service, or update an individual container image when needed.
 
-开发页面需要强调：
+Developer-facing views emphasize:
 
-- 我的应用和我的服务。
-- 最近提交、最近构建和当前环境版本。
-- 快速构建、快速部署、日志和失败诊断。
-- 环境差异，例如开发环境使用临时分支，测试环境使用候选版本。
+- Owned applications and services.
+- Recent commits, recent builds, and active environment versions.
+- Fast builds, fast deployments, log access, and failure diagnostics.
+- Environment differences—such as feature branches in `dev` versus release candidates in `test`.
 
-### 测试视角
+### Tester Perspective
 
-测试人员的主路径：
+Primary tester workflow:
 
-1. 进入测试环境矩阵，查看每个应用在 `test`、`sit`、`uat` 等环境的当前版本。
-2. 选择待测应用环境，查看本次变更包含哪些服务、镜像、提交、配置和数据库变更。
-3. 触发测试工作流，包括接口测试、UI 自动化、冒烟、性能基线或人工验证任务。
-4. 查看测试报告、失败用例、关联日志、环境健康和阻塞项。
-5. 将验证通过的 Release Bundle 标记为可升级，或退回开发修复。
-6. 在需要时创建缺陷、补充验证说明或冻结环境。
+1. Open the test environment matrix to inspect active versions of each application across environments such as `test`, `sit`, and `uat`.
+2. Select an application environment under test to review which services, images, commits, configurations, and database changes are included.
+3. Trigger test workflows covering API tests, UI automation, smoke checks, performance baselines, or manual verification tasks.
+4. Inspect test reports, failed cases, correlated logs, environment health, and blockers.
+5. Mark a verified Release Bundle as promotable, or return it to engineering for fixes.
+6. File defects, attach verification notes, or freeze an environment when needed.
 
-测试页面需要强调：
+Tester-facing views emphasize:
 
-- 环境维度优先，其次才是服务维度。
-- 一个环境当前正在验证哪个 Release Bundle。
-- 测试任务、测试报告和环境健康必须能追溯到服务和容器镜像。
-- 测试通过不是发布成功的替代品，而是后续预发或生产发布的质量门禁输入。
+- Environment dimension first, followed by individual services.
+- Which Release Bundle an environment is currently validating.
+- End-to-end traceability from test tasks, test reports, and environment health back to services and container images.
+- Treating a passing test result as a quality-gate input for subsequent pre-production or production release rather than a substitute for release completion.
 
-## 信息架构
+## Information Architecture
 
-应用交付工作台建议收敛为以下一级/二级页面。
+The application delivery workbench converges onto the following primary and secondary surfaces.
 
-| 页面 | 面向角色 | 目的 |
+| Surface | Target Roles | Purpose |
 | --- | --- | --- |
-| 应用中心 | 开发、测试、发布 | 以应用卡片和列表进入交付上下文 |
-| 应用详情 | 开发、测试 | 应用总览、服务、环境、流水线、交付物、测试报告 |
-| 服务组件 | 开发 | 管理应用下的服务、容器、端口、构建来源和部署目标 |
-| 环境矩阵 | 测试、发布 | 按环境查看应用版本、服务状态、测试状态和升级门禁 |
-| CI/CD 工作流 | 开发、测试、平台 | 维护可复用 DAG 模板和应用环境绑定使用的流程 |
-| 交付物中心 | 开发、测试、发布 | 查看 Release Bundle、镜像、包、报告、SBOM 和部署证据 |
-| 执行任务 | 平台、开发 | 查看 runner/job 执行状态、日志、心跳、取消和重试 |
-| 流程审批节点 | 发布、平台 | 在发布流程模板中管理测试升级、预发、生产发布等门禁 |
+| Application Center | Developers, Testers, Release Engineers | Enter delivery context through application cards and lists |
+| Application Detail | Developers, Testers | Application overview, services, environments, pipelines, deliverables, and test reports |
+| Service Components | Developers | Manage services, containers, ports, build sources, and deployment targets under an application |
+| Environment Matrix | Testers, Release Engineers | Inspect application versions, service health, test status, and promotion gates by environment |
+| CI/CD Workflows | Developers, Testers, Platform Engineers | Maintain reusable DAG templates and workflows bound to application environments |
+| Deliverable Center | Developers, Testers, Release Engineers | Inspect Release Bundles, images, packages, reports, SBOMs, and deployment evidence |
+| Execution Tasks | Platform Engineers, Developers | Inspect runner/job execution status, logs, heartbeats, cancellations, and retries |
+| Workflow Approval Nodes | Release Engineers, Platform Engineers | Manage test-promotion, pre-production, and production release gates inside workflow templates |
 
-现有页面可以这样归位：
+Existing routes align as follows:
 
-- `/applications` 继续作为应用中心。
-- `/applications/:applicationId` 扩展为应用详情工作台。
-- `/delivery/environments` 作为平台环境只读目录；应用环境绑定只在应用详情维护，`/application-environments` 暂留只读兼容索引。
-- `/workflow-templates` 继续作为 DAG 模板管理面。
-- `/delivery/release-bundles` 作为交付物中心的控制面列表。
-- `/delivery/execution-tasks` 作为执行任务和日志查看面。
-- `/release-board` 演进为环境矩阵或发布矩阵。
+- `/applications` remains the Application Center.
+- `/applications/:applicationId` expands into the Application Detail workbench.
+- `/delivery/environments` serves as the read-only platform environment catalog; application-environment bindings are maintained inside Application Detail, while `/application-environments` remains a read-only compatibility index.
+- `/workflow-templates` continues as the DAG template management surface.
+- `/delivery/release-bundles` serves as the control-plane list for the Deliverable Center.
+- `/delivery/execution-tasks` serves as the execution task and log inspection surface.
+- `/release-board` evolves into the Environment Matrix / Release Matrix.
 
-## 核心对象模型
+## Core Object Model
 
-### 已有对象
+### Existing Objects
 
-| 对象 | 当前职责 | 方案中的定位 |
+| Object | Current Responsibility | Role in This Design |
 | --- | --- | --- |
-| `applications` | 应用注册、仓库元数据、构建来源聚合 | 应用级入口和权限/归属边界 |
-| `application_build_sources` | 应用的多构建来源 | 服务或应用级 CI 输入来源 |
-| `application_environments` | 应用与环境的绑定 | 环境级交付策略、工作流模板和目标集合 |
-| `release_targets` | 集群、命名空间、工作负载、容器目标 | 服务容器部署目标，可继续扩展 group/wave/region |
-| `workflow_templates` | DAG 模板定义 | CI/CD 编排模板 |
-| `release_bundles` | 不可变交付版本包 | 应用或服务组合版本 |
-| `execution_tasks` | 执行平面任务 | 构建、测试、部署、扫描、通知等任务实例 |
-| `execution_logs` | 执行日志 | 工作流和任务的证据流 |
-| `workflow_approvals` | 流程审批记录 | 发布流程 `manual_approval` 节点的审批决策和关联元数据 |
+| `applications` | Application registration, repository metadata, and build-source aggregation | Application-level entry point and ownership/permission boundary |
+| `application_build_sources` | Multiple build sources per application | Service-level or application-level CI input sources |
+| `application_environments` | Binding between an application and an environment | Environment-scoped delivery policy, workflow template, and target set |
+| `release_targets` | Cluster, namespace, workload, and container targets | Service container deployment targets, extensible with group/wave/region |
+| `workflow_templates` | DAG template definitions | CI/CD orchestration templates |
+| `release_bundles` | Immutable delivery version bundles | Composite version of an application or service set |
+| `execution_tasks` | Execution-plane task records | Task instances for build, test, deploy, scan, notification, and related steps |
+| `execution_logs` | Execution log entries | Evidence stream for workflows and tasks |
+| `workflow_approvals` | Workflow approval records | Approval decisions and correlation metadata for `manual_approval` nodes |
 
-### 新增建议对象
+### Proposed Objects
 
-#### 应用服务 `application_services`
+#### Application Services (`application_services`)
 
-应用服务是应用内可独立构建、测试、部署和观测的最小业务组件。
+An application service is the smallest business component inside an application that can be built, tested, deployed, and observed independently.
 
-建议字段：
+Proposed fields:
 
 - `id`
 - `application_id`
 - `key`
 - `name`
 - `description`
-- `service_kind`: `kubernetes_workload`、`helm_release`、`external_service`、`job`
+- `service_kind`: `kubernetes_workload`, `helm_release`, `external_service`, `job`
 - `owner_team`
 - `repository_provider`
 - `repository_project_id`
@@ -137,18 +137,18 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 - `enabled`
 - `metadata`
 
-说明：
+Notes:
 
-- 单体应用可以只有一个服务。
-- 微服务应用可以包含多个服务。
-- 一个服务可以复用应用级仓库，也可以覆盖自己的仓库和构建来源。
-- 服务不直接等于 Kubernetes Deployment。Deployment 是某个环境中的运行目标。
+- A monolithic application can contain a single service.
+- A microservice application can contain multiple services.
+- A service can inherit the application-level repository or override its own repository and build source.
+- A service is not 1:1 with a Kubernetes Deployment; a Deployment is a runtime target inside a specific environment.
 
-#### 服务容器 `application_service_containers`
+#### Service Containers (`application_service_containers`)
 
-服务容器描述服务内需要被构建、发布或观测的容器单元。
+Service containers describe individual container units within a service that are built, released, or observed.
 
-建议字段：
+Proposed fields:
 
 - `id`
 - `service_id`
@@ -163,17 +163,17 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 - `health_check`
 - `metadata`
 
-说明：
+Notes:
 
-- 一个服务可包含 `main`、`sidecar`、`init` 等多个容器。
-- CI 任务产出的镜像应绑定到具体容器，而不是只绑定到应用。
-- 发布时允许只更新某个服务的某个容器。
+- A service may include `main`, `sidecar`, `init`, and other containers.
+- Images produced by CI tasks bind to a specific container rather than only to the parent application.
+- Releases can update a single container on a single service selectively.
 
-#### 环境服务实例 `application_environment_services`
+#### Environment Service Instances (`application_environment_services`)
 
-环境服务实例表示某个服务在某个应用环境中的配置和状态。
+An environment service instance represents the configuration and version state of a service inside a specific application environment.
 
-建议字段：
+Proposed fields:
 
 - `id`
 - `application_environment_id`
@@ -186,51 +186,51 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 - `enabled`
 - `metadata`
 
-说明：
+Notes:
 
-- 同一个应用服务在 `dev`、`test`、`prod` 环境可以有不同变量、目标、资源规格和发布策略。
-- 环境服务实例是测试人员理解“当前环境包含哪些服务版本”的关键对象。
+- The same application service can carry distinct variables, targets, resource profiles, and rollout policies across `dev`, `test`, and `prod`.
+- Environment service instances give testers a clear view of which service versions currently make up an environment.
 
-#### 服务部署目标 `application_service_targets`
+#### Service Deployment Targets (`application_service_targets`)
 
-可以逐步从 `release_targets` 扩展或派生，不急于替换现表。
+Can evolve incrementally from or alongside `release_targets` without requiring an immediate table replacement.
 
-建议语义：
+Proposed semantics:
 
-- 绑定 `application_environment_service_id`
-- 指向 `cluster_id`、`namespace`、`workload_kind`、`workload_name`、`container_name`
-- 保留 `targetKind`、`executorKind`、`groupKey`、`waveKey`、`regionKey`、`configRef`
+- Binds `application_environment_service_id`
+- Points to `cluster_id`, `namespace`, `workload_kind`, `workload_name`, and `container_name`
+- Preserves `targetKind`, `executorKind`, `groupKey`, `waveKey`, `regionKey`, and `configRef`
 
-说明：
+Notes:
 
-- `release_targets` 当前已经能表达 Deployment 容器目标。
-- 新对象的意义是把目标从“应用环境”进一步下沉到“服务环境实例”。
-- 初期可以保持后端兼容：没有服务实例时继续使用 `release_targets`。
+- `release_targets` already expresses Deployment container targets.
+- The new object refines target binding from the application-environment level down to the environment-service-instance level.
+- Backend compatibility is preserved initially by falling back to `release_targets` when no service instance is present.
 
-#### 测试配置 `test_plans`
+#### Test Plans (`test_plans`)
 
-测试配置描述可复用测试能力。
+Test plans define reusable test definitions.
 
-建议字段：
+Proposed fields:
 
 - `id`
 - `application_id`
 - `service_id`
 - `key`
 - `name`
-- `test_kind`: `unit`、`api`、`ui`、`smoke`、`performance`、`security`
-- `runner_kind`: `ci_agent_runner`、`k8s_job_runner`、`external`
+- `test_kind`: `unit`, `api`, `ui`, `smoke`, `performance`, `security`
+- `runner_kind`: `ci_agent_runner`, `k8s_job_runner`, `external`
 - `command`
 - `repository_ref`
 - `variable_schema`
 - `report_pattern`
 - `enabled`
 
-#### 测试运行 `test_runs`
+#### Test Runs (`test_runs`)
 
-测试运行记录一次测试执行和报告。
+Test runs record individual test executions and their reports.
 
-建议字段：
+Proposed fields:
 
 - `id`
 - `application_id`
@@ -245,16 +245,16 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 - `started_at`
 - `finished_at`
 
-说明：
+Notes:
 
-- 测试运行必须能关联 Release Bundle、服务、环境和执行任务。
-- 测试报告作为交付物进入统一交付物中心。
+- Every test run correlates back to its Release Bundle, service, environment, and execution task.
+- Test reports enter the unified Deliverable Center as first-class artifacts.
 
-#### 交付物策略 `artifact_policies`
+#### Artifact Policies (`artifact_policies`)
 
-交付物策略定义产物命名、保留、晋级和准入。
+Artifact policies govern deliverable naming, retention, promotion, and admission gates.
 
-建议字段：
+Proposed fields:
 
 - `id`
 - `key`
@@ -267,68 +267,68 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 - `sbom_required`
 - `metadata`
 
-## 环境模型
+## Environment Model
 
-环境从应用中心内维护，不再依赖独立的全局环境主数据页面。每个应用可以用自己的环境标签组织交付策略和运行态绑定。
+Environments are organized from within the Application Center without depending on a standalone mutable global environment master-data editor. Each application organizes delivery policies and runtime bindings around environment labels.
 
-| 层级 | 对象 | 说明 |
+| Layer | Object | Description |
 | --- | --- | --- |
-| 应用环境标签 | `application_environments.environment_id` / `environment_key` | 应用内定义 `dev`、`test`、`sit`、`uat`、`pre`、`prod` 等标签，不要求预先维护全局环境记录 |
-| 应用环境绑定 | `application_environments` | 某个应用在某个环境标签中的交付策略、工作流模板、构建策略、发布策略和目标集合 |
-| 环境服务实例 | `application_environment_services` | 某个服务在某个应用环境中的启用状态、变量、当前版本和目标集合 |
-| 服务部署目标 | `release_targets` 或 `application_service_targets` | 指向真实 Kubernetes 工作负载、容器或其他执行目标 |
+| Application environment label | `application_environments.environment_id` / `environment_key` | Defines labels such as `dev`, `test`, `sit`, `uat`, `pre`, and `prod` within an application without requiring pre-created mutable global records |
+| Application-environment binding | `application_environments` | Delivery policy, workflow template, build policy, release policy, and target set for an application in an environment label |
+| Environment service instance | `application_environment_services` | Enablement state, variables, current version, and target set of a service in an application environment |
+| Service deployment target | `release_targets` or `application_service_targets` | Points to concrete Kubernetes workloads, containers, or other execution targets |
 
-推荐环境语义：
+Recommended environment semantics:
 
-| 环境 | 默认动作 | 审批 | 典型用户 | 版本来源 |
+| Environment | Default Action | Approval | Typical Users | Version Source |
 | --- | --- | --- | --- | --- |
-| `dev` | 构建并部署 | 默认不需要 | 开发 | 分支、提交、临时镜像 |
-| `test` / `sit` | 部署并测试 | 可选 | 测试 | 候选 Release Bundle |
-| `uat` | 验收验证 | 通常需要 | 测试、业务 | 测试通过的 Release Bundle |
-| `pre` | 预发布 | 需要 | 发布、运维 | 待上线 Release Bundle |
-| `prod` | 正式发布 | 必须需要 | 发布、运维 | 已审批 Release Bundle |
+| `dev` | Build and deploy | Not required by default | Developers | Branch, commit, or ephemeral image |
+| `test` / `sit` | Deploy and test | Optional | Testers | Candidate Release Bundle |
+| `uat` | Acceptance verification | Typically required | Testers, Business Stakeholders | Test-verified Release Bundle |
+| `pre` | Pre-production rollout | Required | Release Engineers, Operations | Release-candidate Release Bundle |
+| `prod` | Production release | Mandatory | Release Engineers, Operations | Approved Release Bundle |
 
-前端用语要求：
+Frontend terminology rules:
 
-- `dev/test/pre` 可以显示为“部署”，即使底层仍使用同一个 orchestration 模型。
-- `prod` 应显示为“发布”，并突出审批、窗口、回滚和审计。
-- 测试环境的主入口是“当前待测版本”和“测试结论”，不是单纯 Pod 状态。
+- `dev`, `test`, and `pre` use "Deploy" terminology in the UI even though they share the same underlying orchestration model.
+- `prod` uses "Release" terminology and highlights approvals, change windows, rollbacks, and audit trails.
+- Test environment views lead with the candidate version under test and test verdict rather than raw Pod status alone.
 
-## 多服务与容器设计
+## Multi-Service and Container Design
 
-应用详情应新增服务组件视图。
+Application Detail introduces a dedicated Service Components view.
 
-服务组件卡片建议展示：
+Recommended fields on each service component card:
 
-- 服务名、负责人、语言、仓库、默认分支。
-- 当前各环境版本：`dev`、`test`、`uat`、`prod`。
-- 容器列表：容器名、镜像仓库、当前镜像、最近构建、健康检查。
-- 运行目标：集群、命名空间、工作负载、容器名。
-- 快捷动作：构建、部署到开发、部署到测试、查看日志、查看事件、回滚。
+- Service name, owner, language/runtime, repository, and default branch.
+- Active version per environment (`dev`, `test`, `uat`, `prod`).
+- Container list: container name, image repository, active image, latest build, and health check.
+- Runtime targets: cluster, namespace, workload, and container name.
+- Quick actions: build, deploy to `dev`, deploy to `test`, view logs, view events, and roll back.
 
-服务详情建议分为：
+Recommended sections in Service Detail:
 
-- 总览：最近构建、最近部署、当前环境状态。
-- 容器：镜像、Dockerfile、构建上下文、端口、环境变量 schema。
-- 构建：构建来源、构建模板、构建参数、最近构建记录。
-- 环境：每个环境的变量、目标、当前版本、部署策略。
-- 测试：关联测试配置、最近测试运行、报告。
-- 运行态：Deployment、Pod、Service、Ingress、事件和日志。
+- Overview: latest builds, latest deployments, and current environment health.
+- Containers: images, Dockerfile path, build context, ports, and environment-variable schema.
+- Builds: build sources, build templates, build parameters, and recent build history.
+- Environments: per-environment variables, targets, active versions, and deployment strategies.
+- Tests: associated test plans, recent test runs, and reports.
+- Runtime: Deployments, Pods, Services, Ingresses, events, and logs.
 
-容器更新规则：
+Container update rules:
 
-- CI 构建产物绑定到 `service + container`。
-- CD 部署节点从 Release Bundle 选择目标容器镜像。
-- 如果一个服务有多个容器，DAG 必须允许只构建或只更新其中一部分。
-- Sidecar 和 init container 默认不作为独立服务，但可以成为服务下的容器条目。
+- CI build outputs bind to `service + container`.
+- CD deployment nodes select target container images from a Release Bundle.
+- When a service contains multiple containers, DAG workflows allow building or updating a subset of containers selectively.
+- Sidecar and init containers are modeled as container entries under a service rather than standalone services by default.
 
-## CI/CD DAG 编排
+## CI/CD DAG Orchestration
 
-现有 `workflow_templates.definition` 已支持 `release_dag`，前端已有 DAG 编辑器。后续应把 DAG 从“发布流程模板”扩展为“CI/CD 工作流模板”。
+`workflow_templates.definition` already supports `release_dag`, and the frontend already includes a DAG editor. The next evolution generalizes DAG definitions from release-only templates into full CI/CD workflow templates.
 
-### DAG 结构
+### DAG Structure
 
-推荐结构：
+Recommended schema:
 
 ```json
 {
@@ -340,7 +340,7 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 }
 ```
 
-节点公共字段：
+Common node fields:
 
 - `id`
 - `type`
@@ -348,119 +348,119 @@ soha 不照搬 Zadig 的对象命名。当前控制面已经拥有 `applications
 - `timeoutSeconds`
 - `continueOnFailure`
 - `dependsOn`
-- `runPolicy`: `always`、`on_success`、`on_failure`
+- `runPolicy`: `always`, `on_success`, `on_failure`
 - `serviceSelector`
 - `environmentSelector`
 - `config`
 
-边公共字段：
+Common edge fields:
 
 - `source`
 - `target`
-- `condition`: `success`、`failure`、`always`
+- `condition`: `success`, `failure`, `always`
 
-### 节点类型
+### Node Types
 
-建议从以下节点类型扩展：
+Proposed node catalog:
 
-| 类型 | 作用 | 产出 |
+| Type | Purpose | Output |
 | --- | --- | --- |
-| `checkout` | 拉取代码或固定提交 | 源码快照 |
-| `build_image` | 构建服务容器镜像 | 镜像交付物 |
-| `build_package` | 构建二进制、前端包或 Helm 包 | 文件交付物 |
-| `unit_test` | 单元测试 | 测试报告 |
-| `code_scan` | 代码扫描、安全扫描 | 扫描报告 |
-| `package_bundle` | 组合多服务产物为 Release Bundle | Release Bundle |
-| `deploy_service` | 部署一个或多个服务 | 部署记录 |
-| `deploy_environment` | 按环境服务编排部署 | 部署记录集合 |
-| `wait_rollout` | 等待 Kubernetes rollout | rollout 证据 |
-| `smoke_test` | 冒烟测试 | 测试运行 |
-| `api_test` | 接口自动化测试 | 测试报告 |
-| `performance_test` | 性能测试 | 性能报告 |
-| `manual_approval` | 人工审批 | 审批记录 |
-| `promote_bundle` | 晋级 Release Bundle | 晋级记录 |
-| `rollback` | 回滚服务或环境 | 回滚记录 |
-| `notify` | 通知 IM、邮件或 webhook | 通知记录 |
-| `http_callback` | 调用外部系统 | 外部回执 |
+| `checkout` | Check out source code or a pinned commit | Source snapshot |
+| `build_image` | Build a service container image | Image artifact |
+| `build_package` | Build a binary, frontend bundle, or Helm package | File artifact |
+| `unit_test` | Run unit tests | Test report |
+| `code_scan` | Run static analysis or security scanning | Scan report |
+| `package_bundle` | Assemble multi-service artifacts into a Release Bundle | Release Bundle |
+| `deploy_service` | Deploy one or more services | Deployment record |
+| `deploy_environment` | Orchestrate service deployments across an environment | Set of deployment records |
+| `wait_rollout` | Wait for Kubernetes rollout completion | Rollout evidence |
+| `smoke_test` | Run smoke verification | Test run |
+| `api_test` | Run automated API tests | Test report |
+| `performance_test` | Run performance tests | Performance report |
+| `manual_approval` | Require human approval | Approval record |
+| `promote_bundle` | Promote a Release Bundle | Promotion record |
+| `rollback` | Roll back a service or environment | Rollback record |
+| `notify` | Send IM, email, or webhook notifications | Notification record |
+| `http_callback` | Invoke an external HTTP endpoint | External callback receipt |
 
-现有节点兼容关系：
+Compatibility mapping for existing node types:
 
-- `build` 可兼容为 `build_image`。
-- `deploy_update_image` 可兼容为 `deploy_service`。
-- `check_http`、`smoke_test`、`manual_approval`、`notify`、`rollback_to_previous` 保持语义。
+- `build` maps compatibly to `build_image`.
+- `deploy_update_image` maps compatibly to `deploy_service`.
+- `check_http`, `smoke_test`, `manual_approval`, `notify`, and `rollback_to_previous` retain their existing semantics.
 
-### 典型开发流水线
+### Typical Development Pipeline
 
-适用于分支开发和联调环境。
+Designed for feature-branch development and shared integration environments.
 
 1. `checkout`
-2. `build_image`，可对多个服务并行执行。
+2. `build_image` (can run in parallel across multiple services)
 3. `unit_test`
-4. `deploy_service` 到 `dev`
+4. `deploy_service` to `dev`
 5. `wait_rollout`
 6. `smoke_test`
 7. `notify`
 
-特点：
+Characteristics:
 
-- 默认不需要审批。
-- 允许开发只选择一个服务执行。
-- 产物可以是临时 Bundle，但仍要记录镜像、提交和任务日志。
+- Requires no manual approval by default.
+- Allows developers to target a single service.
+- May produce an ephemeral Bundle while still recording images, commits, and task logs.
 
-### 典型测试流水线
+### Typical Testing Pipeline
 
-适用于测试环境验证。
+Designed for test-environment validation.
 
 1. `package_bundle`
-2. `deploy_environment` 到 `test`
+2. `deploy_environment` to `test`
 3. `wait_rollout`
-4. `api_test` 和 `ui_test` 并行。
-5. `performance_test` 可选。
-6. `manual_approval` 或测试确认。
-7. `promote_bundle` 到 `uat` 或 `pre`。
+4. `api_test` and `ui_test` in parallel
+5. `performance_test` (optional)
+6. `manual_approval` or tester sign-off
+7. `promote_bundle` to `uat` or `pre`
 
-特点：
+Characteristics:
 
-- 以 Release Bundle 为输入，不建议直接选择任意分支部署。
-- 测试报告是门禁输入。
-- 失败时可进入 `rollback` 或 `notify` 分支。
+- Takes a Release Bundle as input rather than deploying arbitrary ad-hoc branches directly.
+- Uses test reports as quality-gate inputs.
+- Routes failures into `rollback` or `notify` branches.
 
-### 典型生产发布流水线
+### Typical Production Release Pipeline
 
-适用于生产变更。
+Designed for production changes.
 
 1. `manual_approval`
 2. `promote_bundle`
-3. `deploy_environment` 到 `prod`，按 `groupKey`、`waveKey`、`regionKey` 分批。
+3. `deploy_environment` to `prod`, staged across `groupKey`, `waveKey`, and `regionKey`
 4. `wait_rollout`
 5. `smoke_test`
-6. `create_silence` 或解除静默。
+6. `create_silence` or alert-silence teardown
 7. `notify`
-8. 失败分支进入 `rollback`。
+8. Failure branch transitions into `rollback`
 
-特点：
+Characteristics:
 
-- 必须有审批、审计、操作日志和发布窗口。
-- `release_targets` 的 `groupKey`、`waveKey`、`regionKey` 应用于分组、波次和地域编排。
-- 生产发布不应允许浏览器临时拼接目标。
+- Enforces approvals, audit trails, operation logs, and release windows.
+- Uses `groupKey`, `waveKey`, and `regionKey` on `release_targets` for group, wave, and regional rollout orchestration.
+- Never permits ad-hoc target assembly from the browser during production releases.
 
-## 交付物设计
+## Deliverable Design
 
-Release Bundle 是交付版本的主对象。
+A Release Bundle is the primary versioned deliverable object.
 
-一个 Release Bundle 可以包含：
+A Release Bundle can contain:
 
-- 镜像：`image`，带 registry、repository、tag、digest。
-- 文件包：`package`，例如 tar、zip、jar、前端静态包。
-- Helm Chart 或 Kustomize 输出。
-- Kubernetes manifest 渲染结果。
-- SBOM。
-- 签名和摘要。
-- 测试报告。
-- 扫描报告。
-- 部署证据：rollout、Pod 状态、事件摘要。
+- Container images (`image`) with registry, repository, tag, and digest.
+- File packages (`package`) such as `tar`, `zip`, `jar`, or static frontend bundles.
+- Helm Charts or Kustomize outputs.
+- Rendered Kubernetes manifests.
+- SBOM documents.
+- Cryptographic signatures and digests.
+- Test reports.
+- Security/code scan reports.
+- Deployment evidence: rollout status, Pod health, and event summaries.
 
-建议 Bundle 结构：
+Proposed Bundle payload structure:
 
 ```json
 {
@@ -491,19 +491,19 @@ Release Bundle 是交付版本的主对象。
 }
 ```
 
-交付物页面必须支持：
+The Deliverable Center supports:
 
-- 按应用、环境、服务、状态筛选。
-- 查看 Bundle 中每个服务和容器的镜像。
-- 查看生成该产物的 DAG、执行任务和日志。
-- 查看测试、扫描、审批、部署证据。
-- 对通过质量门禁的 Bundle 执行晋级或发布。
+- Filtering by application, environment, service, and status.
+- Inspecting container images for every service and container in a Bundle.
+- Tracing back to the originating DAG workflow, execution tasks, and logs.
+- Reviewing test, scan, approval, and deployment evidence.
+- Promoting or releasing Bundles that have passed quality gates.
 
-## API 设计方向
+## API Design Direction
 
-建议新增或扩展 API。
+Proposed new and extended API routes.
 
-### 应用服务
+### Application Services
 
 - `GET /api/v1/applications/:applicationID/services`
 - `POST /api/v1/applications/:applicationID/services`
@@ -512,13 +512,13 @@ Release Bundle 是交付版本的主对象。
 - `DELETE /api/v1/applications/:applicationID/services/:serviceID`
 - `GET /api/v1/applications/:applicationID/services/:serviceID/runtime`
 
-### 环境服务
+### Environment Services
 
 - `GET /api/v1/application-environments/:applicationEnvironmentID/services`
 - `PUT /api/v1/application-environments/:applicationEnvironmentID/services`
 - `GET /api/v1/application-environments/:applicationEnvironmentID/services/:serviceID/detail`
 
-### 测试
+### Testing
 
 - `GET /api/v1/delivery/test-plans`
 - `POST /api/v1/delivery/test-plans`
@@ -528,17 +528,17 @@ Release Bundle 是交付版本的主对象。
 - `GET /api/v1/delivery/test-runs/:testRunID`
 - `POST /api/v1/delivery/test-runs`
 
-### 交付物
+### Deliverables
 
-现有 `release_bundles` 和 `execution_tasks.artifacts[]` 可先复用。后续可新增：
+Existing `release_bundles` and `execution_tasks.artifacts[]` provide the initial baseline, extensible with:
 
 - `GET /api/v1/delivery/artifacts`
 - `GET /api/v1/delivery/artifacts/:artifactID`
 - `POST /api/v1/delivery/release-bundles/:bundleID/promote`
 
-### 工作流
+### Workflows
 
-当前 `workflow_templates.definition` 可以兼容新 schema。建议新增：
+`workflow_templates.definition` remains backward-compatible with the new schema, supplemented by:
 
 - `POST /api/v1/workflows/preview-dag`
 - `POST /api/v1/workflows/:workflowTemplateID/validate`
@@ -546,110 +546,110 @@ Release Bundle 是交付版本的主对象。
 - `POST /api/v1/workflow-runs/:workflowRunID/cancel`
 - `POST /api/v1/workflow-runs/:workflowRunID/retry-node`
 
-## 后端分层
+## Backend Layering
 
-推荐模块归属：
+Recommended module ownership:
 
 - `internal/application/app`
-  - 应用和应用服务编排。
-  - 服务仓库、构建来源、容器定义校验。
+  - Application and application-service orchestration.
+  - Validation of service repositories, build sources, and container definitions.
 - `internal/application/delivery`
-  - 应用详情聚合。
-  - 环境矩阵聚合。
-  - 服务运行态聚合。
+  - Application detail aggregation.
+  - Environment matrix aggregation.
+  - Service runtime aggregation.
 - `internal/application/workflow`
-  - DAG 校验、运行、节点状态推进。
-  - 节点到 execution task 的转换。
+  - DAG validation, execution, and node state progression.
+  - Translation from DAG nodes into execution tasks.
 - `internal/application/build`
-  - 构建节点执行入口。
-  - 镜像和包交付物元数据回填。
+  - Entry point for build node execution.
+  - Image and package artifact metadata backfill.
 - `internal/application/release`
-  - 部署、发布、回滚节点执行入口。
-  - Kubernetes 目标更新和发布记录。
+  - Entry point for deploy, release, and rollback node execution.
+  - Kubernetes target updates and release record persistence.
 - `internal/application/execution`
-  - runner claim、callback、heartbeat、取消、重试、日志和 artifact 归一。
+  - Runner claim, callback, heartbeat, cancellation, retry, log, and artifact normalization.
 - `internal/application/test`
-  - 测试配置、测试运行、测试报告归档。
+  - Test plan management, test run orchestration, and test report archiving.
 - `internal/repository/application`
-  - 应用服务和服务容器持久化。
+  - Persistence for application services and service containers.
 - `internal/repository/delivery`
-  - Bundle、execution task、artifact。
+  - Persistence for Bundles, execution tasks, and artifacts.
 - `internal/repository/test`
-  - test plan 和 test run。
+  - Persistence for test plans and test runs.
 
-控制面规则：
+Control-plane engineering rules:
 
-- HTTP handler 只做 request/response 和 principal 解析。
-- 应用服务、环境服务、DAG 运行语义放在 application 层。
-- 构建、测试、扫描、部署长任务只能进入 execution plane。
-- 回调必须通过 `internal/application/execution`，不能绕过统一任务状态同步。
+- HTTP handlers perform request/response binding and principal resolution only.
+- Application-service, environment-service, and DAG execution semantics live in the application layer.
+- Long-running build, test, scan, and deployment work always dispatches to the execution plane.
+- All runner callbacks route through `internal/application/execution` rather than bypassing unified task state synchronization.
 
-## 前端页面设计
+## Frontend Page Design
 
-### 应用中心
+### Application Center
 
-列表字段：
+List columns:
 
-- 应用名、应用分组、负责人、服务数、环境数、最近 Bundle、最近执行状态。
-- 开发环境状态、测试环境状态、生产版本。
-- 快捷入口：详情、构建、环境矩阵、交付物。
+- Application name, application group, owner, service count, environment count, latest Bundle, and latest execution status.
+- Development status, test status, and active production version.
+- Quick links: Detail, Build, Environment Matrix, and Deliverables.
 
-筛选：
+Filters:
 
-- 我的应用。
-- 应用分组。
-- 语言/技术栈。
-- 环境状态。
-- 最近失败。
+- My applications.
+- Application group.
+- Language / tech stack.
+- Environment health.
+- Recent failures.
 
-### 应用详情
+### Application Detail
 
-推荐 tabs：
+Recommended tabs:
 
-- 总览：应用健康、环境版本、最近执行、质量门禁。
-- 服务：多服务列表和服务详情入口。
-- 环境：应用环境矩阵。
-- 流水线：绑定的 DAG 模板和最近运行。
-- 交付物：Release Bundle 和 artifact。
-- 测试：测试计划、测试运行和报告。
-- 变更：提交、部署、审批、审计和操作日志。
+- Overview: application health, environment versions, recent executions, and quality gates.
+- Services: multi-service list and entry into Service Detail.
+- Environments: per-application environment matrix.
+- Pipelines: bound DAG templates and recent runs.
+- Deliverables: Release Bundles and artifacts.
+- Tests: test plans, test runs, and reports.
+- Changes: commits, deployments, approvals, audit records, and operation logs.
 
-### 服务详情
+### Service Detail
 
-推荐布局：
+Recommended layout:
 
-- 左侧服务元数据和环境选择。
-- 中间容器、构建、部署目标和测试配置。
-- 右侧最近任务、日志、事件和失败诊断。
+- Left column: service metadata and environment switcher.
+- Center column: containers, builds, deployment targets, and test configurations.
+- Right column: recent tasks, logs, events, and failure diagnostics.
 
-### 环境矩阵
+### Environment Matrix
 
-环境矩阵按环境列、应用/服务行展示：
+Displays environments as columns and applications/services as rows:
 
-- 当前版本。
-- 目标版本。
-- 部署状态。
-- 测试状态。
-- 门禁状态。
-- 最近失败节点。
+- Current version.
+- Target version.
+- Deployment status.
+- Test status.
+- Quality-gate status.
+- Most recent failed node.
 
-测试人员可以从矩阵进入某个应用环境详情，查看待测 Bundle 的服务清单和报告。
+Testers can drill down from the matrix into a specific application environment to inspect the candidate Bundle's service inventory and test reports.
 
-### DAG 编辑器
+### DAG Editor
 
-现有 React Flow 编辑器继续保留，但需要新增：
+Retains the React Flow editor while adding:
 
-- 节点库按 CI、CD、测试、质量、安全、通知分类。
-- 节点输出声明，例如 `image`、`package`、`testReport`、`bundle`。
-- 节点输入绑定，例如来自前置节点、运行时输入或环境绑定。
-- 服务选择器，支持全部服务、指定服务、运行时选择。
-- 环境选择器，支持绑定环境、运行时选择、固定环境。
-- 分支条件和失败处理。
-- DAG 校验结果面板。
+- Node palette categorized into CI, CD, Testing, Quality, Security, and Notification.
+- Node output declarations such as `image`, `package`, `testReport`, and `bundle`.
+- Node input bindings from upstream nodes, runtime inputs, or environment bindings.
+- Service selectors supporting all services, explicit services, or runtime selection.
+- Environment selectors supporting bound environments, runtime selection, or fixed environments.
+- Branch conditions and failure handling.
+- DAG validation diagnostics panel.
 
-## 权限与范围
+## Permissions and Scopes
 
-建议权限键：
+Proposed permission keys:
 
 - `delivery.applications.view`
 - `delivery.applications.manage`
@@ -668,64 +668,64 @@ Release Bundle 是交付版本的主对象。
 - `delivery.test-runs.execute`
 - `delivery.test-runs.view`
 
-范围规则：
+Scope rules:
 
-- 应用归属分组、团队和环境标签范围。
-- 开发人员默认可操作 `dev` 和个人/团队授权环境。
-- 测试人员默认可操作 `test`、`sit`、`uat` 测试相关动作，但不直接拥有生产发布权。
-- 生产发布、回滚和发布流程审批节点变更必须独立授权。
+- Applications are scoped by application group, owning team, and environment labels.
+- Developers default to operating `dev` and authorized personal/team environments.
+- Testers default to test-related actions in `test`, `sit`, and `uat` without holding production release privileges directly.
+- Production releases, rollbacks, and changes to workflow approval gates require separate explicit authorization.
 
-## 迭代路线
+## Iteration Roadmap
 
-### Phase 1：应用服务建模
+### Phase 1: Application Service Modeling
 
-- 新增应用服务和服务容器模型。
-- 应用详情新增服务 tab。
-- 服务与现有 build source、release target 建立映射。
-- Release Bundle 展示服务/容器级 artifact。
+- Introduce application service and service container models.
+- Add the Services tab to Application Detail.
+- Map services to existing build sources and release targets.
+- Surface service-level and container-level artifacts on Release Bundles.
 
-### Phase 2：环境服务和测试闭环
+### Phase 2: Environment Services and Test Closed Loop
 
-- 新增环境服务实例。
-- Release board 演进为环境矩阵。
-- 新增 test plan 和 test run。
-- 测试报告进入 artifact 视图。
+- Introduce environment service instances.
+- Evolve the release board into the Environment Matrix.
+- Add `test_plans` and `test_runs`.
+- Surface test reports inside artifact views.
 
-### Phase 3：CI/CD DAG 升级
+### Phase 3: CI/CD DAG Upgrade
 
-- `workflow_templates.definition` 升级为 `delivery_dag` schema。
-- DAG 节点支持输入/输出声明。
-- 工作流运行支持服务选择、环境选择和节点重试。
-- 构建、测试、部署节点统一进入 execution task。
+- Upgrade `workflow_templates.definition` to the `delivery_dag` schema.
+- Add node input and output declarations.
+- Support service selection, environment selection, and per-node retry on workflow runs.
+- Unify build, test, and deployment nodes on `execution_tasks`.
 
-### Phase 4：交付物晋级和生产发布
+### Phase 4: Deliverable Promotion and Production Release
 
-- Release Bundle promote API。
-- 环境晋级门禁。
-- 按 group/wave/region 的生产发布编排。
-- 生产回滚、审计、操作日志和通知闭环。
+- Add the Release Bundle promote API.
+- Enforce environment promotion gates.
+- Orchestrate production rollouts across `groupKey`, `waveKey`, and `regionKey`.
+- Close the loop across production rollback, auditing, operation logs, and notifications.
 
-### Phase 5：智能诊断与效能
+### Phase 5: Intelligent Diagnostics and Delivery Efficiency
 
-- 将执行日志、测试报告、Kubernetes 事件和监控指标接入 AI 工作台。
-- 生成失败根因摘要、瓶颈节点、服务质量趋势和环境稳定性报告。
-- 提供测试环境占用、构建耗时和发布成功率分析。
+- Feed execution logs, test reports, Kubernetes events, and monitoring metrics into the AI Workbench.
+- Generate failure root-cause summaries, bottleneck-node analyses, service quality trends, and environment stability reports.
+- Provide analytics on test-environment utilization, build duration, and release success rates.
 
-## 与现有实现的兼容策略
+## Compatibility Strategy With Existing Implementation
 
-- `applications` 继续作为应用入口，不拆成项目对象。
-- `application_build_sources` 保留应用级构建来源，同时允许服务覆盖。
-- `application_environments` 继续作为应用和环境的主绑定对象。
-- `release_targets` 继续服务于当前 Deployment 容器目标，新增服务目标时做兼容映射。
-- `workflow_templates.definition` 保留旧 `release_dag` 兼容解析，新增 `delivery_dag` 不破坏历史模板。
-- `release_bundles` 继续作为不可变版本包，artifact 明细从 execution task result 逐步正规化。
-- `execution_tasks` 继续作为执行平面统一任务，不为构建、测试、部署各造一套任务状态机。
+- `applications` remains the top-level application entry without splitting into a separate project entity.
+- `application_build_sources` retains application-level build sources while allowing per-service overrides.
+- `application_environments` remains the primary binding between applications and environments.
+- `release_targets` continues serving existing Deployment container targets with compatible mapping as service targets are introduced.
+- `workflow_templates.definition` preserves backward-compatible parsing for `release_dag` alongside `delivery_dag`.
+- `release_bundles` remains the immutable version bundle while normalizing artifact details out of execution-task results.
+- `execution_tasks` remains the unified execution-plane task model rather than creating separate state machines for builds, tests, and deployments.
 
-## 非目标
+## Non-Goals
 
-- 不把 soha 改造成 GitOps-only 平台。
-- 不让前端直接拼 Kubernetes manifest 作为主要发布路径。
-- 不在 API handler 内执行构建、测试、扫描或部署长任务。
-- 不把测试报告只作为 execution log 文本保存。
-- 不把生产发布简化为普通开发环境部署按钮。
-- 不要求第一阶段支持所有发布策略，先稳定应用、环境、服务、容器、DAG 和交付物主线。
+- Do not turn soha into a GitOps-only platform.
+- Do not make raw Kubernetes manifest editing in the browser the primary release path.
+- Do not run long-lived build, test, scan, or deployment tasks inline inside API handlers.
+- Do not store test reports solely as unstructured plain text in `execution_logs`.
+- Do not reduce production releases to an unguarded dev-style deploy button.
+- Do not attempt to ship every rollout strategy in Phase 1 before stabilizing the core spine of applications, environments, services, containers, DAG workflows, and deliverables.

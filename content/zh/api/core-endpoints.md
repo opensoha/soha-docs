@@ -1,9 +1,8 @@
-# Core Endpoints
+# 核心端点
 
-本页列出常用 API 分组；完整 operation 与 schema 索引以
-[生成 API reference](./reference/generated/index.md) 为准。
+本页按领域列出常用 HTTP API 分组；完整的操作与 Schema 索引以[生成 API 参考](./reference/generated/index.md)为准。
 
-## Cluster APIs
+## 集群接口
 
 - `GET /api/v1/clusters`
 - `POST /api/v1/clusters`
@@ -20,13 +19,13 @@
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/restart`
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/scale`
 
-`/clusters/capabilities` returns the Direct/Agent runtime capability matrix consumed by Console, CLI, Skills, and external integrations. Each entry includes the capability key, category, required scopes, risk level, approval expectation, documentation URL, and separate Direct/Agent support status with reasons for `partial` or `unsupported` modes.
+`/clusters/capabilities` 返回供控制台、CLI、Skills 与外部集成统一消费的直连（Direct）与 Agent 运行时能力矩阵。每条记录包含能力键、所属分类、所需权限范围、风险等级、审批要求、文档链接，以及分别针对直连模式和 Agent 模式的支持状态与 `partial` 或 `unsupported` 降级原因说明。
 
-## Audit APIs
+## 审计接口
 
 - `GET /api/v1/audit/logs`
 
-## Monitoring APIs
+## 监控与告警接口
 
 - `POST /api/v1/integrations/alerts/webhook`
 - `GET /api/v1/monitoring/summary`
@@ -35,21 +34,21 @@
 - `POST /api/v1/notification-channels`
 - `PUT /api/v1/notification-channels/:channelID`
 
-## AI Settings APIs
+## AI 设置接口
 
 - `GET /api/v1/settings/ai`
 - `PUT /api/v1/settings/ai/workbench-model`
 - `PUT /api/v1/settings/ai/skills`
 
-## Virtualization APIs
+## 虚拟化接口
 
-公开契约覆盖连接、虚拟机、镜像、规格、操作、指标、控制台、同步、取消和重试接口。完整真实源路由与 schema 请查阅[生成 API 参考](./reference/generated/index.md#virtualization)。
+公开契约覆盖连接、虚拟机、镜像、规格、操作、指标、控制台、同步、取消和重试接口。完整真实源路由与 Schema 请查阅[生成 API 参考](./reference/generated/index.md#virtualization)。
 
-PVE 凭据只在创建或更新 payload 中接收，API 响应绝不返回凭据，仅暴露 `credentialConfigured`。
+PVE 凭据仅在创建或更新请求载荷中接收，API 响应绝不回传明文凭据，仅暴露 `credentialConfigured` 布尔标识。
 
-KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明确不支持；客户端必须消费实时 capability 与 VM `allowedActions`，不能假设与 PVE 等价。
+KubeVirt 虚拟化当前要求直连 Kubernetes 客户端，明确不支持 Agent 连接模式；客户端必须读取实时能力矩阵与虚拟机 `allowedActions`，不能假设其操作集与 PVE 完全等价。
 
-## Compute APIs
+## 计算资源接口
 
 - `GET /api/v1/compute/capabilities`
 - `GET /api/v1/compute/overview`
@@ -68,9 +67,9 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 - `POST /api/v1/compute/tasks/:domain/:id/cancel`
 - `POST /api/v1/compute/tasks/:domain/:id/retry`
 
-这些路由均已在 Core 中上线，并委托给已启用的虚拟化或容器运行时 provider。实际可用性仍取决于模块状态、provider 能力和调用方权限。
+这些路由均已在 Core 中上线，并委托给已启用的虚拟化或容器运行时后端执行。实际可用性仍取决于模块启用状态、后端能力与调用方权限。
 
-## Application APIs
+## 应用与交付接口
 
 - `GET /api/v1/applications?search=<optional>&limit=100`
 - `POST /api/v1/applications`
@@ -128,9 +127,9 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 - `GET /api/v1/integrations/gitlab/branches?projectId=<required>&search=<optional>&limit=50`
 - `GET /api/v1/integrations/gitlab/tags?projectId=<required>&search=<optional>&limit=50`
 
-控制台以创建并确认 `DeliveryPlan` 作为唯一交付写入口；直接 build、workflow、release trigger 端点继续作为兼容 API 保留。
+控制台以创建并确认 `DeliveryPlan` 作为唯一交付写入口；直接触发构建、工作流和发布的端点继续作为兼容 API 保留。
 
-## Copilot APIs
+## Copilot 接口
 
 - `GET /api/v1/copilot/insights`
 - `GET /api/v1/copilot/sessions`
@@ -168,11 +167,11 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 - `POST /api/v1/copilot/agent-runs/callback`
 - `POST /api/v1/copilot/agent-runs/tool-call`
 
-`/copilot/agent-runs/claim`, `/copilot/agent-runs/callback`, and `/copilot/agent-runs/tool-call` are runner-facing APIs and require `Authorization: Bearer <runtime.execution_runner_token>`. Tool calls also require the per-run `callbackToken`; the control plane only executes tools present in the `AgentRun.toolBindings` snapshot and records the result as `ToolExecution`.
+`/copilot/agent-runs/claim`、`/copilot/agent-runs/callback` 与 `/copilot/agent-runs/tool-call` 是面向运行器的接口，要求携带 `Authorization: Bearer <runtime.execution_runner_token>`（或具备对应权限的服务账号令牌）。工具调用还必须附带当次运行的专属 `callbackToken`；控制平面仅执行 `AgentRun.toolBindings` 快照中允许的工具，并将执行结果记录为 `ToolExecution`。
 
-`POST /copilot/root-cause/runs` accepts `agentProviderId`, `analysisProfileId`, and `triggerType`. `agentProviderId=internal` runs the built-in analyzer synchronously; external providers such as `hermes` create a queued root-cause business run plus a linked `AgentRun`, then backfill the business run from the runner callback.
+`POST /copilot/root-cause/runs` 接收 `agentProviderId`、`analysisProfileId` 与 `triggerType`。当 `agentProviderId=internal` 时会同步运行内置分析流程；选择 `hermes` 等外部执行器时，服务端会先创建排队状态的根因分析业务运行单及关联的 `AgentRun`，随后由运行器回调写回最终分析结果。
 
-## AI Platform APIs
+## AI 平台接口
 
 - `GET /api/v1/ai/agent-providers/catalog`
 - `GET /api/v1/ai/agent-providers/runtime-status`
@@ -245,9 +244,9 @@ KubeVirt 虚拟化当前要求直连 Kubernetes client。Agent 连接模式明�
 - `POST /api/v1/ai/operations`
 - `GET /api/v1/ai/operations/runbook-evidence`
 
-## AI Gateway APIs
+## AI Gateway 接口
 
-The public OpenAPI contract in `../soha/contracts/openapi/soha-api.yaml` currently covers the Gateway, token, audit, approval, governance, and MCP capability boundaries below:
+公开契约 `../soha/contracts/openapi/soha-api.yaml` 当前覆盖以下 AI Gateway、访问令牌、审计、审批、治理状态、模型中继与 MCP 能力边界：
 
 - `GET /api/v1/ai-gateway/capabilities`
 - `POST /api/v1/ai-gateway/plans/validate`
@@ -324,36 +323,36 @@ The public OpenAPI contract in `../soha/contracts/openapi/soha-api.yaml` current
 - `POST /api/v1/ai-gateway/llm/anthropic/v1/messages`
 - `GET /api/v1/mcp/capabilities`
 
-## Marketplace APIs
+## 插件市场接口
 
 - `GET /api/v1/marketplace/index.json`
 - `GET /api/v1/marketplace/plugins/:pluginID/:version/plugin.manifest.json`
 
-Planned relay contracts in the same OpenAPI artifact, not routed by the backend yet:
+同一 OpenAPI 工件中已预留、但当前后端尚未挂载路由的中继缓存契约端点：
 
 - `GET /api/v1/ai-gateway/relay/cache/stats`
 - `POST /api/v1/ai-gateway/relay/cache/purge`
 
-`/ai-gateway/capabilities` returns the current caller's AI-native tools, resources, prompts, and skills after backend permission filtering. AI clients should send `X-Soha-AI-Client-ID`, `X-Soha-AI-Client`, and `X-Soha-Skill-ID` when available so audit records can distinguish human, service, client, skill, and tool context.
+`/ai-gateway/capabilities` 返回经后端权限过滤后对当前调用主体可见的 AI 原生工具、资源、提示词和技能清单。建议 AI 客户端在可用时附带 `X-Soha-AI-Client-ID`、`X-Soha-AI-Client` 与 `X-Soha-Skill-ID` 请求头，以便审计记录清晰区分人类用户、服务账号、客户端应用、技能与具体工具调用上下文。
 
 `/ai-gateway/plans/validate` 在执行前校验能力计划；`/ai-gateway/tasks` 创建和列出持久化任务，每一步执行时都会重新检查权限和当前条件。恢复任务会创建新的计划版本；取消任务不会回滚已完成步骤的副作用。
 
-`/ai-gateway/tools/:toolName/invoke` is the shared MCP/CLI/AI-agent tool invocation entry point. It must re-check Gateway permission, domain permission, scope, grants, and risk policy, then call the owning application service instead of bypassing soha control-plane logic.
+`/ai-gateway/tools/:toolName/invoke` 是 MCP、CLI 与 AI 智能体共用的统一工具调用入口。该接口必须逐次复核 Gateway 权限、领域权限、资源范围（Scope）、工具授权（Grant）及风险策略，随后委托给所属业务应用服务执行，不得绕过 `soha` 控制平面逻辑。
 
-`/ai-gateway/resources/read` and `/ai-gateway/prompts/get` are the backend-only MCP resource and prompt boundaries. The local `soha mcp` process only proxies these calls; it does not build privileged resource documents or prompt content locally.
+`/ai-gateway/resources/read` 与 `/ai-gateway/prompts/get` 是完全收敛在后端的 MCP 资源读取与提示词获取边界。本地 `soha mcp` 进程仅代理转发这些请求，不在客户端本地拼装受权限保护的资源文档或提示词内容。
 
-`/ai-gateway/governance/status` is the read-only Gateway operations endpoint. It summarizes recent audit data, pending approvals, token/client findings, policy coverage, high-risk guardrail findings, redaction coverage, and resource-scope coverage.
+`/ai-gateway/governance/status` 是只读的 Gateway 治理运营概览端点，用于汇总近期审计统计、待处理审批、令牌与客户端风险发现、策略覆盖率、高风险护栏巡检结果、敏感字段脱敏覆盖率以及资源范围绑定覆盖率。
 
-`/ai-gateway/approval-requests/:requestID/:action` accepts `approve`, `reject`, and `cancel`. The concrete action URLs are documented above for CLI and operator runbook use. Approval replay still happens inside the Gateway application service after it re-checks the original grant, access policy, skill binding, current permissions, and business service authorization.
+`/ai-gateway/approval-requests/:requestID/:action` 支持 `approve`、`reject` 与 `cancel` 三种动作；上方同时列出了展开后的具体动作路径，供 CLI 与运维手册直接调用。审批通过后的重放执行仍在 Gateway 应用服务内完成，并会重新校验原始工具授权、访问策略、技能绑定、当前有效权限与目标业务服务的授权规则。
 
-`/ai-gateway/relay/*` manages model relay upstreams, model routes, model-call logs, and metrics. Response cache stats and purge contracts are planned for the response-cache phase. Management responses use the OpenSoha response envelope and require relay view or manage permissions.
+`/ai-gateway/relay/*` 用于管理模型中继上游（Upstream）、模型路由规则、模型调用日志与运行指标；响应缓存统计与清理契约预留给后续响应缓存阶段。管理类接口统一采用 OpenSoha 标准响应信封，并要求具备中继查看或管理权限。
 
-`/ai-gateway/llm/*` exposes OpenAI-, Anthropic-, Gemini-, Cohere-, and OpenAI-compatible provider APIs for SDKs. These endpoints cover model discovery, chat/responses, embeddings, image and audio operations, realtime access, and reranking where the provider supports them. They accept existing `soha_pat_` and `soha_sat_` credentials through bearer auth or `x-api-key`, require explicit relay token metadata, and return native provider-shaped JSON or streaming responses without an OpenSoha envelope.
+`/ai-gateway/llm/*` 面向标准模型 SDK 暴露 OpenAI、Anthropic、Gemini、Cohere 以及 OpenAI 兼容提供商接口，覆盖模型发现、对话与 Responses、向量嵌入（Embeddings）、图像与音频处理、实时流（Realtime）以及重排序（Rerank）等上游支持的能力。这些端点通过 `Authorization: Bearer` 或 `x-api-key` 接收既有的 `soha_pat_` 与 `soha_sat_` 凭据，要求令牌显式包含中继授权元数据，并直接返回原生提供商格式的 JSON 或流式响应，不额外包裹 OpenSoha 响应信封。
 
-Public OpenAPI contract status:
+### 公开契约状态（Public OpenAPI contract status）
 
-- Contracted Gateway runtime, token, audit, approval, governance, and MCP capability endpoints are listed above and are checked against `../soha/contracts/openapi/soha-api.yaml`.
-- Pending contracts addition: the console management endpoints below are implemented by the core/web Gateway workbench, but are not yet included in the public OpenAPI artifact.
+- 已纳入公开契约的 Gateway 运行时、令牌、审计、审批、治理与 MCP 能力端点均已列于上方，并由测试脚本自动核对 `../soha/contracts/openapi/soha-api.yaml`。
+- 待纳入契约（Pending contracts addition — not yet included in the public OpenAPI artifact）：以下控制台管理端点已在 Core 与 Web 的 Gateway 工作台中实现，但尚未写入公开 OpenAPI 契约工件：
 
 - `GET /api/v1/ai-gateway/ai-clients`
 - `POST /api/v1/ai-gateway/ai-clients`
@@ -370,7 +369,7 @@ Public OpenAPI contract status:
 - `PUT /api/v1/ai-gateway/skill-bindings/:bindingID`
 - `DELETE /api/v1/ai-gateway/skill-bindings/:bindingID`
 
-Current Gateway tool names:
+当前内置 Gateway 工具名称清单：
 
 - `delivery.applications.list`
 - `delivery.applications.detail`
@@ -400,15 +399,15 @@ Current Gateway tool names:
 - `k8s.events.list`
 - `diagnosis.release_failure.analyze`
 
-Kubernetes tools are read-only and are routed through the platform resource application service. Gateway applies basic sensitive-field redaction to log outputs before returning them to MCP/CLI callers.
+Kubernetes 相关工具均为只读工具，统一通过平台资源应用服务路由执行；Gateway 在将日志返回给 MCP 或 CLI 调用方前会对常见敏感字段执行基础脱敏。
 
-Personal and service-account token create and rotate responses return the opaque token value once. The database stores only the hash and prefix; callers must keep the returned value in their local CLI/MCP credential store.
+个人访问令牌（PAT）与服务账号令牌（SAT）在创建和轮换响应中仅一次性返回明文令牌值；数据库只持久化哈希值与显示前缀，调用方必须将返回的明文凭据妥善保存在本地 CLI 或 MCP 凭据存储中。
 
-AI client, tool-grant, access-policy, and skill-binding endpoints require `ai.gateway.manage`. Tool grants, access policies, and skill bindings support `user`, `service_account`, `role`, and `ai_client` subjects; runtime evaluation combines subject, role, and client records. Deny policies and grants take precedence, allow records form allow-lists, and skill bindings narrow the exposed skill/capability refs without granting new permissions.
+AI 客户端、工具授权、访问策略与技能绑定管理端点均要求 `ai.gateway.manage` 权限。工具授权、访问策略与技能绑定支持 `user`、`service_account`、`role` 与 `ai_client` 四类主体；运行时评估会合并主体、角色与客户端维度的规则：拒绝（Deny）策略与授权始终优先，允许（Allow）记录构成白名单，技能绑定仅用于收敛可见的技能与能力引用，不会额外放大已有权限。
 
-Tool invocations write both the standard audit log and `ai_gateway_audit_logs`. The dedicated AI Gateway row records actor, AI client, skill, tool, risk level, resource scope, request/result, and related IDs without storing full tokens, kubeconfigs, raw logs, or complete tool input.
+每次工具调用都会同时写入平台标准审计表与 `ai_gateway_audit_logs` 专用审计表。AI Gateway 专用审计记录保存操作者、AI 客户端、技能、工具名称、风险等级、资源范围、请求/结果状态及关联单据 ID，不会落盘完整令牌、kubeconfig、原始容器日志或未裁剪的全量工具输入。
 
-## Application Payload
+## 应用请求载荷示例
 
 ```json
 {
@@ -450,7 +449,7 @@ Tool invocations write both the standard audit log and `ai_gateway_audit_logs`. 
 }
 ```
 
-## Build Trigger Payload
+## 构建触发载荷示例
 
 ```json
 {
@@ -469,7 +468,7 @@ Tool invocations write both the standard audit log and `ai_gateway_audit_logs`. 
 }
 ```
 
-## Execution Callback Payload
+## 执行回调载荷示例
 
 ```json
 {
@@ -486,7 +485,7 @@ Tool invocations write both the standard audit log and `ai_gateway_audit_logs`. 
 }
 ```
 
-## Alert Webhook Payload
+## 告警 Webhook 载荷示例
 
 ```json
 {
@@ -514,13 +513,13 @@ Tool invocations write both the standard audit log and `ai_gateway_audit_logs`. 
 }
 ```
 
-Headers:
+请求头：
 
 - `X-Soha-Webhook-Token: <monitoring.webhook_token>`
-  or
+  或
 - `Authorization: Bearer <monitoring.webhook_token>`
 
-## Notification Channel Payload
+## 通知渠道载荷示例
 
 ```json
 {
@@ -535,9 +534,9 @@ Headers:
 }
 ```
 
-## Cluster Registration Payload
+## 集群注册载荷示例
 
-### Direct kubeconfig
+### 直连 kubeconfig 模式
 
 ```json
 {
@@ -554,7 +553,7 @@ Headers:
 }
 ```
 
-### Agent
+### Agent 连接模式
 
 ```json
 {

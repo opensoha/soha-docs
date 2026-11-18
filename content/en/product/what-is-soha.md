@@ -1,10 +1,12 @@
 # What is Soha
 
-> **🚧 Translation in Progress**: This page is being translated from Chinese. Some sections may still contain Chinese text.
+**Soha helps small and medium-sized businesses solve everyday operations challenges.**
 
-Soha is an open-source control plane for platform teams. It brings Kubernetes multi-cluster management, application delivery, observability, governance, AI Gateway, MCP / Skills, and Agent Runtime into one auditable operation surface.
+Soha helps teams with self-managed business systems and limited operations staff bring internal access, resource management, system maintenance, delivery, observability, and AI-assisted investigation into one workspace, making systems easier to manage, maintain, and keep running.
 
-Soha's early delivery model focuses on open-source, self-hosted, and private deployment. The open-source distribution must run independently, so users do not need additional services to use the product.
+Kubernetes is one supported runtime. Soha also covers virtualization, Docker, identity, and internal access, with further capabilities driven by practical operations needs. Supported platforms, deployment requirements, and experimental limitations remain documented per capability.
+
+Soha focuses on open-source, self-hosted, and private deployment. The open-source distribution runs independently of a hosted service; database and optional runtime prerequisites remain documented in the deployment guides.
 
 ## Naming Conventions
 

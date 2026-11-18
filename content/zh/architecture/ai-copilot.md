@@ -1,40 +1,40 @@
 # AI Copilot
 
-## Goal
+## 设计目标
 
-soha 的 AI 层已经从单一聊天页升级为面向运维中后台的 AIOps assistant workbench。
+`soha` 的 AI 层已经从单一聊天页升级为面向运维中后台的 AIOps 智能运维工作台。
 
 当前目标分成两个层面：
 
 1. 一个总入口 `/ai-workbench`
-2. 一组工作台型子页面，承载调查、巡检自动化、工具装配
+2. 一组工作台型子页面，承载调查分析、巡检自动化与工具装配
 
-AI 层需要帮助完成：
+AI 层主要协助完成以下任务：
 
 - 告警驱动的根因分析
 - 性能抖动与容量异常分析
-- 链路慢点和错误热点分析（规划方向；当前尚无外部 Trace Provider 集成）
+- 链路慢点和错误热点分析（规划方向；当前尚无外部调用链提供商集成）
 - 日志、事件、审计、发布、构建的多源证据归并
-- 巡检结果到调查会话的闭环
-- 工具、skills、数据源的会话级装配
+- 巡检结果到调查会话的闭环流转
+- 工具、技能与数据源的会话级装配
 
-## Current Implemented Surface
+## 当前已实现能力面
 
 当前前后端已经实现以下能力：
 
-- 总入口:
+- 总入口：
   - `/ai-workbench`
-- 调查工作台:
+- 调查工作台：
   - `/ai-workbench/chat`
   - `/ai-workbench/root-cause`
   - `/ai-workbench/performance`
-- 巡检与自动化:
+- 巡检与自动化：
   - `/ai-workbench/inspection`
-- 工具与技能:
+- 工具与技能：
   - `/ai-workbench/tool-settings`
   - `/ai-workbench/model-settings`
 
-兼容旧入口仍保留跳转：
+兼容旧入口仍保留重定向跳转：
 
 - `/ai-observe`
 - `/ai-observe/workbench`
@@ -49,7 +49,7 @@ AI 层需要帮助完成：
 - `/ai-workbench/automation`
 - `/ai-workbench/tools`
 
-## Session Model
+## 会话模型
 
 AI 调查以会话为一等对象，而不是临时聊天记录。
 
@@ -58,7 +58,7 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `ai_sessions`
 - `ai_messages`
 
-但 `ai_sessions.metadata` 现在承载工作台元数据：
+但 `ai_sessions.metadata` 现在承载完整的工作台元数据：
 
 - `mode`
 - `status`
@@ -71,7 +71,7 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `tags`
 - `archivedAt`
 
-其中 `scope` 现在也是监控工作台向 AI 工作台 handoff 的标准载体，统一承接：
+其中 `scope` 也是监控工作台向 AI 工作台传递调查上下文的标准载体，统一承接：
 
 - `alertId`
 - `clusterId`
@@ -81,13 +81,13 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 
 其中 `toolset` 已经进入后端执行路径：
 
-- `enabledAdapterIds` 用于限制本会话可用 MCP adapter
+- `enabledAdapterIds` 用于限制本会话可用的 MCP 适配器
 - `disabledToolNames` 用于屏蔽具体工具名或 `adapter.tool` 形式的工具
-- `budgetOverrides.maxEvidenceItems` 用于限制会话分析证据数量
+- `budgetOverrides.maxEvidenceItems` 用于限制会话分析采集的证据数量上限
 - `budgetOverrides.timeoutSeconds` 用于限制单次分析工具运行时长
-- `scopeOverrides` 会叠加到会话 scope，再进入根因、性能和链路分析
+- `scopeOverrides` 会叠加到会话 `scope` 上，再进入根因、性能和链路分析
 
-会话工具装配读取 `/api/v1/copilot/workbench/catalog`，该接口面向 `observe.ai.chat` / `observe.ai.view` / `settings.ai.view` 用户返回安全目录摘要：adapter 元数据、数据源启用状态、分析模板摘要、skill 摘要、agent provider、capability、tool binding 和 skill binding。全量 AI Provider 配置和密钥仍只允许通过 `settings.ai.view` 访问。
+会话工具装配读取 `/api/v1/copilot/workbench/catalog`，该接口面向具备 `observe.ai.chat`、`observe.ai.view` 或 `settings.ai.view` 权限的用户返回安全目录摘要：适配器元数据、数据源启用状态、分析模板摘要、技能摘要、Agent 执行器、平台能力、工具绑定与技能绑定。完整的 AI 模型提供商配置与密钥仍仅允许通过 `settings.ai.view` 访问。
 
 当前会话模式：
 
@@ -97,10 +97,9 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `trace`
 - `inspection_review`
 
-`trace` 会话模式仍保留在会话模型中，但 Core 当前没有内置 Trace Explore、Trace Provider 执行或服务拓扑视图。
-相关路由和查询 DTO 会保留，并在后续外部 Provider 集成可用前报告能力不可用。
+`trace` 会话模式仍保留在会话模型中，但 Core 当前没有内置调用链检索、调用链提供商执行或服务拓扑视图。相关路由和查询 DTO 继续保留，并在后续外部提供商集成就绪前明确报告能力不可用。
 
-## API Surface
+## API 能力面
 
 当前已实现或扩展的会话接口：
 
@@ -112,14 +111,14 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `GET /api/v1/copilot/sessions/:sessionID/messages`
 - `POST /api/v1/copilot/sessions/:sessionID/messages`
 
-消息发送不再只返回纯消息列表，当前返回 envelope：
+消息发送不再只返回纯消息列表，当前统一返回响应信封：
 
 - `messages`
 - `toolCalls`
 - `analysisArtifacts`
 - `sessionPatch`
 
-分析运行接口当前基于统一工件方向扩展：
+分析运行接口当前围绕统一分析工件模型扩展：
 
 - `GET /api/v1/copilot/root-cause/runs`
 - `POST /api/v1/copilot/root-cause/runs`
@@ -135,13 +134,13 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `kind`
 - `session_id`
 - `tool_executions`
-- 原有 root-cause 证据、假设、建议和数据源快照字段
+- 原有的根因证据、假设、处置建议和数据源快照字段
 
-## Data Sources And MCP
+## 数据源与 MCP
 
-当前 AIOps 工具能力继续通过 MCP adapter 抽象暴露。
+当前 AIOps 工具能力继续通过 MCP 适配器抽象统一暴露。
 
-已注册 adapter：
+已注册的内置适配器：
 
 - `platform-native.v1`
 - `logs.v1`
@@ -149,27 +148,27 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `traces.v1`
 - `delivery.v1`
 
-当前状态：
+当前实现状态：
 
 - `platform-native.v1`
-  - 已可读平台聚合证据
+  - 已可读取平台聚合证据
 - `logs.v1`
-  - 通用 `logs.query` 能力当前只查询持久化集群日志
+  - 通用 `logs.query` 能力当前仅查询持久化集群日志
 - `metrics.v1`
-  - 已补齐 Prometheus-backed 执行层
+  - 已补齐基于 Prometheus 的查询执行层
 - `traces.v1`
-  - 适配器标识为兼容性保留，但 Core 当前不提供 Trace 执行能力
+  - 适配器标识为兼容性保留，但 Core 当前不提供调用链执行能力
 
-控制平面采用双入口：
+控制平面采用分层配置入口：
 
-1. Settings > AI
-   - 全局 provider、data source、analysis profile、automation policy 配置
+1. 系统设置中的 AI 配置页
+   - 维护全局模型提供商、数据源、分析模板与自动化策略配置
 2. `/ai-workbench/tools`
-   - 兼容旧入口，实际跳转到 `/ai-workbench/tool-settings`
+   - 兼容旧入口，自动跳转到 `/ai-workbench/tool-settings`
 3. `/ai-workbench/tool-settings`
-   - 会话级临时 toolset 和 skill 装配入口
+   - 会话级临时工具集与技能装配入口
 
-全局 skill registry 现在采用企业 skill definition，而不是仅保留简单展示项：
+全局技能注册表采用完整的企业级技能定义结构，而不仅保留简单展示字段：
 
 - `id`
 - `name`
@@ -182,143 +181,131 @@ AI 调查以会话为一等对象，而不是临时聊天记录。
 - `scopeRules`
 - `enabled`
 
-## Agent Runtime
+## Agent 运行时
 
-Core `v0.1.12` 使用该版本自带的运行时。在 dsh 源码候选版中，Core 将普通 Chat 和 Heya 请求直接发往独立的 Node dsh 服务。dsh 不可用时请求明确失败。新请求中的 `internal` 和 `native` provider 标识是 dsh 的兼容别名。
+Core `v0.1.12` 及更早版本使用旧内置运行时。从 Core `v0.1.13` 起，`dsh_runtime` 默认关闭；启用并部署匹配的 `soha-dsh:v0.2.0` 服务后，Core 将普通对话与 Heya 请求直接发往独立的 Node `dsh` 服务。未启用或 `dsh` 不可用时请求明确失败，不回退到旧内置运行时。新请求中的 `internal` 和 `native` 执行器标识作为 `dsh` 的兼容别名处理。
 
-核心对象：
+核心领域对象：
 
-- `AgentProvider`: 执行器目录。dsh 候选版的 Chat 和 Heya 内置默认项为 `dsh`。显式配置的 Hermes/CLI 外部 provider 仍可按各自协议使用。
-- `AgentCapability`: soha 平台能力，包括 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`post_deploy_observation`、`platform_resource_diagnosis`、`docker_diagnosis`、`virtualization_diagnosis`、`oncall_brief`
-- `AgentToolBinding`: capability 到 MCP adapter、平台只读工具或 provider 原生工具的映射
-- `AgentSkillBinding`: soha skill 到 Hermes skill、prompt template 或后续 provider skill 的映射
-- `AgentRun`: 外部 provider 的 durable 异步执行记录，统一承载状态、scope、toolset、skills、回调 token、工具执行和输出工件
+- `AgentProvider`：执行器目录。启用 `dsh` 时，对话和 Heya 的内置默认项为 `dsh`。显式配置的 Hermes 或 CLI 外部执行器仍可按各自协议使用。
+- `AgentCapability`：`soha` 平台能力定义，包括 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`post_deploy_observation`、`platform_resource_diagnosis`、`docker_diagnosis`、`virtualization_diagnosis`、`oncall_brief`
+- `AgentToolBinding`：平台能力到 MCP 适配器、平台只读工具或执行器原生工具的映射
+- `AgentSkillBinding`：`soha` 技能到 Hermes 技能、提示词模板或后续外部执行器技能的映射
+- `AgentRun`：外部执行器的持久化异步运行记录，统一承载状态、作用范围、工具集、技能列表、回调令牌、工具执行明细和输出工件
 
-Core 继续负责会话与 Run 事实、授权、Heya 资格和环境 gate、审批、预算、审计及领域分析。dsh runtime 负责模型与工具循环，并通过受认证的运行时接口和授权工具桥调用 Core。显式选择的 Hermes 或其他 CLI provider 仍是独立外部集成，不作为 Chat/Heya 的隐式默认或故障回退。
+Core 继续负责会话与运行事实存储、权限校验、Heya 资格与环境门禁、审批、预算、审计及领域分析。`dsh` 运行时负责模型推理与工具调用循环，并通过受认证的运行时接口和授权工具桥调用 Core。显式选择的 Hermes 或其他 CLI 执行器仍是独立外部集成，不作为普通对话或 Heya 的隐式默认项或故障回退路径。
 
-历史 Native run 仍可只读查看。切换前，在途旧运行必须通过离线维护流程排空或显式隔离；不要把 Native checkpoint 或审批热转换为 dsh 运行。见 [Agent Runtime 运维说明](../operations/agent-runtime)。
+历史内置运行记录仍可只读查看。切换前，在途旧运行必须通过离线维护流程排空或显式隔离；不要将旧检查点或审批单热转换为 `dsh` 运行。详见 [Agent Runtime 运维说明](../operations/agent-runtime)。
 
-Agent Runtime 输出统一回写为 soha `AnalysisArtifact`，继续复用证据、假设、建议、关系图、工具调用记录和数据源快照。权限、菜单、预算、数据源脱敏、审计和高风险操作边界仍由 soha 控制。
+Agent 运行时的输出统一回写为 `soha` 的 `AnalysisArtifact`，继续复用证据、假设、建议、关系图、工具调用记录和数据源快照。权限、菜单、预算、数据源脱敏、审计和高风险操作边界仍由 `soha` 统一把关。
 
-## Frontend Shape
+## 前端界面形态
 
 ### `/ai-workbench`
 
-总入口负责：
+总入口负责展示：
 
-- 助手欢迎
-- 最近调查
-- 最近分析
-- 风险雷达
-- 快捷跳转到工作台、巡检自动化、工具技能
+- 智能助手欢迎引导
+- 最近调查会话
+- 最近分析运行
+- 风险态势雷达
+- 前往调查工作台、巡检自动化与工具技能页的快捷入口
 
 ### `/ai-workbench/chat`
 
-调查工作台使用 Ant Design X + antd 组合：
+调查工作台采用 Ant Design X 与 `antd` 组合布局：
 
-- 左侧 `Conversations`
-- 中间 `Bubble.List` + `Sender` + `Prompts`
-- 右侧上下文 / 证据 / 假设 / 建议面板
-- `ThoughtChain` 抽屉显示工具链与分析步骤
-- 当当前会话 scope 携带 `alertId` 时，工作台支持回跳原始监控告警详情
+- 左侧会话列表（`Conversations`）
+- 中间消息流、输入框与快捷提示词（`Bubble.List`、`Sender`、`Prompts`）
+- 右侧上下文、证据、假设与处置建议面板
+- 思维链（`ThoughtChain`）抽屉展示工具调用链与分析步骤
+- 当当前会话 `scope` 携带 `alertId` 时，工作台支持一键回跳原始监控告警详情
 - 支持通过 `mode=trace` 和 `mode=inspection_review` 在同一会话画布内切换链路分析和巡检复盘
-- `会话级工具集` 抽屉现在直接展示有效执行策略，并可编辑 adapter 选择、`adapter.tool` 级禁用清单、预算覆盖和 scope override
-- `显式分析` 会先打开确认弹窗，让用户选择 provider、analysis profile、可运行分析模式、编辑本轮分析目标，并预览会话 scope 与工具集来源，然后再调用会话分析接口；当前可运行模式为 `root_cause`、`performance`、`trace` 和 `inspection_review`，后端会拒绝 `general`，成功后会把所选 mode 与 `agentProviderId` 写回会话 metadata
-- dsh 候选版的普通 Chat 和 Heya 默认使用 dsh，同时由 Core 保留授权、Heya gate、审批、预算、审计和领域分析职责。显式选择的 Hermes/CLI 外部 provider 按已配置协议运行，不作为故障回退。
-- 会话内所有 assistant 消息携带的 `analysisArtifacts` 会汇总成“分析工件历史”，用户可以在根因、性能、链路和巡检复盘工件之间切换图谱、证据和建议
+- “会话级工具集”抽屉直接展示当前生效的执行策略，并可编辑适配器选择、`adapter.tool` 级禁用清单、预算覆盖与范围覆盖
+- “显式分析”会先打开确认弹窗，供用户选择执行器、分析模板、可运行分析模式、编辑本轮分析目标，并预览会话范围与工具集来源后再调用会话分析接口；当前可运行模式为 `root_cause`、`performance`、`trace` 和 `inspection_review`，后端拒绝 `general`，执行成功后会将所选模式与 `agentProviderId` 写回会话元数据
+- 启用 `dsh` 时普通对话与 Heya 默认使用 `dsh`，同时由 Core 保留授权、Heya 门禁、审批、预算、审计和领域分析职责；显式选择的 Hermes 或 CLI 外部执行器按已配置协议运行，不作为故障回退
+- 会话内所有助手消息携带的 `analysisArtifacts` 会汇总为“分析工件历史”，用户可在根因、性能、链路和巡检复盘工件之间切换查看关系图谱、证据和建议
 
 ### `/ai-workbench/root-cause` 与 `/ai-workbench/performance`
 
-根因和性能模式复用同一个会话画布，但入口路径直接表达当前分析类型，避免通过旧 `investigation?mode=*` 私有跳转协议承载主要 IA。
+根因和性能模式复用同一个会话画布，但入口路径直接表达当前分析类型，避免继续通过旧 `investigation?mode=*` 私有查询参数承载主导航结构。
 
 ### `/ai-workbench/inspection`
 
-当前是巡检任务、运行记录和自动化策略的统一入口。
+该页面是巡检任务、运行记录和自动化策略的统一入口。
 
-`/ai-workbench/inspection` 现在不是只读列表：
+`/ai-workbench/inspection` 提供完整的交互闭环而非只读列表：
 
 - 支持在 AI 工作台内直接新建和编辑巡检任务
-- 巡检任务表单会按平台、集群、命名空间三种 scope 收敛输入
-- 巡检任务可选择 `mode=inspection` 的分析模板，写入 task metadata 的 `analysisProfileId`，后端执行时可据此覆盖巡检 playbooks 和数据源约束
-- 巡检任务现在支持删除；删除入口在工作台内受 `observe.ai.inspection.manage` 控制，后端按创建者隔离并依赖数据库级联清理关联巡检运行
-- 任务创建、编辑、立即执行和巡检运行转调查会话都在同一工作区完成，并继续受 `observe.ai.inspection.manage`、`observe.ai.inspection.run` 和 `observe.ai.chat` 权限控制；巡检运行转调查会话还必须具备 `observe.ai.view`，调查会话生成巡检任务还必须具备 `observe.ai.chat`
-- 从调查会话生成巡检任务时，工作台会优先附带当前可用的 inspection profile，避免会话转巡检后丢失 profile 驱动的检查契约
+- 巡检任务表单按平台、集群、命名空间三种作用范围收敛输入项
+- 巡检任务可选择 `mode=inspection` 的分析模板并写入任务元数据的 `analysisProfileId`，后端执行时据此覆盖巡检剧本和数据源约束
+- 巡检任务支持删除；删除入口受 `observe.ai.inspection.manage` 权限控制，后端按创建者隔离并依赖数据库外键级联清理关联巡检运行记录
+- 任务创建、编辑、立即执行和巡检运行转调查会话均在同一工作区内完成，并分别受 `observe.ai.inspection.manage`、`observe.ai.inspection.run` 和 `observe.ai.chat` 权限控制；将巡检运行转为调查会话还必须具备 `observe.ai.view`，从调查会话生成巡检任务必须具备 `observe.ai.chat`
+- 从调查会话生成巡检任务时，工作台优先附带当前可用的巡检分析模板，避免转入巡检后丢失模板驱动的检查契约
 - 自动化策略页签支持直接新建和编辑触发类型、分析类型、分析模板、修复策略、去重窗口、冷却时间和启用状态
-- 自动化策略读取、创建、编辑和删除继续使用后端 `/api/v1/copilot/automation-policies` 合约，并受 `settings.ai.manage` 权限控制；缺少该权限时工作台不得主动拉取策略列表，只展示明确的权限边界
-- 自动化策略表单必须从工作台安全目录里的分析模板摘要选择 `analysisProfileId`，并从 agent provider 目录选择 `agentProviderId`；当前执行器只支持 `alert_webhook` 触发类型，未接入执行器的触发类型不得作为可运行策略选项暴露
-- 自动化策略的可运行分析类型包括 `root_cause`、`performance`、`trace` 和 `inspection_review`；外部 provider 还可以通过 Agent Runtime 扩展到交付失败、发布后观察、平台资源诊断、Docker/虚拟化诊断和值班摘要等 capability
-- 告警级别、状态、最小持续时间、标签匹配、分析时间范围和审批角色会写入结构化 `triggerConditions` / `approvalPolicy`，避免在工作台里只创建不可触发的空策略
-- 自动化执行器会把内置根因、性能和链路分析运行写入带 policy 前缀的 `dedupKey`；外部 provider 会把相同去重上下文写入 `AgentRun.input`。`dedupWindowSeconds` 负责同一告警指纹去重，`cooldownSeconds > 0` 负责策略级冷却，避免不同告警在冷却期内重复触发
+- 自动化策略的读取、创建、编辑和删除使用后端 `/api/v1/copilot/automation-policies` 接口，并受 `settings.ai.manage` 权限控制；缺少该权限时工作台不会主动拉取策略列表，仅展示明确的权限边界提示
+- 自动化策略表单必须从工作台安全目录的分析模板摘要中选择 `analysisProfileId`，并从执行器目录选择 `agentProviderId`；当前执行器仅支持 `alert_webhook` 触发类型，尚未接入执行器的触发类型不会暴露为可运行策略选项
+- 自动化策略的可运行分析类型包括 `root_cause`、`performance`、`trace` 和 `inspection_review`；外部执行器还可通过 Agent 运行时扩展到交付失败、发布后观察、平台资源诊断、Docker/虚拟化诊断和值班摘要等能力
+- 告警级别、状态、最小持续时间、标签匹配、分析时间范围和审批角色均写入结构化 `triggerConditions` 与 `approvalPolicy`，避免在工作台中创建无法触发的空壳策略
+- 自动化执行器会将内置根因、性能和链路分析运行写入带策略前缀的 `dedupKey`；外部执行器会将相同的去重上下文写入 `AgentRun.input`。`dedupWindowSeconds` 负责同一告警指纹去重，`cooldownSeconds > 0` 负责策略级冷却，防止不同告警在冷却期内频繁触发
 
-巡检结果进入会话时不再只创建一个空调查：
+巡检结果转入调查会话时会自动预填完整调查上下文：
 
-- 后端会把巡检 task 的 `clusterId` / `namespace` 写入会话 scope
-- 会话 `pinnedContext` 保留 `inspectionRunId`、`inspectionTaskId`、严重度和状态
-- 首条 assistant 消息会携带 `inspection_review` 分析工件
-- 该工件把 findings 转成 evidence、recommendations 和左到右关系图，供会话右侧证据面板直接渲染
+- 后端将巡检任务的 `clusterId` 与 `namespace` 写入会话 `scope`
+- 会话 `pinnedContext` 保留 `inspectionRunId`、`inspectionTaskId`、严重级别与执行状态
+- 首条助手消息自动附带 `inspection_review` 分析工件
+- 该工件将巡检发现项转换为结构化证据、处置建议与从左到右的关系图，供会话右侧证据面板直接渲染
 
 ### `/ai-workbench/tool-settings`
 
-当前展示：
+当前页面展示并管理：
 
-- MCP adapters
-- 全局数据源镜像
-- 会话级 toolset 装配入口
-- 企业 skill registry
-- Agent Provider / Capability / Tool Binding / Skill Binding 安全目录
+- MCP 适配器列表
+- 全局数据源状态镜像
+- 会话级工具集装配入口
+- 企业技能注册表
+- Agent 执行器、能力、工具绑定与技能绑定安全目录
 
-工具装配入口必须与后端执行契约保持一致：
+工具装配入口与后端执行契约严格保持一致：
 
-- 禁用工具保存为 `adapter.tool` 形式，避免同名工具误伤其它 adapter
-- 空 adapter 列表表示自动选择；推荐预设会优先启用已注册且有数据源支撑的 adapter
-- 预算覆盖只保存正数，避免 `0` 被误解释成有效限制
-- scope override 写入结构化 `clusterId`、`namespace`、`workload`、`service`、`alertId` 和 `timeRangeMinutes`
+- 禁用工具统一保存为 `adapter.tool` 格式，防止同名工具误伤其他适配器
+- 空适配器列表表示自动选择；推荐预设优先启用已注册且具备可用数据源支撑的适配器
+- 预算覆盖仅保存正整数，避免 `0` 被误判为有效限额
+- 范围覆盖写入结构化的 `clusterId`、`namespace`、`workload`、`service`、`alertId` 与 `timeRangeMinutes`
 
 ### `/ai-workbench/model-settings`
 
-在 AI 工作台内嵌全局 AI 设置，继续使用 `settings.ai.view` / `settings.ai.manage` 权限键。
+在 AI 工作台内嵌全局 AI 设置能力，继续沿用 `settings.ai.view` 与 `settings.ai.manage` 权限键。
 
-## Safety And Execution Model
+## 安全与执行模型
 
-AI 层仍保持“分析与建议优先”的安全方向。
+AI 层始终坚持“分析与建议优先”的安全原则。
 
-当前重点是：
+当前核心边界包括：
 
-- 聚合上下文
-- 调用读型工具
-- 生成证据、假设、建议
-- 把工具调用和分析工件沉淀进会话
-- 将外部 agent 输出转换成 soha `AnalysisArtifact`
+- 聚合多维运维上下文
+- 调用只读诊断工具
+- 生成可追溯的证据、假设与处置建议
+- 将工具调用记录和分析工件持久化沉淀到会话中
+- 将外部智能体输出标准化转换为 `soha` 的 `AnalysisArtifact`
 
-当前没有把高风险执行动作直接挂入聊天自动执行链。
+高风险变更动作不会直接挂入对话自动执行链路。
 
-应用接入规范生成与平台交付编排不归 AI 工作台，而归应用交付工作台；AI 工作台只负责暴露能被企业 AI coding 客户端和 Agent Runtime 发现和调用的 MCP/skills 能力。
+应用接入规范生成与平台交付编排归属应用交付工作台而非 AI 工作台；AI 工作台仅负责向企业 AI 研发客户端与 Agent 运行时受控暴露可发现、可审计的 MCP 与技能能力。
 
-## Near-Term Expectations
+## 近期演进约定
 
-本阶段之后，AI 相关功能应默认遵守以下规则：
+后续扩展 AI 相关能力时默认遵循以下架构约束：
 
-- 新的 AI 页面优先接入 AI 工作台，而不是继续新增独立传统表格页
-- 会话相关增强优先扩 `metadata`，避免过早拆分调查实体模型
-- 新的数据源或工具能力需要同时考虑：
-  - 全局配置
-  - 会话级装配
-  - 分析工件落盘
-- root cause / performance / trace / inspection review 以及外部 agent 分析应共用统一 artifact 模型，而不是重复造页面协议
-- 新增 agent provider 时只能扩 provider adapter、tool binding、skill binding 和 runner 执行器，不能让页面或业务分析流程直接依赖 provider SDK/CLI
-- 监控工作台到 AI 工作台的 handoff 应保持标准 scope 契约，不再由页面各自定义私有跳转协议
+- 新增 AI 交互能力优先融入 `/ai-workbench` 工作台体系，避免继续拆分孤立的传统管理表格页
+- 会话能力演进优先扩展 `ai_sessions.metadata`，避免过早拆散调查会话实体模型
+- 新增数据源或工具能力须同步对齐全局配置、会话级装配与分析工件落盘三层链路
+- 根因、性能、链路、巡检复盘及外部智能体分析共用统一的 `AnalysisArtifact` 结构，不按页面重复定义私有渲染协议
+- 接入新的 Agent 执行器时仅扩展执行器适配层、工具绑定、技能绑定与运行器，禁止前端页面或核心业务分析流程直接耦合特定提供商的 SDK 或 CLI
+- 监控工作台到 AI 工作台的上下文传递保持标准 `scope` 契约，不由各页面自定义私有跳转参数
 
 ## 知识来源的导入权限
 
-外部 HTTP、Git 和 Object 来源可在连接器 config 中保存版本化 importPolicy，明确该来源
-能够授予的用户、角色、团队和项目范围。缺省范围属于知识库的稳定 owner；显式 private
-空授权表示拒绝所有人。Core 在写入文档和 chunk 前裁剪抓取结果的 ACL，远端返回 public
-也不能超过这个上限。共享来源可以显式配置 scoped 范围；有限授权按相同身份类别求交，
-不同类别之间不会自动推断成员关系。inline 导入沿用现有行为。
+外部 HTTP、Git 和对象存储来源可在连接器配置中保存版本化 `importPolicy`，明确该来源能够授予的用户、角色、团队和项目范围。缺省范围属于知识库的稳定所有者；显式 `private` 空授权表示拒绝所有人。Core 在写入文档和分片前裁剪抓取结果的访问控制列表，即使远端返回公开可见也不会超出该上限。共享来源可显式配置受限范围；有限授权按相同身份类别求交，不同类别之间不会自动推断成员关系。内联（`inline`）导入沿用既有行为。
 
-来源凭据通过 Gateway 的 secretRefs 授权、固定和解析，不能放入普通插件输入或文档。
-来源凭据使用 `soha://secrets/<id>`（可选 `/versions/<n>`），通过 `SOURCE` 别名
-进入 Gateway 的引用授权、版本固定和解析。旧 `secret:` 配置仍可读取，但抓取会拒绝，
-直到有权编辑来源的人明确选择相应规范引用；不根据旧名称或路径猜测凭据身份。
-运行时尚未支持逐次凭据传输时，调用会明确拒绝。权限上限验证不表示三个 fetch 插件
-已经可用；旧索引不会自动重写，来源策略编辑、存量数据撤权和实际抓取仍需对应验收。
+来源凭据通过 Gateway 的 `secretRefs` 授权、版本固定和解析，不得写入普通插件输入或文档正文。来源凭据使用 `soha://secrets/<id>`（可选附带 `/versions/<n>`），通过 `SOURCE` 别名进入 Gateway 的引用授权、版本固定和解析流程。历史 `secret:` 配置仍可读取，但在有编辑权限的用户明确切换为规范引用前，抓取操作会被拒绝；系统不会根据旧名称或路径猜测凭据身份。当运行时尚未支持逐次凭据传输时，调用会明确拒绝。完成权限上限校验并不代表三类抓取插件已在当前环境就绪；存量索引不会自动重写，来源策略修改、存量数据撤权和真实抓取仍需分别通过对应验收。

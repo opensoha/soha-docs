@@ -10,11 +10,11 @@
     "serve": "next start --port 3000",
     "api:reference:generate": "node scripts/generate-api-reference.mjs",
     "api:reference:check": "node scripts/generate-api-reference.mjs --check",
-    "screenshots:check": "node scripts/verify-docs-screenshots.mjs",
+    "screenshots:check": "node scripts/verify-docs-screenshots.mjs && node scripts/verify-docs-locale-html.mjs",
     "screenshots:update": "node scripts/verify-docs-screenshots.mjs --update",
     "verify:tutorial-outputs": "node scripts/verify-tutorial-outputs.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run api:reference:check && npm run verify:tutorial-outputs && node scripts/verify-ai-gateway-docs.mjs && node scripts/verify-contract-docs.mjs && node scripts/verify-docs-drift.mjs && node --test scripts/verify-docs-screenshots.test.mjs scripts/openapi-operations.test.mjs"
+    "test": "npm run api:reference:check && npm run verify:tutorial-outputs && node scripts/verify-ai-gateway-docs.mjs && node scripts/verify-contract-docs.mjs && node scripts/verify-docs-drift.mjs && node --test scripts/verify-docs-screenshots.test.mjs scripts/openapi-operations.test.mjs scripts/verify-docs-locale-html.test.mjs"
   },
   "dependencies": {
     "@mdx-js/react": "^3.0.0",

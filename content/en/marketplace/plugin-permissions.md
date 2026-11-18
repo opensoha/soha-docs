@@ -1,10 +1,10 @@
-# 插件权限模型
+# Plugin Permissions
 
-插件权限模型的核心规则是：插件只能声明 requested permissions 和 secret requirements，不能给自己授权。
+The core rule of the plugin permission model is that a plugin can only declare requested permissions and secret requirements; it cannot grant authorization to itself.
 
-## 管理权限
+## Management Permissions
 
-插件管理建议使用这些权限键：
+Plugin administration uses the following permission keys:
 
 ```text
 plugin.view
@@ -14,11 +14,11 @@ plugin.configure_secrets
 plugin.publish
 ```
 
-`plugin.view` 允许查看市场和已安装插件。安装、启用、停用、升级、移除和 secret 配置应分别受更高权限控制。
+`plugin.view` allows viewing the marketplace and installed plugins. Installing, enabling, disabling, upgrading, removing, and configuring secrets are each gated by elevated permissions.
 
-## 声明不等于授权
+## Declaration Does Not Equal Authorization
 
-manifest 中的权限声明只表达插件希望访问的能力。例如：
+Permission declarations in a manifest express only the capabilities a plugin intends to request. For example:
 
 ```yaml
 permissions:
@@ -33,19 +33,21 @@ secrets:
       description: External provider API key
 ```
 
-实际可用能力必须由以下控制共同计算：
+Effective capabilities are evaluated jointly across:
 
-- 当前用户或 service account 的 RBAC 权限。
-- tool grants。
-- access policies。
-- skill bindings。
-- Gateway approval guardrails。
-- resource scopes。
-- secret references。
-- audit 和 redaction 策略。
+- RBAC permissions of the current user or service account.
+- Tool grants.
+- Access policies.
+- Skill bindings.
+- Gateway approval guardrails.
+- Resource scopes.
+- Secret references.
+- Audit and redaction policies.
 
-## 高风险能力
+## High-Risk Capabilities
 
-当插件声明 mutate、execute、高权限 connector、外部 provider key 或高成本模型调用能力时，安装界面和 CLI 应要求管理员显式确认。确认记录应进入审计日志。
+The Web installation flow provides a confirmation step showing declared permissions, required secrets, and risks. The current `soha plugin install` CLI submits the installation request directly without an interactive administrator confirmation. Review `soha plugin show <id>` and the manifest before using the CLI; do not depend on an additional confirmation prompt.
 
-插件不能绕过 Soha Gateway 直接访问受保护资源。所有调用必须终止在 Soha Gateway、受控 connector API、MCP server 或已声明的外部进程边界。
+Installation remains subject to server-side authorization and installation auditing. An installation audit event is not a separate human approval or CLI confirmation record. Review plugins declaring mutations, execution, privileged connectors, external provider keys, or high-cost model calls before installation; actual invocations remain governed by runtime authorization and policy.
+
+Plugins cannot bypass Soha Gateway to access protected resources directly. Every call must terminate at Soha Gateway, a governed connector API, an MCP server, or a declared external process boundary.

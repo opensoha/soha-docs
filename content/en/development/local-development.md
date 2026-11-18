@@ -40,14 +40,14 @@ Run the Make commands from the Root `soha` checkout.
 make
 ```
 
-当前前端本地开发不依赖仓库内的前端 env 模板文件。默认行为是：
+Local frontend development does not rely on an in-repository frontend `.env` template file. By default:
 
-- `web/src/services/api-client.ts` 使用同源 `/api/v1`
-- `web/vite.config.ts` 把 `/api` 代理到 `http://127.0.0.1:8080`
-- `soha` 默认把 `/docs/` 重定向到配置的外部文档地址
-- 本地需要联调文档时，可以启动 `soha-docs` dev server，并让前端或后端使用 docs proxy 模式
+- `web/src/services/api-client.ts` requests same-origin `/api/v1`
+- `web/vite.config.ts` proxies `/api` to `http://127.0.0.1:8080`
+- `soha` redirects `/docs/` to the configured external documentation URL by default
+- To test documentation integration locally, start the `soha-docs` dev server and configure the frontend or backend to use docs proxy mode
 
-可选快捷命令：
+Optional shortcut commands:
 
 ```bash
 make init
@@ -63,7 +63,7 @@ npm install
 npm run dev
 ```
 
-`soha-docs` 是独立 Next.js/Nextra 站点。官方 i18n 路由使用 `/zh`、`/zh/docs/...`、`/en` 和 `/en/docs/...`；未带 locale 的 `/` 与 `/docs/...` 会通过 `nextra/locales` 代理按 `NEXT_LOCALE` 或浏览器语言跳转。发布到 `https://docs.opensoha.dev/` 时应按发布目标设置 `DOCS_BASE_URL`。
+`soha-docs` is a standalone Next.js/Nextra site. Official i18n routes use `/zh`, `/zh/docs/...`, `/en`, and `/en/docs/...`; unprefixed `/` and `/docs/...` requests redirect through the `nextra/locales` proxy based on `NEXT_LOCALE` or browser language preferences. When publishing to `https://docs.opensoha.dev/`, set `DOCS_BASE_URL` to match the target deployment path.
 
 ## Historical MVP Runtime Notes
 

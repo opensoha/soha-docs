@@ -40,10 +40,10 @@ export function SiteThemeLayout({
       banner={null}
       navbar={createNavbar(locale)}
       pageMap={pageMap}
-      docsRepositoryBase="https://github.com/opensoha/soha/tree/main/soha-docs"
-      editLink="编辑此页"
+      docsRepositoryBase="https://github.com/opensoha/soha-docs/tree/main"
+      editLink={locale === 'zh' ? '编辑此页' : 'Edit this page'}
       feedback={{
-        content: '反馈文档问题',
+        content: locale === 'zh' ? '反馈文档问题' : 'Report a docs issue',
       }}
       footer={footer}
       i18n={locales.map((item) => ({

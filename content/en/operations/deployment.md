@@ -4,9 +4,9 @@
 
 The Core image embeds the Web console and serves it alongside the API. PostgreSQL stores application data. The docs site, the remote cluster Agent and the optional Operator have their own release cycles.
 
-For a local Compose install with Core `v0.1.12`, follow [First Deploy](../tutorials/first-deploy.md). For Kubernetes, use the released `deploy/deployment.yaml` or a compatible chart version from the [Soha Helm repository](https://github.com/opensoha/soha-helm). Keep the manifest or chart and the image versions together when you upgrade. Replace the initial credentials and system keys before exposing the installation. [Configuration](./configuration.md)
+For a local Compose install with Core `v0.1.13`, follow [First Deploy](../tutorials/first-deploy.md). For Kubernetes, use the released `deploy/deployment.yaml` or a compatible chart version from the [Soha Helm repository](https://github.com/opensoha/soha-helm) (check each published chart's `appVersion` until a chart update targeting Core `v0.1.13` is published). Keep the manifest or chart and the image versions together when you upgrade. Replace the initial credentials and system keys before exposing the installation. [Configuration](./configuration.md)
 
-Core `v0.1.12` uses the runtime shipped with that release. The dsh and Hindsight deployment instructions apply to the separate [dsh candidate](./agent-runtime.md).
+Core `v0.1.13` ships with `dsh_runtime` and `hindsight` disabled by default. Enabling new Chat and Heya requires deploying the matching `ghcr.io/opensoha/soha-dsh:v0.2.0` service and completing the setup in [Agent Runtime](./agent-runtime.md) (Core `v0.1.12` and earlier used the legacy built-in runtime).
 
 ## Build from source
 
@@ -39,10 +39,10 @@ helm install soha-operator opensoha/soha-operator \
 To install the release manifests directly with Kustomize instead, pin the operator tag:
 
 ```bash
-kubectl apply -k "https://github.com/opensoha/soha-operator//config/default?ref=v0.1.0"
+kubectl apply -k "https://github.com/opensoha/soha-operator//config/default?ref=v0.1.1"
 ```
 
-Operator `v0.1.0` uses the public multi-architecture image `ghcr.io/opensoha/soha-operator:0.1.0` for `linux/amd64` and `linux/arm64`. The Helm chart and operator runtime have independent version numbers; use the chart `appVersion` as the default runtime image version.
+Operator `v0.1.1` uses the public multi-architecture image `ghcr.io/opensoha/soha-operator:0.1.1` for `linux/amd64` and `linux/arm64`. The Helm chart and operator runtime have independent version numbers; use the chart `appVersion` as the default runtime image version (the published `soha-operator` chart `0.1.2` targets `appVersion` `0.1.1`).
 
 ## Local Run Assumptions
 
@@ -53,10 +53,10 @@ Operator `v0.1.0` uses the public multi-architecture image `ghcr.io/opensoha/soh
 
 ## Hermes Agent Runner with Docker
 
-The released Compose file includes a separate Hermes runner for explicitly configured Hermes workloads. Use the runner image compatible with your Core release. The command below assumes the Core Compose stack from [First Deploy](../tutorials/first-deploy.md) and the same secret configuration used to start it.
+The released Compose file retains a separate Hermes runner profile for explicitly configured Hermes workloads. `soha-hermes-agent` stopped publishing new images after `v0.1.12`, while existing `v0.1.12` and earlier images remain available for compatible integrations. The command below assumes the Core Compose stack from [First Deploy](../tutorials/first-deploy.md) and the same secret configuration used to start it.
 
 ```bash
-SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.12 \
+SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.13 \
 SOHA_HERMES_IMAGE=ghcr.io/opensoha/soha-hermes-agent:v0.1.12 \
 SOHA_HERMES_BIND=127.0.0.1 \
   docker compose -f deploy/docker-compose.yaml --profile hermes up -d --no-build hermes-agent-runner

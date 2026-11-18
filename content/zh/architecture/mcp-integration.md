@@ -1,19 +1,19 @@
-# MCP Integration
+# MCP 集成
 
-## Placement
+## 架构位置
 
-MCP belongs behind the integration boundary.
+MCP 能力位于平台统一集成边界之后，不直接穿透底层基础设施。
 
-Flow:
+标准调用链路如下：
 
-1. API layer receives request
-2. access service and policy engine validate permission
-3. integration service resolves adapter and capability metadata
-4. infrastructure mcp registry locates the adapter
-5. audit service records invocation metadata
-6. event service can emit integration events when needed
+1. API 接入层接收客户端请求
+2. 访问控制服务与策略引擎完成权限校验
+3. 集成应用服务解析目标适配器与能力元数据
+4. 基础设施层的 MCP 注册表定位具体适配器实现
+5. 审计服务记录调用上下文与结果元数据
+6. 事件服务按需发出集成调用事件
 
-## Directory Placement
+## 目录结构
 
 ```text
 internal/domain/mcp
@@ -21,18 +21,18 @@ internal/application/integration
 internal/infrastructure/mcp
 ```
 
-## Registration Model
+## 注册模型
 
-Each MCP adapter should register:
+每个 MCP 适配器在注册时需声明：
 
-- adapter id
-- display name
-- capability list
-- required scopes
-- transport configuration
-- timeout and isolation policy
+- 适配器唯一标识（`adapter id`）
+- 显示名称
+- 能力列表
+- 所需权限范围（`scopes`）
+- 传输层连接配置
+- 超时控制与执行隔离策略
 
-当前内置 adapter 至少包括：
+当前内置适配器包括：
 
 - `platform-native.v1`
 - `logs.v1`
@@ -40,19 +40,18 @@ Each MCP adapter should register:
 - `traces.v1`
 - `delivery.v1`
 
-`traces.v1` 标识为兼容性保留，但 Core 当前没有 Trace 执行能力，需等待后续外部 Provider 集成。通用外部
-`logs.query` 能力当前只查询持久化集群日志。
+`traces.v1` 标识作为兼容性保留，但 Core 当前尚未内置调用链执行能力，需等待后续外部调用链提供商集成。通用 `logs.query` 能力当前仅查询持久化的集群日志。
 
-## Permission Boundary
+## 权限边界
 
-MCP must not bypass platform authorization. Every MCP capability maps to a platform action and target scope. The platform owns:
+MCP 调用严禁绕过平台授权体系。每一项 MCP 能力均映射为明确的平台动作与目标资源范围，由平台统一掌控：
 
-- user identity
-- authorization decision
-- invocation audit
-- response filtering
+- 调用主体身份识别
+- 权限与范围裁决
+- 调用审计落盘
+- 响应内容脱敏与范围过滤
 
-`delivery.v1` 当前首批 Gateway 工具使用 canonical tool name 暴露给 MCP client：
+`delivery.v1` 当前通过规范工具名称向 MCP 客户端暴露以下 Gateway 工具：
 
 - `delivery.applications.list`
 - `delivery.applications.detail`
@@ -68,13 +67,13 @@ MCP must not bypass platform authorization. Every MCP capability maps to a platf
 - `delivery.rollback.context`
 - `delivery.actions.trigger`
 
-这些能力必须仍然经过平台权限、scope、审计和操作日志边界；Gin handler 不得直接执行 repo 写入或长时 shell。
+上述工具调用全部经过平台权限、资源范围、审计和操作日志边界；Gin 请求处理器不得直接执行代码仓库写入或长耗时 Shell 命令。
 
-## Module Contract
+## 模块契约
 
-为了支持单二进制内置模块启停与未来外部模块协议预留，平台已引入模块注册契约。
+为支持单二进制内置模块的按需启停并为外部扩展模块协议预留统一接口，平台引入了标准模块注册契约。
 
-后端模块描述符最小字段：
+后端模块描述符的最小字段集合包括：
 
 - `id`
 - `name`
@@ -84,4 +83,4 @@ MCP must not bypass platform authorization. Every MCP capability maps to a platf
 - `visiblePermissions`
 - `seedMenus`
 
-当前模块状态通过 `GET /api/v1/modules` 暴露。
+当前启用与注册的模块状态通过 `GET /api/v1/modules` 对外暴露。

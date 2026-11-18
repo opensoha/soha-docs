@@ -1,14 +1,13 @@
-# Frontend Structure
+# 前端结构
 
-## Current Stack
+## 当前技术栈
 
-- the active frontend target is `web`, running on `vite` + `react-router-dom`
-- `web_pro_backup` preserves the previous frontend backup
-- `old_web` remains in-repo as a feature-behavior reference after the reset
-- UI shell and page primitives use native `antd`, `@ant-design/icons`, and the custom soha layout/theme system
-- Tailwind CSS 4 is kept as a utility layer for layout and spacing
-- `web/src/styles/globals.css` defines shared soha shell/page styling under the Vite app shell
-- route-driven pages consume TanStack Query server state and Zustand preference or scope state
+- 当前活跃的前端工程目录为 `web`，基于 `vite` 与 `react-router-dom` 运行
+- 历史备份目录（如 `web_pro_backup` 与 `old_web`）仅在历史演进中作为功能行为参考，不参与当前构建
+- 控制台外壳与页面基础组件基于原生 `antd`、`@ant-design/icons` 以及自定义 `soha` 布局与主题体系构建
+- Tailwind CSS 4 作为布局与间距的辅助工具层保留
+- `web/src/styles/globals.css` 定义 Vite 应用外壳下的全局共享页面样式
+- 路由驱动页面使用 TanStack Query 管理服务端状态，使用 Zustand 管理界面偏好与当前资源范围（Scope）状态
 
 ```text
 web/src/
@@ -69,17 +68,17 @@ web/src/
   vite-env.d.ts
 ```
 
-## Frontend Rules
+## 前端开发规范
 
-- `web/src/routes/index.tsx` is the active route surface for the Vite shell
-- `web/src/layouts/app-layout.tsx` owns the shared console shell, sidebar, header, breadcrumb, and theme-aware chrome
-- page entry modules should stay thin and delegate business logic to `web/src/features/**`
-- `web_pro_backup` and `old_web` are both reference-only and must not be treated as active shell structure
-- HTTP access goes through soha auth helpers and same-origin `/api/v1`
-- persisted client state lives under `web/src/stores`; `preferences-store.ts` persists theme and sidebar preferences, while server state stays in TanStack Query
-- `components/` contains shared antd primitives and heavier reusable widgets
-- `utils/time.ts` centralizes table-friendly date and relative-time formatting
-- `utils/table-columns.ts` centralizes common table-column width and alignment presets
-- `hooks/` is still intentionally absent today; only add it when reuse is concrete
-- when adding a new active page, update `web/src/routes/index.tsx` and `web/src/routes/meta.ts` together
-- page code consumes aggregated DTOs only
+- `web/src/routes/index.tsx` 是 Vite 控制台的唯一活跃路由注册入口
+- `web/src/layouts/app-layout.tsx` 承载共享的控制台外壳、侧边栏、顶栏、面包屑与主题联动外框
+- 路由入口模块应保持轻量，具体业务编排与页面实现收敛到 `web/src/features/**`
+- `web_pro_backup` 与 `old_web` 仅限只读对照，严禁当作当前活跃外壳或导入依赖使用
+- 所有 HTTP 请求统一经由 `soha` 认证辅助封装访问同源 `/api/v1`
+- 客户端持久化状态集中存放在 `web/src/stores`：其中 `preferences-store.ts` 负责持久化主题和侧边栏偏好，服务端业务数据状态统一保存在 TanStack Query 中
+- `components/` 存放共享的 `antd` 封装原语与高复用度复合组件
+- `utils/time.ts` 统一维护面向表格展示的日期与相对时间格式化工具
+- `utils/table-columns.ts` 统一维护常用的表格列宽与对齐预设
+- 工程默认不预置空置的 `hooks/` 目录，仅在出现明确跨模块复用诉求时按需创建
+- 新增活跃页面时，必须同步更新 `web/src/routes/index.tsx` 与 `web/src/routes/meta.ts`
+- 前端页面代码只消费服务端聚合后的 DTO，不在浏览器侧拼装底层原始资源对象

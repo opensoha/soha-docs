@@ -1,10 +1,10 @@
-# API 与 Contracts
+# API and Contracts
 
-Root `soha/contracts` 是跨仓库共享契约源头。任何影响公开行为、wire shape、Agent protocol、MCP manifest、Skill manifest、Plugin manifest、事件 envelope 或鉴权 claims 的变更，都应先进入 contracts，再更新消费者仓库。
+Root `soha/contracts` is the shared source of truth for cross-repository contracts. Any change that affects public behavior, wire shapes, the Agent protocol, MCP manifests, Skill manifests, Plugin manifests, event envelopes, or authentication claims must land in contracts first before updating consumer repositories.
 
-当前 docs CI 固定 Root `soha` 的提交并读取 `../soha/contracts`。本页维护契约版本和重点说明；完整 operation 与 JSON Schema 覆盖由生成的 [API reference](./reference/generated/index.md) 校验。缺少 sibling 仓库时，`npm test` 会失败并提示先 checkout Root `soha`。
+The current docs CI pins a specific Root `soha` commit and reads `../soha/contracts`. This page maintains contract version details and key highlights; complete operation and JSON Schema coverage is validated through the generated [API reference](./reference/generated/index.md). When the sibling repository is missing, `npm test` fails and prompts you to check out Root `soha` first.
 
-## 当前契约版本
+## Current Contract Version
 
 - OpenAPI title: `Soha API`
 - OpenAPI version: `0.2.0`
@@ -15,9 +15,9 @@ Root `soha/contracts` 是跨仓库共享契约源头。任何影响公开行为�
 
 This page and the generated index use the published SDK tag `contracts/v0.2.0`, pinned to its exact Root source commit in docs CI. Install `@opensoha/contracts@0.2.0` from npm or `github.com/opensoha/soha/contracts@v0.2.0` from the official Go proxy. Legacy source and original release files are preserved in the Root unpublished archive; old repository URLs and import paths may stop resolving after legacy repository deletion.
 
-## 契约目录
+## Contract Directory Layout
 
-代表性公开 artifact；完整清单以生成的 [API reference](./reference/generated/index.md) 和 `soha/contracts/package.json` 为准：
+Representative public artifacts (refer to the generated [API reference](./reference/generated/index.md) and `soha/contracts/package.json` for the complete list):
 
 ```text
 soha/contracts/
@@ -235,7 +235,7 @@ The foundational npm exports include:
 
 ## Generated API Reference
 
-The generated API reference path is documented in [API Reference 生成路径](./reference.md). It consumes `../soha/contracts/openapi/soha-api.yaml`, public JSON Schemas, contract examples, and the docs-owned core route metadata overlay.
+The generated API reference path is documented in [API Reference Generation Path](./reference.md). It consumes `../soha/contracts/openapi/soha-api.yaml`, public JSON Schemas, contract examples, and the docs-owned core route metadata overlay.
 
 ## Public OpenAPI Operation Index
 
@@ -306,7 +306,7 @@ This list mirrors `../soha/contracts/openapi/soha-api.yaml`. Paths use the docs 
 - `POST /api/v1/plugins/:pluginID/upgrade`
 - `PUT /api/v1/plugins/:pluginID/config`
 
-## 稳定入口
+## Stable Entry Points
 
 Published SDK 0.2.0 import entries:
 
@@ -315,30 +315,30 @@ github.com/opensoha/soha/contracts/gen/go/sohaapi
 @opensoha/contracts/gen/ts/sohaapi
 ```
 
-消费者可以逐步从本地 DTO 迁移到生成 SDK，但不应复制跨仓库业务逻辑。
+Consumers can migrate incrementally from local DTOs to the generated SDKs, without duplicating cross-repository business logic.
 
-## 依赖方向
+## Dependency Direction
 
 - Root `soha/contracts` owns public contract sources; independently published SDKs are consumed through their public module and npm versions.
-- Root `soha/web` 通过 TypeScript SDK 和 HTTP API 访问 core。
-- Root `soha/cli` 通过 Go SDK DTO / client 和 HTTP API 访问 core。
-- Root `soha/agent` 通过 Agent protocol 和 generated SDK client 访问 runner-facing API。
-- 外部实现通过公开包、API、SDK 或构建产物组合 core 能力。
+- Root `soha/web` accesses core through the TypeScript SDK and HTTP API.
+- Root `soha/cli` accesses core through Go SDK DTOs/clients and the HTTP API.
+- Root `soha/agent` accesses runner-facing APIs through the Agent protocol and generated SDK clients.
+- External implementations compose core capabilities through public packages, APIs, SDKs, or build artifacts.
 
-## 校验
+## Validation
 
-Contracts 仓库应持续校验：
+The contracts package continuously validates:
 
-- OpenAPI 语法。
-- JSON Schema 语法。
-- operation ID 唯一性。
-- Go SDK 编译和测试。
-- TypeScript SDK typecheck。
-- `soha` 中公开 JSON wire shape 兼容测试。
+- OpenAPI syntax.
+- JSON Schema syntax.
+- Operation ID uniqueness.
+- Go SDK compilation and tests.
+- TypeScript SDK typechecking.
+- Public JSON wire-shape compatibility tests in `soha`.
 
-Docs 仓库应持续校验：
+The docs repository continuously validates:
 
-- `api/core-endpoints.md` 覆盖 OpenAPI 中的 AI Gateway 与 MCP endpoints。
-- 本页覆盖 OpenAPI operation index。
-- 本页覆盖 npm package 导出的 OpenAPI 与 JSON Schema artifact。
-- 发布 workflow checkout 固定提交的 Root `soha` 后运行 docs consistency tests。
+- `api/core-endpoints.md` covers the AI Gateway and MCP endpoints defined in OpenAPI.
+- This page covers the OpenAPI operation index.
+- This page covers the OpenAPI and JSON Schema artifacts exported by the npm package.
+- The release workflow checks out a pinned Root `soha` commit before running docs consistency tests.

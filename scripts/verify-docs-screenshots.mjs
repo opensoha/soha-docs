@@ -41,6 +41,8 @@ function baselinePath(manifest, routeID, viewportName) {
 
 function requiredSnippets(assertion) {
   switch (assertion) {
+    case 'marketing-navbar':
+      return ['data-soha-home', 'Soha', '产品能力', '文档', 'github.com/opensoha/soha', 'href="/en']
     case 'navbar':
       return ['OpenSoha', '文档', '中文', 'github.com/opensoha/soha']
     case 'sidebar':
@@ -48,7 +50,7 @@ function requiredSnippets(assertion) {
     case 'main-content':
       return ['__MAIN_CONTENT__']
     case 'homepage-actions':
-      return ['home-actions', '开始阅读文档', 'API 与 Contracts', 'AI Gateway']
+      return ['data-soha-home-actions', '开始使用', '阅读文档', '/zh/docs/tutorials/first-deploy', '/zh/docs/']
     case 'code-blocks':
       return ['<pre']
     case 'generated-reference-link':
@@ -81,7 +83,7 @@ function assertRenderedHTML(route, htmlPath, html) {
   for (const assertion of route.assertions) {
     for (const snippet of requiredSnippets(assertion)) {
       if (snippet === '__MAIN_CONTENT__') {
-        if (!html.includes('nextra-skip-nav') && !html.includes('home-shell')) {
+        if (!html.includes('nextra-skip-nav') && !html.includes('home-shell') && !html.includes('data-soha-home')) {
           missing.push(`${assertion}: nextra content shell`)
         }
         continue

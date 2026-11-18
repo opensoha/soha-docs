@@ -4,7 +4,7 @@
 
 soha now owns application registration, multi-source build configuration, environment-scoped delivery orchestration, image replacement deployment, and deploy/release records.
 
-The developer/tester-facing DevOps workbench design is documented separately in [应用交付 DevOps 工作台方案](./delivery-devops-workbench.md). This file remains the implemented application-delivery baseline and compatibility contract.
+The developer/tester-facing DevOps workbench design is documented separately in [Delivery DevOps Workbench](./delivery-devops-workbench.md). This file remains the implemented application-delivery baseline and compatibility contract.
 
 ## Current Implemented Surface
 
@@ -147,12 +147,12 @@ The current model is not GitOps-only and not a fake mock pipeline. It is a real 
 
 The platform environment directory is read-only inventory in the delivery workbench. Application-environment bindings are written only from application detail or the delivery flow. Manifest packages are authored under an application or service; the Kubernetes workbench consumes rendered revisions for observation, diff, sync, repair, and rollback.
 
-企业 AI coding 场景下，`delivery_blueprints` 作为控制平面模板对象存在，而不是仓库文件本身：
+For enterprise AI coding workflows, `delivery_blueprints` exist as control-plane template objects rather than repository files themselves:
 
-- 蓝图组合应用草稿、build sources、环境绑定模板、目标模板与文件模板
-- `render-spec` 返回 `RenderedDeliverySpec`
-- `bootstrap-application` 只负责创建或更新平台控制面对象
-- v1 不在 API 服务端直接改 Git 仓库文件
+- A blueprint combines an application draft, build sources, environment-binding templates, target templates, and file templates
+- `render-spec` returns `RenderedDeliverySpec`
+- `bootstrap-application` only creates or updates platform control-plane objects
+- v1 does not directly modify Git repository files on the API server
 
 ## Templates, Build and update, and Workflow center
 

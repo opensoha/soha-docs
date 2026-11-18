@@ -4,9 +4,9 @@
 
 Core 镜像同时提供 API 和内嵌的 Web 控制台，应用数据存放在 PostgreSQL。文档站、远程集群 Agent 和可选的 Operator 分别发布。
 
-用 Compose 在本机安装 Core `v0.1.12` 时，按 [第一次部署](../tutorials/first-deploy.md) 操作。Kubernetes 可使用发行版本的 `deploy/deployment.yaml`，或从 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 选择兼容的 Chart。升级时一并核对清单或 Chart 与镜像版本。开放外部访问前更换初始凭据和系统密钥。 [配置指南](./configuration.md)
+用 Compose 在本机安装 Core `v0.1.13` 时，按 [第一次部署](../tutorials/first-deploy.md) 操作。Kubernetes 可使用发行版本的 `deploy/deployment.yaml`，或从 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 选择兼容的 Chart（面向 Core `v0.1.13` 的新版 Chart 发布前，请核对已发布 Chart 的 `appVersion`）。升级时一并核对清单或 Chart 与镜像版本。开放外部访问前请更换初始凭据和系统密钥，详见 [配置指南](./configuration.md)。
 
-Core `v0.1.12` 使用该版本自带的运行时。dsh 和 Hindsight 的部署说明适用于 [dsh 候选版](./agent-runtime.md)。
+Core `v0.1.13` 默认关闭 `dsh_runtime` 与 `hindsight`；如需启用新 Chat 和 Heya，需额外部署匹配的 `ghcr.io/opensoha/soha-dsh:v0.2.0` 并按 [Agent Runtime](./agent-runtime.md) 完成配置与切换（Core `v0.1.12` 及更早版本使用旧内置运行时）。
 
 ## 从源码构建
 
@@ -34,27 +34,27 @@ helm install soha-operator opensoha/soha-operator \
   --create-namespace
 ```
 
-也可以固定 Operator 的 release tag，直接通过 Kustomize 安装发布清单：
+也可以固定 Operator 的发布标签，直接通过 Kustomize 安装发布清单：
 
 ```bash
-kubectl apply -k "https://github.com/opensoha/soha-operator//config/default?ref=v0.1.0"
+kubectl apply -k "https://github.com/opensoha/soha-operator//config/default?ref=v0.1.1"
 ```
 
-Operator `v0.1.0` 默认使用公开的多架构镜像 `ghcr.io/opensoha/soha-operator:0.1.0`，支持 `linux/amd64` 和 `linux/arm64`。Helm chart 与 Operator runtime 各自独立版本化；chart 的 `appVersion` 表示默认 runtime 镜像版本。
+Operator `v0.1.1` 默认使用公开的多架构镜像 `ghcr.io/opensoha/soha-operator:0.1.1`，支持 `linux/amd64` 和 `linux/arm64`。Helm Chart 与 Operator 运行时各自独立版本化；Chart 的 `appVersion` 表示默认运行时镜像版本（当前已发布的 `soha-operator` Chart `0.1.2` 对应 `appVersion` `0.1.1`）。
 
-## Local Run Assumptions
+## 本地运行默认约定
 
-- PostgreSQL at `localhost:5432`, database `soha`, user `pgsql`, password `pgsql`
-- kubeconfig available at `$HOME/.kube/config` unless overridden
-- frontend dev server at `http://localhost:5173`
-- docs dev server at `http://localhost:3000/`
+- PostgreSQL 位于 `localhost:5432`，数据库 `soha`，用户名 `pgsql`，密码 `pgsql`
+- 默认从 `$HOME/.kube/config` 读取 `kubeconfig`（除非显式覆盖）
+- 前端开发服务器运行在 `http://localhost:5173`
+- 文档站开发服务器运行在 `http://localhost:3000/`
 
 ## Docker 部署 Hermes Runner
 
-发布版 Compose 为显式选择 Hermes 的工作负载提供独立 Runner。请选择与 Core 兼容的 Runner 镜像。下列命令沿用 [第一次部署](../tutorials/first-deploy.md) 的 Core Compose 项目及其密钥配置。
+发布版 Compose 为显式选择 Hermes 的工作负载保留独立 Runner profile。`soha-hermes-agent` 在 `v0.1.12` 之后已停止发布新镜像，既有 `v0.1.12` 及更早镜像继续保留供兼容集成使用。下列命令沿用 [第一次部署](../tutorials/first-deploy.md) 的 Core Compose 项目及其密钥配置。
 
 ```bash
-SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.12 \
+SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.13 \
 SOHA_HERMES_IMAGE=ghcr.io/opensoha/soha-hermes-agent:v0.1.12 \
 SOHA_HERMES_BIND=127.0.0.1 \
   docker compose -f deploy/docker-compose.yaml --profile hermes up -d --no-build hermes-agent-runner
@@ -67,19 +67,19 @@ docker compose -f deploy/docker-compose.yaml --profile hermes-setup run --rm her
 docker compose -f deploy/docker-compose.yaml --profile hermes logs --tail 50 hermes-agent-runner
 ```
 
-## PostgreSQL 18.4 and pgvector 0.8.5
+## PostgreSQL 18.4 与 pgvector 0.8.5
 
-New local volumes and fresh cluster installs use `pgvector/pgvector:0.8.5-pg18-trixie`, currently based on PostgreSQL 18.4 and the same Debian generation as the standard PostgreSQL 18.4 image. Application migrations enable `vector` and `pg_trgm`; bundled deployments also preload and create `pg_stat_statements`. External PostgreSQL 18 servers must provide pgvector and `pg_trgm` before startup. If the migration user cannot create extensions, an administrator must create them first. Keep the database image's libc collation version compatible with the image that initialized an existing data volume.
+新建本地数据卷和全新集群安装统一使用 `pgvector/pgvector:0.8.5-pg18-trixie` 镜像，该镜像当前基于 PostgreSQL 18.4，并与标准 PostgreSQL 18.4 镜像保持同一 Debian 发行代际。应用迁移会自动启用 `vector` 与 `pg_trgm` 扩展；内置部署还会预加载并创建 `pg_stat_statements`。外部 PostgreSQL 18 实例必须在启动前提供 `pgvector` 与 `pg_trgm`；若执行迁移的数据库用户无权创建扩展，需由数据库管理员预先创建。升级或更换镜像时，请保持数据库镜像的 `libc` 排序规则版本与初始化现有数据卷时的镜像兼容。
 
-`pg_stat_statements` is optional for external PostgreSQL. To enable it, add `pg_stat_statements` to `shared_preload_libraries`, set `compute_query_id=on`, restart PostgreSQL, and create the extension in the Soha database. Leaving it disabled does not block Soha startup.
+对于外部 PostgreSQL，`pg_stat_statements` 为可选项。如需启用，需在 `shared_preload_libraries` 中加入 `pg_stat_statements`，设置 `compute_query_id=on`，重启 PostgreSQL，并在 Soha 数据库中创建该扩展。保持禁用不会阻塞 Soha 启动。
 
-PostgreSQL 18 stores its default `PGDATA` below `/var/lib/postgresql/18/docker`, so compose, raw Kubernetes, and Helm mounts keep the persistent volume at `/var/lib/postgresql`. If an existing environment already has a PostgreSQL 16 data directory, do not point the PostgreSQL 18 pgvector image at the same volume directly. Use `pg_dump`/`pg_restore`, logical backup restore, or a controlled `pg_upgrade` path. For disposable local development data, remove the old PostgreSQL volume and recreate the stack. Current compose pins `soha-postgres-data`.
+PostgreSQL 18 默认将 `PGDATA` 存放在 `/var/lib/postgresql/18/docker` 下，因此 Compose、原生 Kubernetes 清单和 Helm Chart 均将持久化卷挂载在 `/var/lib/postgresql`。如果现有环境已有 PostgreSQL 16 数据目录，切勿将 PostgreSQL 18 pgvector 镜像直接挂载到同一数据卷；请采用 `pg_dump`/`pg_restore`、逻辑备份恢复或受控的 `pg_upgrade` 升级路径。对于可丢弃的本地开发数据，可删除旧 PostgreSQL 卷后重建环境栈；当前 Compose 配置固定使用 `soha-postgres-data` 卷。
 
-## Virtualization Runtime Notes
+## 虚拟化运行时说明
 
-- Docker Desktop for macOS, especially Apple Silicon, is not a reliable validation path for local KubeVirt or nested Proxmox VE labs.
-- Keep local k3s for platform control-plane and Kubernetes API-path testing.
-- Validate KubeVirt and PVE features against real external servers or dedicated lab hosts, then register those endpoints in soha.
+- macOS 上的 Docker Desktop（尤其是 Apple Silicon 环境）不适合作为本地 KubeVirt 或嵌套 Proxmox VE 实验环境的可靠验证路径。
+- 本地 `k3s` 仅用于平台控制平面与 Kubernetes API 路径测试。
+- 请在真实外部服务器或专用实验宿主机上验证 KubeVirt 与 PVE 能力，再将这些端点注册到 `soha`。
 - 外部环境前置条件与验收清单请参阅 [KubeVirt / PVE 虚拟化实验环境 Runbook](./virtualization-lab-runbook.md)。
 
 ## CLI 会话与重启连续性

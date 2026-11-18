@@ -1,4 +1,4 @@
-# 后端结构
+# Backend Structure
 
 ```text
 .
@@ -15,52 +15,52 @@
   migrations
 ```
 
-## 模块职责
+## Module Responsibilities
 
-- `api`: HTTP 传输层、middleware、请求解析和响应封装。
-- `application`: 用例编排、授权、作用域语义、审计、操作日志和面向前端的 view model。
-- `bootstrap`: 依赖图装配、数据库迁移、内置种子和启动生命周期。
-- `domain`: 领域契约和平台 view model。
-- `infrastructure`: config、logger、PostgreSQL、Kubernetes、informer、Agent client、Swagger、MCP 和外部系统 client。
-- `policy`: RBAC、ABAC 和 scope 计算。
-- `repository`: 审计、业务记录、运行时记录等持久化访问。
+- `api`: HTTP transport layer, middleware, request parsing, and response envelopes.
+- `application`: use-case orchestration, authorization, scope semantics, auditing, operation logs, and frontend-facing view models.
+- `bootstrap`: dependency graph assembly, database migrations, built-in seed data, and startup lifecycle.
+- `domain`: domain contracts and platform view models.
+- `infrastructure`: configuration, logger, PostgreSQL, Kubernetes, informers, Agent client, Swagger, MCP, and external system clients.
+- `policy`: RBAC, ABAC, and scope evaluation.
+- `repository`: persistence access for audit logs, business records, and runtime records.
 
-## 模块化单体约定
+## Modular Monolith Conventions
 
-后端保持单仓库、单 `go.mod` 的模块化单体形态。`cmd/server` 是当前管理控制面入口；远程集群 agent 和 runner 位于主仓 `github.com/opensoha/soha` 的 `agent/` 独立 Go 子模块。未来如果增加内网安全工作台或设备上报能力，优先通过明确 API/契约边界新增独立入口或仓库，而不是把高频设备上报直接塞进 `cmd/server` 的 Gin handler。
+The backend maintains a modular monolith structure within a single repository and single `go.mod`. `cmd/server` is the primary management control plane entry point, while the remote cluster agent and runner live in the standalone `agent/` Go submodule inside the Root `github.com/opensoha/soha` repository. If internal network security workbenches or device telemetry capabilities are added, introduce dedicated entry points or repositories behind explicit API and contract boundaries rather than embedding high-frequency device reporting directly into Gin handlers in `cmd/server`.
 
-新增入口必须复用 `internal/bootstrap`、`internal/infrastructure`、`internal/repository` 和 `internal/application` 中的稳定能力。只有入口生命周期、监听地址、认证方式、队列/worker 循环等运行形态差异应该留在 `cmd/**` 或专门的 bootstrap 文件中。
+New entry points must reuse stable capabilities from `internal/bootstrap`, `internal/infrastructure`, `internal/repository`, and `internal/application`. Only runtime-form differences—such as process lifecycle, listen addresses, authentication modes, and queue or worker loops—belong in `cmd/**` or dedicated bootstrap files.
 
-## 路由注册约定
+## Route Registration Conventions
 
-`internal/api/routes/router.go` 只负责 Gin engine、全局 middleware、基础兼容路径、静态资源和顶层 route group 装配。业务路由要落在同包的领域文件中，例如：
+`internal/api/routes/router.go` is responsible only for the Gin engine, global middleware, base compatibility paths, static assets, and top-level route group assembly. Domain routes belong in domain-specific files within the same package, for example:
 
-- `routes_public.go`: health、登录、公开 webhook、runner claim/callback 等无需用户会话但需要 token 或公开协议的入口。
-- `routes_protected.go`: 受登录态保护的顶层编排函数。
-- `routes_platform.go`: Kubernetes 平台管理资源。
-- `routes_delivery.go`: 应用交付、执行任务、发布和制品。
-- `routes_monitoring.go`: 监控、告警、通知和值班。
-- `routes_runtime.go`: 虚拟化、Docker、AI workbench 等运行时工作台。
-- `routes_governance.go`: system、access、settings、AI Gateway、audit/operation 等治理面。
+- `routes_public.go`: health checks, login, public webhooks, runner claim/callback endpoints, and other entry points that operate without user sessions via tokens or public protocols.
+- `routes_protected.go`: top-level orchestration for session-protected routes.
+- `routes_platform.go`: Kubernetes platform management resources.
+- `routes_delivery.go`: application delivery, execution tasks, releases, and artifacts.
+- `routes_monitoring.go`: monitoring, alerting, notifications, and on-call management.
+- `routes_runtime.go`: virtualization, Docker, AI workbench, and other runtime workbenches.
+- `routes_governance.go`: system, access, settings, AI Gateway, and audit/operation governance surfaces.
 
-新增领域不要继续膨胀 `router.go`。先新增 `registerDomainRoutes` 这种领域注册函数，再从 `registerProtectedRoutes` 或 `registerPublicRoutes` 中接入。模块开关、公开 callback 路径、用户登录态路径要保持边界清晰。
+Do not expand `router.go` when adding new domains. Introduce a domain registration function such as `registerDomainRoutes` and wire it through `registerProtectedRoutes` or `registerPublicRoutes`. Keep clear boundaries between module feature flags, public callback paths, and authenticated user session paths.
 
-## Go 热点文件拆分约定
+## Splitting Large Go Files
 
-大文件优化优先做同包机械拆分，再做行为调整。拆分时应保持 receiver、私有 helper、DTO、错误语义和 audit/operation 记录不变。
+When refactoring large files, perform mechanical splits within the same package first before making behavioral changes. Preserve receivers, private helpers, DTOs, error semantics, and audit/operation recording during mechanical splits.
 
-- 平台 handler REST 方法按资源域拆分：`platform_inventory.go`、`platform_workloads.go`、`platform_configuration.go`、`platform_network.go`、`platform_storage.go`、`platform_rbac.go`、`platform_crd_helm.go`、`platform_generic.go` 和 `platform_observability.go`。WebSocket 流处理归 `platform_streams.go`，共享的 `websocketStreamSession` lifecycle helper 也保留在这里。
-- 平台资源 application service 按资源族拆分：`pods.go`/`pods_helpers.go`、`workloads.go`、`configuration.go`、`rbac.go`、`network.go`、`storage.go`、`crd.go`、`events.go` 和 `resource_yaml.go`。共享授权/审计 helper 归 `common.go`，direct Kubernetes bundle/timeout helper 归 `direct_query.go`。
-- 修改资源服务行为时保持现有资源族边界，并至少运行 `go test ./internal/application/resource`。机械移动和 agent/direct 行为调整不要混在同一 patch 中。
-- 执行面状态机必须有测试保护。claim/callback/cancel/retry/timeout、callback token 轮换、terminal 状态 late callback、artifact 落库和 build/release 回填都属于执行面测试范围。
-- AI Gateway 按行为域拆分：`manifest.go`、`tools.go`、`policies.go`、`rate_limit_budget.go`、`redaction.go`、`approval.go`、`tokens.go`、`audit.go` 和 `governance.go`。`service.go` 只保留 wiring、interface、constructor 和 setter。
-- transport 行为发生变化时需要 handler 测试；纯文件移动可先依赖 package compile、全量 Go test 和路由注册对比。
+- Platform handler REST methods are split by resource domain: `platform_inventory.go`, `platform_workloads.go`, `platform_configuration.go`, `platform_network.go`, `platform_storage.go`, `platform_rbac.go`, `platform_crd_helm.go`, `platform_generic.go`, and `platform_observability.go`. WebSocket stream handling lives in `platform_streams.go`, along with the shared `websocketStreamSession` lifecycle helper.
+- Platform resource application services are split by resource family: `pods.go`/`pods_helpers.go`, `workloads.go`, `configuration.go`, `rbac.go`, `network.go`, `storage.go`, `crd.go`, `events.go`, and `resource_yaml.go`. Shared authorization and audit helpers live in `common.go`, while direct Kubernetes bundle and timeout helpers live in `direct_query.go`.
+- When changing resource service behavior, preserve existing resource-family boundaries and run at least `go test ./internal/application/resource`. Do not mix mechanical file moves with agent/direct behavioral changes in the same patch.
+- Execution-plane state machines require test coverage, including claim/callback/cancel/retry/timeout transitions, callback token rotation, late callbacks on terminal states, artifact persistence, and build/release status backfill.
+- AI Gateway is split by behavioral concern: `manifest.go`, `tools.go`, `policies.go`, `rate_limit_budget.go`, `redaction.go`, `approval.go`, `tokens.go`, `audit.go`, and `governance.go`. `service.go` retains only wiring, interfaces, constructors, and setters.
+- Add handler tests whenever transport behavior changes; pure file moves can rely on package compilation, the full Go test suite, and route registration comparisons.
 
-## Bootstrap 和 Seed 约定
+## Bootstrap and Seed Conventions
 
-`internal/bootstrap/app.go` 保持顶层依赖装配。生命周期方法属于 `lifecycle.go`，跨模块窄适配器属于独立文件，例如 Docker 主机快速创建只通过 `docker_provisioner.go` 调用虚拟化服务。
+`internal/bootstrap/app.go` owns top-level dependency assembly. Lifecycle methods belong in `lifecycle.go`, and narrow cross-module adapters live in dedicated files—for example, quick Docker host provisioning invokes the virtualization service exclusively through `docker_provisioner.go`.
 
-数据库 bootstrap 也按关注点拆分。`database.go` 保留 seed 编排、角色/策略/用户/集群等通用持久化 helper；菜单 seed、模块禁用过滤、菜单角色绑定和内置菜单升级逻辑归 `database_menus.go`。未来增加领域菜单或权限时，应优先在对应 seed 文件中落位，并同步权限键、菜单可见性、前端 route metadata 和文档。
+Database bootstrap is similarly separated by concern. `database.go` retains seed orchestration and shared persistence helpers for roles, policies, users, and clusters; menu seeding, disabled-module filtering, menu-to-role bindings, and built-in menu upgrade logic live in `database_menus.go`. When adding domain menus or permissions, place them in the corresponding seed file and keep permission keys, menu visibility, frontend route metadata, and documentation synchronized.
 
 ## Network access workbench boundary
 

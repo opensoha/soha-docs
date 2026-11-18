@@ -1,25 +1,25 @@
-# Configuration
+# 配置
 
-## Source Of Truth
+## 配置真实源
 
 启动配置仍以文件为基线；业务设置和连接实例由数据库设置中心持久化。
 
 - 源码配置模板为 `configs/config.example.yaml`。Compose 将它挂载到 `/app/configs/config.yaml`。本机运行可用私有的 `configs/config.yaml`，也可设置 `SOHA_CONFIG_FILE`。
-- loader: `internal/infrastructure/config`
-- override mechanism: environment variables through Viper when needed
+- 配置加载器：`internal/infrastructure/config`
+- 覆盖机制：按需通过 Viper 使用环境变量覆盖
 
-Frontend runtime is currently code-first rather than env-first.
+前端运行时当前采用代码约定优先，而非环境变量驱动：
 
 - Web 默认请求同源 `/api/v1`；候选前缀构建使用 `<VITE_BASE_PATH>api/v1`，显式设置 `VITE_API_BASE_URL` 时使用该覆盖值
-- local development proxies `/api` to `http://127.0.0.1:8080` in `../soha/web/vite.config.ts`
-- the docs surface inside the console opens `/docs/`, which the `soha` server redirects to the configured external docs URL by default
-- there are no checked-in `../soha/web/.env.*` templates at the moment
+- 本地开发在 `../soha/web/vite.config.ts` 中将 `/api` 代理到 `http://127.0.0.1:8080`
+- 控制台内的文档入口会打开 `/docs/`，`soha` 服务端默认将其重定向至已配置的外部文档站地址
+- 仓库当前未检入 `../soha/web/.env.*` 模板文件
 
-Docs runtime is independent.
+文档站运行时相互独立：
 
-- docs source lives in `soha-docs`
-- published docs should use an external URL, such as `https://docs.opensoha.dev/`
-- `assets.docs.external_url` controls where `soha` redirects `/docs/`
+- 文档源码位于 `soha-docs` 仓库
+- 正式发布的文档站应使用独立的外部地址（如 `https://docs.opensoha.dev/`）
+- `assets.docs.external_url` 控制 `soha` 将 `/docs/` 重定向到的目标地址
 
 ## 配置归属
 
@@ -47,7 +47,7 @@ Docs runtime is independent.
 
 集成凭据必须加密保存并支持连接测试。它们不应作为普通的扁平运行时键，也不应让浏览器直接访问第三方系统。
 
-## Backend Config Shape
+## 后端配置结构
 
 ```yaml
 app:
@@ -64,20 +64,20 @@ monitoring:
 security:
 ```
 
-Key backend fields now used by the runtime:
+当前运行时使用的关键后端配置项：
 
-- `http.cors_allowed_origins`: allowed browser origins for the frontend console
-- `auth.jwt.secret`, `auth.jwt.access_ttl`, `auth.jwt.refresh_ttl`
-- `auth.dev_principal.*`: bootstrap local account seed and, when enabled, the no-token development principal
-- `auth.oidc.*`: legacy runtime OIDC fallback only; it does not create settings-center login sources
-- `runtime.execution_runner_token`: shared bearer token for delivery, Docker, and AI Agent Runtime runner claim/callback APIs
-- `database.migration_path`: migration root directory (runtime resolves `migrations/<driver>/0001_init.sql`)
-- `database.migration_file`: explicit SQL bootstrap file override; the current repo baseline points at the consolidated PostgreSQL bootstrap file
-- `kubernetes.clusters[*].kubeconfig`: direct cluster file path for bootstrapped clusters
-- `kubernetes.clusters[*].kubeconfig_data`: inline kubeconfig support when file paths are not used
-- `mcp.default_timeout`: default timeout reused by MCP and agent HTTP integrations
-- `monitoring.enabled`: toggles monitoring ingress endpoints
-- `monitoring.webhook_token`: shared token accepted by the alert webhook endpoint
+- `http.cors_allowed_origins`：允许访问前端控制台的浏览器源地址列表
+- `auth.jwt.secret`、`auth.jwt.access_ttl`、`auth.jwt.refresh_ttl`：JWT 签名密钥及访问、刷新令牌有效期
+- `auth.dev_principal.*`：初始化本地种子账号；启用开发态免令牌鉴权时也作为默认开发身份
+- `auth.oidc.*`：仅作为旧版运行时 OIDC 回退配置，不会在设置中心创建登录源
+- `runtime.execution_runner_token`：交付、Docker 与 AI Agent Runtime Runner 领取和回调接口共用的 Bearer Token
+- `database.migration_path`：数据库迁移根目录（运行时解析为 `migrations/<driver>/0001_init.sql`）
+- `database.migration_file`：显式指定的 SQL 初始化迁移文件覆盖路径；当前仓库基线指向合并后的 PostgreSQL 初始化文件
+- `kubernetes.clusters[*].kubeconfig`：初始化直连集群时使用的 `kubeconfig` 文件路径
+- `kubernetes.clusters[*].kubeconfig_data`：不使用文件路径时的内联 `kubeconfig` 内容
+- `mcp.default_timeout`：MCP 与 Agent HTTP 集成共用的默认超时时间
+- `monitoring.enabled`：控制是否启用监控接入端点
+- `monitoring.webhook_token`：告警 Webhook 端点校验所用的共享令牌
 - `security.credential_encryption_key`：用于加密持久化的集成与平台凭据
 - `security.secret_provider`：留空时使用本地加密值，设为 `vault_kv2` 时启用 Vault Secret 版本
 - `security.vault_kv2.*`：仅服务端使用的 Vault 地址、Token、Namespace、超时和响应大小限制
@@ -105,20 +105,20 @@ security:
 
 ### PostgreSQL
 
-- version: PostgreSQL 18.4 with pgvector 0.8.5
-- host: `localhost`
-- port: `5432`
-- database: `soha`
-- user: `pgsql`
-- password: `pgsql`
+- 版本：PostgreSQL 18.4（含 pgvector 0.8.5）
+- 主机：`localhost`
+- 端口：`5432`
+- 数据库：`soha`
+- 用户名：`pgsql`
+- 密码：`pgsql`
 
-## Identity Defaults
+## 默认身份配置
 
 标准初始化账号来自 `config.yaml` 中的 `auth.dev_principal`。
 
-- username: `opensoha`
-- email: `opensoha@soha.local`
-- password: `opensoha`
+- 用户名：`opensoha`
+- 邮箱：`opensoha@soha.local`
+- 密码：`opensoha`
 
 即使 `auth.enable_dev_auth` 为 `false`，该账号仍会写入 PostgreSQL，用于真实密码登录；该开关只控制无 bearer token 时是否接受自动开发身份。日常重启会保留初始密码，也不会覆盖用户已经修改的密码。Soha 不实施按环境区分的凭据策略，仍支持显式覆盖。
 
@@ -147,17 +147,17 @@ security:
 
 修改 `security.credential_encryption_key` 时必须区别于 bearer token 和签名密钥：移除旧 key 前，先用旧 key 解密并迁移或重新加密全部历史密文。直接替换会导致已有加密凭据永久不可读。在迁移完成前，所有副本和每次重启都必须继续使用同一加密 key。
 
-## Login Provider Runtime
+## 登录提供商运行时
 
-The active console login source is now settings-driven rather than file-only.
+控制台当前启用的登录源由设置中心驱动，而非仅靠配置文件维护。
 
-Operationally:
+运行规则如下：
 
-- settings-center login sources are stored only under `identity.login_providers`
-- `auth.oidc.*` does not seed or backfill login sources
-- operators can configure multiple concurrent providers from the console login-settings page
+- 设置中心的登录源统一保存在 `identity.login_providers` 下
+- `auth.oidc.*` 不会初始化或回填设置中心的登录源
+- 管理员可在控制台“登录设置”页面同时配置多个并存的登录提供商
 
-Supported provider types in the current settings model:
+当前设置模型支持的提供商类型：
 
 - `oidc`
 - `feishu`
@@ -166,54 +166,54 @@ Supported provider types in the current settings model:
 - `oauth2`
 - `saml`
 
-Current runtime expectations:
+各类型的当前运行时支持情况：
 
-- `oidc`: full runtime supported
-- `oauth2`: supported when authorize/token/userinfo URLs and field mappings are correct
-- `feishu`: supported through configured Feishu auth endpoints and field mappings
-- `dingtalk`: supported through configured DingTalk auth endpoints and field mappings
-- `wecom`: supported through webpage authorization plus enterprise access-token and `getuserinfo` APIs
-- `saml`: 支持 SP metadata、ACS、签名与 assertion 校验、属性映射和重放防护
+- `oidc`：完整支持运行时登录流程
+- `oauth2`：正确配置授权、令牌、用户信息地址及字段映射后即可使用
+- `feishu`：通过已配置的飞书认证端点与字段映射提供支持
+- `dingtalk`：通过已配置的钉钉认证端点与字段映射提供支持
+- `wecom`：通过企业微信网页授权配合企业 `access_token` 与 `getuserinfo` 接口提供支持
+- `saml`：支持 SP 元数据、ACS、签名与断言校验、属性映射和重放防护
 
-把 `http.access_url` 设置为用户实际访问的根地址。私有化安装支持 HTTP 和 HTTPS，由部署方决定；仍强烈建议使用 HTTPS，否则身份令牌、Assertion 和会话 Cookie 缺少传输保护。OIDC/SAML issuer 和公开协议地址使用该值，不从客户端提交的 forwarded host/proto 推断。
+把 `http.access_url` 设置为用户实际访问的根地址。私有化安装支持 HTTP 和 HTTPS，由部署方决定；仍强烈建议使用 HTTPS，否则身份令牌、断言和会话 Cookie 缺少传输保护。OIDC/SAML Issuer 和公开协议地址均使用该值，不从客户端提交的转发头（Forwarded Host/Proto）推断。
 
-## Operational Conventions
+## 运行约定
 
-- request ID header: `X-Request-Id`
-- health check: `GET /healthz`
-- readiness check: `GET /readyz`
-- versioned API base path: `/api/v1`
-- swagger route reservation: `/swagger/*any`
-- config override file: `SOHA_CONFIG_FILE=/abs/path/to/config.yaml`
-- frontend local dev port: `5173`
-- docs local dev port: `3000`
+- 请求 ID 请求头：`X-Request-Id`
+- 存活检查：`GET /healthz`
+- 就绪检查：`GET /readyz`
+- 版本化 API 根路径：`/api/v1`
+- Swagger 预留路由：`/swagger/*any`
+- 配置文件覆盖环境变量：`SOHA_CONFIG_FILE=/abs/path/to/config.yaml`
+- 前端本地开发端口：`5173`
+- 文档站本地开发端口：`3000`
 
-## Database Bootstrap
+## 数据库初始化引导
 
-On startup the backend can:
+后端启动时可自动完成以下步骤：
 
-1. run SQL migration file
-2. create schema only from the migration file
-3. seed bootstrap user from `auth.dev_principal`
-4. seed password hash and role bindings for the bootstrap account
-5. seed default RBAC roles
-6. seed default ABAC policies
-7. seed configured clusters into `clusters`
-8. seed file-configured direct cluster metadata into `cluster_credentials_meta`
+1. 执行 SQL 迁移文件
+2. 仅依据迁移文件创建数据库结构
+3. 根据 `auth.dev_principal` 写入初始化用户
+4. 写入初始化账号的密码哈希与角色绑定
+5. 写入默认 RBAC 角色
+6. 写入默认 ABAC 策略
+7. 将配置文件中声明的集群写入 `clusters` 表
+8. 将配置文件中直连集群的凭据元数据写入 `cluster_credentials_meta` 表
 
-## Cluster Registration API
+## 集群注册 API
 
-The runtime now supports two persisted cluster connection modes:
+当前运行时支持两种持久化集群连接模式：
 
 - `direct_kubeconfig`
-  - request payload includes `kubeconfig` and optional `context`
-  - kubeconfig is validated before the cluster is registered into `cluster-manager`
-  - informer/cache is started dynamically for the new cluster
+  - 请求体包含 `kubeconfig` 与可选的 `context`
+  - 注册进 `cluster-manager` 前会先校验 `kubeconfig` 有效性
+  - 注册成功后为新集群动态启动 Informer 与缓存
 - `agent`
-  - request payload includes `agentEndpoint` and optional `agentToken`
-  - Gin uses the stored endpoint and token to pull summary, list resources, and send execution actions
+  - 请求体包含 `agentEndpoint` 与可选的 `agentToken`
+  - Gin 后端使用已保存的端点与令牌拉取集群摘要、列举资源并下发执行操作
 
-Relevant routes:
+相关接口路由：
 
 - `POST /api/v1/clusters`
 - `POST /api/v1/clusters/:clusterID/workloads/deployments/restart`
@@ -231,9 +231,9 @@ Prometheus 和 Grafana 连接属于集群，而不是 Soha 全局运行时配置
 
 Bearer Token 保存后不会通过 API 回显，但当前集群实现会将它写入数据库中的集群连接 metadata，未做字段级加密。应将数据库访问、备份、副本和诊断导出都视为敏感边界；不要假定 `security.credential_encryption_key` 会保护该字段。
 
-## Monitoring Runtime
+## 监控运行时
 
-监控告警接入属于监控工作台。Alertmanager、Grafana Alerting 和 Generic Webhook 的集成、Token、路由、通知、静默、自愈和值班配置，应在 `/monitoring-workbench/integrations` 及其详情页维护。
+监控告警接入属于监控工作台。Alertmanager、Grafana Alerting 和通用 Webhook 的集成、令牌、路由、通知、静默、自愈和值班配置，应在 `/monitoring-workbench/integrations` 及其详情页维护。
 
 Soha 自身只在启动配置中保留监控告警入口所需的系统级开关和密钥：
 
@@ -245,13 +245,13 @@ monitoring:
 
 Prometheus/Grafana 资源监控连接不属于这里。它们是集群级配置：每个集群可以使用不同的 Prometheus/Grafana，资源页面按 `clusterId` 选择对应连接。不要把集群 Prometheus URL、Bearer Token、默认查询范围或 Grafana 地址放入全局运行时配置页。
 
-Current persistence layout:
+当前持久化表结构：
 
-- `alert_events`: normalized inbound alert inventory
-- `notification_channels`: downstream channel definitions
-- `event_stream`: normalized alert activity for the unified event center
+- `alert_events`：标准化后的入站告警清单
+- `notification_channels`：下游通知渠道定义
+- `event_stream`：供统一事件中心消费的标准化告警活动流
 
-Current public or protected routes:
+当前公开或受保护的接口路由：
 
 - `POST /api/v1/integrations/alerts/webhook`
 - `GET /api/v1/monitoring/summary`
@@ -260,9 +260,9 @@ Current public or protected routes:
 - `POST /api/v1/notification-channels`
 - `PUT /api/v1/notification-channels/:channelID`
 
-## Application Registry And GitLab
+## 应用注册表与 GitLab
 
-Application management now uses one PostgreSQL-backed registry table:
+应用管理及相关能力使用以下基于 PostgreSQL 的持久化表：
 
 - `applications`
 - `build_records`
@@ -274,11 +274,11 @@ Application management now uses one PostgreSQL-backed registry table:
 - `ai_automation_policies`
 - `ai_agent_runs`
 
-GitLab 是全局代码源/系统集成，而不是交付工作台专属配置。当前设置模型仅由“代码源”列表和 GitLab 详情页管理，不再读取或导入 `config.yaml` 中的 `gitlab` 配置。
+GitLab 是全局代码源与系统集成，而不是交付工作台专属配置。当前设置模型仅由“代码源”列表和 GitLab 详情页管理，不再读取或导入 `config.yaml` 中的 `gitlab` 配置。
 
-集成记录包含：实例名称、GitLab 地址、加密 Token、默认组织/Group、超时、启用状态、连接测试结果和审计信息。交付和其他工作台只引用 Provider ID 及仓库定位信息。
+集成记录包含：实例名称、GitLab 地址、加密 Token、默认组织/群组、超时时间、启用状态、连接测试结果和审计信息。交付和其他工作台只引用连接实例 ID 及仓库定位信息。
 
-When enabled, soha serves these routes from the backend:
+启用后，`soha` 后端提供以下接口路由：
 
 - `GET /api/v1/applications`
 - `POST /api/v1/applications`
@@ -289,7 +289,7 @@ When enabled, soha serves these routes from the backend:
 - `GET /api/v1/integrations/gitlab/branches`
 - `GET /api/v1/integrations/gitlab/tags`
 
-交付兼容与 AI routes 也存在。新的控制台交付动作统一创建并确认 `DeliveryPlan`；直接 build trigger 仅作为 API 兼容入口保留：
+交付兼容与 AI 接口路由同样由后端提供。新的控制台交付动作统一创建并确认 `DeliveryPlan`；直接触发构建的接口仅作为 API 兼容入口保留：
 
 - `POST /api/v1/delivery/plans`
 - `POST /api/v1/delivery/plans/:planID/confirm`
@@ -310,7 +310,7 @@ When enabled, soha serves these routes from the backend:
 - `POST /api/v1/copilot/agent-runs/callback`
 - `POST /api/v1/copilot/agent-runs/tool-call`
 
-The browser never talks to GitLab directly. Tokens stay in encrypted backend-managed integration records.
+浏览器绝不会直接访问 GitLab；访问令牌始终加密保存在由后端托管的集成记录中。
 
 ## YAML 兼容与迁移边界
 
@@ -323,11 +323,11 @@ The browser never talks to GitLab directly. Tokens stay in encrypted backend-man
 
 不要在没有迁移记录、加密密钥和多副本一致性保障的情况下直接删除配置字段。启动拓扑、网络信任边界、系统密钥和基础设施后端仍必须由部署配置管理。
 
-## Agent Runner Config
+## Agent Runner 配置
 
-The standalone `soha-agent` binary can also claim AI Agent Runtime work from the control plane. The server and agent must share the same `runtime.execution_runner_token` / `control_plane.bearer_token` value.
+独立的 `soha-agent` 二进制程序也可从控制平面领取 AI Agent Runtime 任务。服务端与 Agent 必须共享相同的 `runtime.execution_runner_token` / `control_plane.bearer_token` 值。
 
-Minimal Hermes runner config:
+最小化 Hermes Runner 配置示例：
 
 ```yaml
 control_plane:
@@ -356,7 +356,7 @@ control_plane:
     poll_interval: 5s
 ```
 
-AI 工作台和自动化策略选择 `agentProviderId`；runner 只执行匹配的 `AgentRun`。Provider 专属命令和工作目录应配置在 agent 配置中，不放入浏览器请求。Hermes skill 参数应来自 `AgentSkillBinding.providerSkillRef`，仅在缺少该值时回退到 soha skill id。外部 Provider 应通过 `/api/v1/copilot/agent-runs/tool-call` 调用 soha 只读工具；该入口会校验 runner token、单次 run callback token 和经过权限过滤的 `AgentRun.toolBindings` 快照，再记录 `ToolExecution`。内置 Hermes/CLI POC 会将少量只读上下文预取到 Provider prompt，目前可执行的内容包括 events、logs、metrics、delivery releases、delivery builds、execution tasks、平台资源快照、Docker operation/service 上下文、虚拟化操作、告警和 OnCall 路由解析。Trace 路由和查询 DTO 为兼容性保留，但在后续外部 Provider 集成实现前，Trace 查询不可用。通用外部 `logs.query` 能力当前只覆盖持久化集群日志。预取和 Provider 可见工具仍受该 run 的 toolset 选择控制，包括精确 adapter id（如 `logs.v1`）或 source-kind 别名（如 `logs`）。更丰富的 Provider 原生或 MCP client 工具协议仍应终止于同一个 soha tool-call gateway。
+AI 工作台和自动化策略选择 `agentProviderId`，Runner 只执行匹配的 `AgentRun`。Provider 专属命令和工作目录应配置在 Agent 配置文件中，不放入浏览器请求。Hermes Skill 参数来自 `AgentSkillBinding.providerSkillRef`，仅在缺少该值时回退到 `soha` Skill ID。外部 Provider 应通过 `/api/v1/copilot/agent-runs/tool-call` 调用 `soha` 只读工具；该入口会校验 Runner 令牌、单次运行回调令牌和经过权限过滤的 `AgentRun.toolBindings` 快照，再记录 `ToolExecution`。内置 Hermes/CLI 概念验证（POC）会将少量只读上下文预取到 Provider 提示词中，目前可执行的内容包括事件、日志、指标、交付发布、交付构建、执行任务、平台资源快照、Docker 操作与服务上下文、虚拟化操作、告警以及值班（On-Call）路由解析。链路追踪（Trace）路由和查询 DTO 为兼容性保留，但在后续外部 Provider 集成实现前暂不可用。通用外部 `logs.query` 能力当前仅覆盖持久化的集群日志。预取内容和 Provider 可见工具仍受当次运行的工具集选择控制，支持精确适配器 ID（如 `logs.v1`）或数据源类别别名（如 `logs`）。更丰富的 Provider 原生协议或 MCP 客户端工具协议，最终也应收敛并终止于同一个 `soha` 工具调用网关。
 
 ## CLI v2 认证策略（待发布组合）
 

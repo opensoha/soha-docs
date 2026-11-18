@@ -150,12 +150,13 @@ Current backend usage of the agent protocol:
 
 - cluster health snapshot sync via summary endpoint
 - resource list reads for namespaces, pods, deployments
-- deployment restart and scale actions
-
-Future protocol expansion can add:
-
-- logs
+- workload actions including deployment restart and scale
+- bounded container logs and supported streaming interfaces
 - YAML fetch
 - events
 - exec
 - rollout history
+
+Agent mode provides these capabilities through a reverse connection initiated by the in-cluster Agent. Availability depends on the running Agent version, installation preset, `security.allowed_actions`, and Kubernetes RBAC; an implemented action is not automatically authorized in every installation.
+
+Use the [platform capability matrix](../operations/agent-runtime.md#platform-capability-matrix) and [Kubernetes Workbench](../operations/kubernetes-workbench.md) as the operational references. The authenticated `GET /api/v1/diagnostics/actions` endpoint helps inspect implemented actions, configured allowlists, and authorization readiness; diagnostic reads do not authorize mutations.

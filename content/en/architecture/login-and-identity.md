@@ -1,13 +1,13 @@
-# 登录与身份链路
+# Login and Identity
 
-## 目标
+## Goal
 
-`soha` 的登录链路现在分成两层：
+The login flow in `soha` is split into two layers:
 
-- 本地账号密码登录
-- 多第三方登录源聚合登录
+- Local username and password sign-in
+- Aggregated sign-in across multiple third-party identity providers
 
-当前第三方登录源模型支持：
+Supported third-party login provider types:
 
 - `oidc`
 - `feishu`
@@ -16,16 +16,16 @@
 - `oauth2`
 - `saml`
 
-这里的关键设计目标不是“支持一种企业单点登录”，而是让控制台同时持有多套企业身份入口，并且由登录页按启用状态并列展示。
+The design goal is not merely to support a single enterprise SSO integration, but to allow the console to hold multiple enterprise identity entry points simultaneously and display enabled providers side by side on the login page.
 
-## 配置模型
+## Configuration Model
 
-后端设置服务将登录配置聚合在 `identity.login_providers` 里，结构上包含：
+The backend settings service aggregates login configuration under `identity.login_providers`, containing:
 
 - `providers[]`
 - `defaultProviderId`
 
-每个 provider 至少包含：
+Each provider entry includes at least:
 
 - `id`
 - `name`
@@ -34,11 +34,11 @@
 - `redirectUrl`
 - `frontendRedirectUrl`
 
-针对 OAuth/OIDC 类 provider，还包含：
+For OAuth/OIDC-style providers, it also includes:
 
 - `clientId`
 - `clientSecret`
-- `issuer` 或 `authorizeUrl`
+- `issuer` or `authorizeUrl`
 - `tokenUrl`
 - `userInfoUrl`
 - `scopes`
@@ -53,28 +53,28 @@
 - `roleSyncMode`
 - `orgSyncMode`
 
-## 登录时角色与组织映射
+## Login-Time Role and Organization Mapping
 
-OIDC、OAuth2、飞书、钉钉、企业微信这几类可运行 provider 现在支持“登录时补充绑定”：
+Runnable OIDC, OAuth2, Feishu, DingTalk, and WeCom providers support supplemental bindings at login time:
 
-- `roleField` 从 id token claims 或 userinfo/profile 响应中读取外部角色引用
-- `organizationField` 从 id token claims 或 userinfo/profile 响应中读取外部组织引用
-- `syncRolesOnLogin` 控制是否在登录成功后补充本地角色绑定
-- `syncOrgsOnLogin` 控制是否在登录成功后补充本地组织绑定
-- `roleSyncMode` 和 `orgSyncMode` 支持 `append` 与 `replace_external`
+- `roleField` reads external role references from ID token claims or the userinfo/profile response
+- `organizationField` reads external organization references from ID token claims or the userinfo/profile response
+- `syncRolesOnLogin` controls whether local role bindings are supplemented after a successful login
+- `syncOrgsOnLogin` controls whether local organization bindings are supplemented after a successful login
+- `roleSyncMode` and `orgSyncMode` support `append` and `replace_external`
 
-`append` 只追加本次解析到的本地角色或组织绑定。`replace_external` 会先清理同一 provider 上次写入的外部来源绑定，再写入本次解析结果；它不会删除管理员在用户页面手工维护的本地绑定。
+`append` only adds the local role or organization bindings resolved during the current login. `replace_external` clears external-source bindings previously written by the same provider before writing the newly resolved bindings; it never deletes local bindings manually maintained by administrators on the Users page.
 
-角色解析只匹配本地已存在的 `roles.id` 或 `roles.name`。组织解析只匹配本地已存在的组织：
+Role resolution matches only existing local `roles.id` or `roles.name` records. Organization resolution matches only existing local organizations:
 
 - `teams.id`
 - `teams.slug`
 - `teams.org_path`
-- `teams.source` 等于 provider type 或 provider id 且 `teams.external_id` 等于外部组织引用
+- `teams.source` equals the provider type or provider ID and `teams.external_id` equals the external organization reference
 
-登录回调不会自动创建本地组织或角色。管理员需要先在“组织架构”中建立组织树，并为第三方组织填入对应来源和外部 ID。这样可以把第三方组织目录的实时同步与登录授权映射拆开，避免登录链路变成隐式主数据导入。
+Login callbacks do not automatically create local organizations or roles. Administrators must first build the organization tree under Organization Structure and populate the corresponding source and external ID for third-party organizations. Separating real-time directory synchronization from login-time authorization mapping prevents the login flow from acting as an implicit master-data import.
 
-飞书、钉钉、企业微信的 App Key、App Secret、CorpID、CorpSecret 等应用凭据属于“登录设置”的登录源应用配置，不属于组织节点。组织节点只保存映射来源和第三方部门/组织 ID；如果同一种 provider 配了多个应用，组织来源应优先选择具体登录源应用 ID，而不是只选择 `feishu`、`dingtalk` 或 `wecom` 类型。
+Application credentials such as Feishu, DingTalk, and WeCom App Key, App Secret, CorpID, and CorpSecret belong to the login provider application configuration under Login Settings, not to organization nodes. Organization nodes store only the mapping source and third-party department/organization ID; when multiple applications of the same provider type are configured, the organization source should reference the specific login provider ID rather than only the generic `feishu`, `dingtalk`, or `wecom` type.
 
 ## Directory synchronization
 
@@ -94,35 +94,35 @@ SAML login sources persist and use these runtime fields:
 
 The server publishes SP metadata and an ACS endpoint, then validates signatures, `InResponseTo`, timing, audience, recipient, and assertion replay. Imported login sources remain disabled until an operator verifies the metadata and certificates.
 
-## 配置来源
+## Configuration Source
 
-登录源的唯一设置中心配置源是 `identity.login_providers`。
+The sole Settings configuration source for login providers is `identity.login_providers`.
 
-当前规则：
+Current rules:
 
-- 设置中心通过 `/settings/identity/providers` 维护登录源
-- 不再读写旧单 OIDC 设置键
-- 不再从旧 OIDC 配置投影默认登录源
-- 删除登录源后，已有账号关联记录保留，但该入口不再可登录
+- Settings maintains login providers through `/settings/identity/providers`
+- Legacy single-OIDC setting keys are no longer read or written
+- No default login provider is projected from legacy OIDC configuration
+- Deleting a login provider retains existing account identity links, while disabling sign-in through that entry point
 
-这样做的原因是：
+Rationale:
 
-- 避免空配置生成 `default` OIDC 登录源
-- 让登录 Soha 的登录源与 Provider 工作台保持边界清晰
+- Avoid generating a `default` OIDC login provider from empty configuration
+- Keep a clear boundary between external login providers used to sign in to Soha and the Provider workbench
 
-## 运行链路
+## Runtime Flow
 
-## 浏览器会话与 token 存储
+## Browser Sessions and Token Storage
 
-浏览器控制台现在按 BFF 方向收敛：
+The browser console follows a BFF-oriented session model:
 
-- `accessToken` 只保存在前端内存态，用于普通 API 请求的 `Authorization: Bearer ...`
-- `refreshToken` 由后端写入 `HttpOnly` cookie，前端不再持久化或读取 refresh token
-- `/api/v1/auth/refresh` 支持空 body，优先从 refresh cookie 读取会话并续写 refresh cookie
-- `/api/v1/auth/logout` 会清除 refresh cookie，前端退出登录必须调用该接口后再清本地状态
-- 开发环境默认通过 Vite `/api` proxy 访问同源 `/api/v1`，避免 refresh cookie 在跨站请求里失效
+- `accessToken` is kept only in frontend memory for `Authorization: Bearer ...` on regular API requests
+- `refreshToken` is written by the backend as an `HttpOnly` cookie; the frontend neither persists nor reads the refresh token
+- `/api/v1/auth/refresh` accepts an empty body, reads the session from the refresh cookie first, and renews the refresh cookie
+- `/api/v1/auth/logout` clears the refresh cookie; frontend sign-out must call this endpoint before clearing local state
+- Local development proxies `/api/v1` same-origin through the Vite `/api` proxy by default so the refresh cookie is not dropped on cross-site requests
 
-页面刷新后如果内存态 `accessToken` 不存在，受保护路由会先尝试调用 refresh 接口恢复会话。恢复失败才跳转登录页。
+After a page reload, when no in-memory `accessToken` is present, protected routes call the refresh endpoint to restore the session first and redirect to the login page only if recovery fails.
 
 ## OIDC Provider sessions
 
@@ -137,29 +137,29 @@ The OIDC Provider in the internal workbench is the protocol surface through whic
 
 Only Refresh Token hashes are persisted. A `post_logout_redirect_uri` must exactly match a Redirect URI registered for the client.
 
-浏览器不能给原生 `WebSocket`、`EventSource` 和 noVNC 连接稳定附加 `Authorization` header。Console 需要打开 Pod logs stream、Pod terminal、虚拟化 operation stream 或 VNC/noVNC 时，必须先用当前 session access token 调用 `POST /api/v1/auth/stream-ticket` 换取短期一次性票据，再把 `stream_ticket` 放到同源 stream URL query。服务端只接受白名单路径，票据 60 秒过期、精确绑定 path，并在第一次校验时从 PostgreSQL 消费删除；票据消费后还会校验 session 状态和 `authz_version`，所以角色、组织和账号状态变更仍能让后续流式连接失效。
+Browsers cannot reliably attach an `Authorization` header to native `WebSocket`, `EventSource`, or noVNC connections. Before opening a Pod logs stream, Pod terminal, virtualization operation stream, or VNC/noVNC session, the console exchanges the current session access token via `POST /api/v1/auth/stream-ticket` for a short-lived one-time ticket and passes `stream_ticket` in the same-origin stream URL query string. The server accepts only allowlisted paths; each ticket expires after 60 seconds, is strictly bound to its target path, and is consumed and deleted from PostgreSQL on first verification. After consuming the ticket, the server also validates session state and `authz_version`, ensuring role, organization, or account status changes still invalidate subsequent streaming connections.
 
-## 机器调用与 runner 令牌
+## Machine-to-Machine Calls and Runner Tokens
 
-浏览器登录和机器调用走不同边界：
+Browser sign-in and machine-to-machine calls follow distinct boundaries:
 
-- 浏览器控制台使用 Soha session access/refresh token，并通过服务端 session 和 `authz_version` 让角色、组织、账号状态变更可触发刷新
-- API、CI runner、Docker runner、AI agent runner、AI Gateway client 使用 Bearer token
-- 长期机器 token 应收敛到 AI Gateway 已有的 PAT/SAT 形态：token 只保存 hash，主体是用户或 service account，权限通过 `permissionKeys` 和 scope 限制
+- The browser console uses Soha session access/refresh tokens, backed by server-side session state and `authz_version` so role, organization, and account status changes trigger refreshes
+- Direct API callers, CI runners, Docker runners, AI agent runners, and AI Gateway clients authenticate with Bearer tokens
+- Long-lived machine tokens converge on the AI Gateway PAT/SAT model: only token hashes are stored, the principal is a user or service account, and access is constrained by `permissionKeys` and scopes
 
-当前过渡实现保持 `runtime.execution_runner_token` 兼容，同时允许外部 runner 入口接受 `service_account_token`：
+During the transition, `runtime.execution_runner_token` remains supported for compatibility while external runner endpoints also accept `service_account_token`:
 
-- Delivery execution runner 需要 `delivery.execution-tasks.claim`
-- Docker runner 需要 `docker.operations.claim`
-- AI agent runner 需要 `ai.gateway.invoke` 或 `observe.ai.chat`
+- Delivery execution runners require `delivery.execution-tasks.claim`
+- Docker runners require `docker.operations.claim`
+- AI agent runners require `ai.gateway.invoke` or `observe.ai.chat`
 
-任务级 callback token 仍然由对应执行任务或 agent run 自己校验。SAT 只替代“谁可以 claim/status/callback 这个 runner 通道”的全局共享入口令牌，不替代任务级防重放和回调归属校验。
+Task-scoped callback tokens are still verified by the owning execution task or agent run. A SAT only replaces the global shared entry token governing who may call claim/status/callback on a runner channel; it does not replace per-task replay protection or callback ownership checks.
 
-### 1. 登录页展示
+### 1. Login Page Discovery
 
-登录页先读取 `/api/v1/auth/providers`。
+The login page first fetches `/api/v1/auth/providers`.
 
-返回结果现在包含：
+The response includes:
 
 - `id`
 - `type`
@@ -167,107 +167,107 @@ Only Refresh Token hashes are persisted. A `post_logout_redirect_uri` must exact
 - `enabled`
 - `loginUrl`
 
-前端会展示所有启用的第三方登录源，而不是只筛选 OIDC。
+The frontend renders all enabled third-party login providers rather than filtering only for OIDC.
 
-登录页还会读取 `/api/v1/auth/login-options`。当配置文件里的
-`auth.login_verification.slider_enabled` 为 `true` 时，前端会在密码登录前展示滑块动作。
+The login page also reads `/api/v1/auth/login-options`. When
+`auth.login_verification.slider_enabled` is `true` in configuration, the frontend presents a slider interaction before password sign-in.
 
-### 2. 浏览器跳转
+### 2. Browser Redirect
 
-每个 provider 的登录入口是：
+The sign-in entry point for each provider is:
 
 - `GET /api/v1/auth/login/:providerID/start`
 
-兼容入口仍保留：
+The compatibility entry point is retained:
 
 - `GET /api/v1/auth/oidc/login`
 
-### 3. 回调处理
+### 3. Callback Handling
 
-统一 provider 回调入口：
+Unified provider callback endpoint:
 
 - `GET /api/v1/auth/login/:providerID/callback`
 
-兼容 OIDC 回调入口仍保留：
+The compatibility OIDC callback endpoint is retained:
 
 - `GET /api/v1/auth/oidc/callback`
 
-后端在回调阶段做：
+During callback handling, the backend:
 
-- 校验 state
-- 解析 provider 类型
-- 交换授权码
-- 拉取或构造用户资料
-- 绑定或创建本地用户
-- 写入 `user_identities`
-- 创建 session
-- 生成一次性 exchange code
-- 跳回 `/login/callback?code=...`
+- Validates `state`
+- Resolves the provider type
+- Exchanges the authorization code
+- Fetches or constructs the user profile
+- Links or creates a local user
+- Writes `user_identities`
+- Creates a session
+- Generates a one-time exchange code
+- Redirects back to `/login/callback?code=...`
 
-### 4. 前端换取会话
+### 4. Frontend Session Exchange
 
-前端回调页统一调用：
+The frontend callback page calls:
 
 - `POST /api/v1/auth/oidc/exchange`
 
-这个接口现在不只服务 OIDC，也承载 OAuth2 类登录的最终会话交换。
+This endpoint handles the final session exchange for all OAuth2-style login flows, not only OIDC.
 
-## 当前 provider 状态
+## Current Provider Status
 
 ### OIDC
 
-运行完整。
+Fully operational.
 
-- 发现 issuer
-- 交换 code
-- 校验 id token
-- 按 claims 或 userinfo 补齐用户信息
+- Discovers the issuer
+- Exchanges the authorization code
+- Validates the ID token
+- Populates user attributes from claims or userinfo
 
 ### Generic OAuth2
 
-运行完整，前提是 operator 提供可用的：
+Fully operational when the operator configures valid:
 
 - `authorizeUrl`
 - `tokenUrl`
 - `userInfoUrl`
-- 字段映射
+- Field mappings
 
 ### Feishu
 
-当前按飞书开放平台授权码链路走专用 token 交换，再取用户信息。
+Uses the Feishu Open Platform authorization-code flow with its dedicated token exchange before fetching user profile information.
 
-它依赖 operator 校准：
+It requires the operator to verify:
 
-- app 凭证
-- 回调地址
-- 用户资料字段映射
+- Application credentials
+- Callback URL
+- User profile field mappings
 
-默认预置的是一套常见端点，不代表覆盖所有飞书应用形态。
+Default presets cover common endpoints and may require adjustment for specialized Feishu application types.
 
 ### DingTalk
 
-当前走 OAuth2 授权码和 access token 交换，用户信息拉取依赖 operator 提供的开放平台应用可访问接口。
+Uses OAuth2 authorization-code and access-token exchange, then fetches user information from the Open Platform endpoint accessible to the operator's application.
 
-钉钉开放平台不同应用形态的用户资料接口差异较大，所以这里按“可配置 provider”处理，而不是把字段和 URL 强行写死成唯一标准。
+Because user-profile APIs vary across DingTalk Open Platform application types, DingTalk is modeled as a configurable provider rather than hardcoding a single URL and field schema.
 
 ### WeCom
 
-企业微信不是标准通用 OAuth2 token 交换模型。
+WeCom does not follow a generic OAuth2 token-exchange flow.
 
-当前实现采用：
+The current implementation:
 
-- 网页授权拿 `code`
-- 服务端用 corp secret 取企业 access token
-- 再用 `code + access_token` 取 `UserId`
+- Obtains `code` via web OAuth redirect
+- Fetches the enterprise access token on the server using the corp secret
+- Exchanges `code + access_token` for `UserId`
 
-因此：
+Accordingly:
 
-- `tokenUrl` 配置的是企业 access token 获取地址
-- `userInfoUrl` 配置的是 `getuserinfo` 地址
-- `clientId` 实际对应 `corpid`
-- `clientSecret` 实际对应 `corpsecret`
+- `tokenUrl` points to the enterprise access-token endpoint
+- `userInfoUrl` points to the `getuserinfo` endpoint
+- `clientId` maps to `corpid`
+- `clientSecret` maps to `corpsecret`
 
-当前默认只稳定拿到企业内 `UserId`，不保证能直接拿到邮箱或显示名；这些字段是否可补齐，取决于 operator 是否提供后续用户资料接口和映射。
+By default, only the enterprise `UserId` is guaranteed; whether email or display name can also be populated depends on additional user-detail endpoints and field mappings configured by the operator.
 
 ### SAML
 
@@ -295,33 +295,35 @@ SAML signing certificates can be rotated from the Provider workbench with a 0-30
 
 Provider `secretRefs` accept only `soha://secrets/...` references. Read APIs return configured aliases, never reference values. OIDC redirect URIs, SAML ACS URLs, and `http.access_url` support both HTTP and HTTPS so self-hosted operators can choose their transport boundary. HTTPS remains strongly recommended because HTTP exposes authorization codes, assertions, and session cookies to network interception. OIDC and SAML issuers use the configured access URL instead of trusting forwarded host/proto headers.
 
-## 审计与本地身份绑定
+## Audit and Local Identity Binding
 
-无论第三方 provider 类型是什么，最终都要落到同一套本地身份体系：
+Regardless of third-party provider type, all logins resolve into the same local identity model:
 
-- 本地 `users`
-- 本地 `roles`
-- 本地 `sessions`
-- 本地 `user_identities`
+- Local `users`
+- Local `roles`
+- Local `sessions`
+- Local `user_identities`
 
-第三方登录第一次成功时：
+When a third-party login succeeds:
 
-- 优先按 `provider_type + provider_id + provider_user_id` 查历史绑定
-- 没有绑定时按邮箱尝试合并已有用户
-- 再没有时创建新本地用户
-- 若该用户无角色且 provider 配置了 `defaultRoles`，则绑定默认角色
-- 若开启 `syncRolesOnLogin`，则 `defaultRoles` 和 `roleField` 解析结果都会作为该 provider 管理的外部来源角色补充
-- 若开启 `syncOrgsOnLogin`，则 `organizationField` 解析结果会作为该 provider 管理的外部来源组织补充
+- Looks up an existing binding by `provider_type + provider_id + provider_user_id` first
+- Attempts to merge with an existing local user by the provider-returned email if no binding exists
+- Creates a new local user if no match is found
+- Assigns `defaultRoles` when the user has no roles and `defaultRoles` is configured on the provider
+- When `syncRolesOnLogin` is enabled, both `defaultRoles` and roles resolved from `roleField` are applied as external-source role bindings managed by that provider
+- When `syncOrgsOnLogin` is enabled, organizations resolved from `organizationField` are applied as external-source organization bindings managed by that provider
 
-审计仍由平台统一记录，provider 只负责身份来源，不直接决定授权。
+The account-linking path does not independently check `email_verified`. Configure only providers that supply trustworthy email ownership; email-based linking does not mean Soha has independently verified that ownership.
 
-## 前端与权限边界
+Audit events are recorded uniformly by the platform; external providers supply identity assertions only and do not directly bypass local authorization.
 
-“登录设置” 只是配置面，不直接绕过现有权限模型。
+## Frontend and Permission Boundary
 
-仍然使用：
+Login Settings is purely a configuration surface and does not bypass the platform permission model.
+
+Access continues to require:
 
 - `settings.identity.view`
 - `settings.identity.manage`
 
-登录成功后的可见菜单、可见路由、可调用 API，仍由本地权限快照和后端鉴权决定，而不是由外部 IdP 直接决定。
+Visible menus, accessible routes, and invokable APIs after sign-in are still governed by the local permission snapshot and backend authorization checks rather than determined directly by an external IdP.

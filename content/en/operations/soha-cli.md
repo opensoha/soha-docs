@@ -16,15 +16,15 @@ soha mcp
 
 ## Installation, npx, and local builds
 
-`@opensoha/cli` is a lightweight npm launcher for the native Go CLI. It downloads the platform binary matching the npm package version, verifies it against `checksums.txt`, and caches it by version. The package will be published by the first tagged release that includes the npm publishing step. Until it appears in the registry, npx returns `E404`; use the native GitHub Release binary instead. After publication, use `@latest` interactively and pin the npm version in CI:
+`@opensoha/cli` is a lightweight npm launcher for the native Go CLI, published and signed from Root `opensoha/soha` `cli/v*` releases (current verified version `0.2.1`; `cli/v0.2.0` published native archives and the container image only, without an npm package). It downloads the platform binary from the matching GitHub Release, verifies it against `checksums.txt`, and caches it by version. Use `@latest` interactively and pin an exact version in CI:
 
 ```bash
 npx -y @opensoha/cli@latest mcp
 npx -y @opensoha/cli@latest setup --client codex --mode both
-npx -y @opensoha/cli@0.1.0 version --json
+npx -y @opensoha/cli@0.2.1 version --json
 ```
 
-`setup` writes the verified cached binary path into the MCP configuration, so starting the Agent does not download the binary again. Run the latest `setup` again to upgrade. For development, build the binary from the Root `soha/cli` source and add it to `PATH`:
+You can also download and verify platform archives directly from [Root CLI releases](https://github.com/opensoha/soha/releases/tag/cli%2Fv0.2.1) or install the Go submodule with `go install github.com/opensoha/soha/cli/cmd/soha@v0.2.1` (legacy `v0.1.x` standalone repository URLs and Go import paths may stop resolving once archived repositories are retired). `setup` writes the verified cached binary path into the MCP configuration, so starting the Agent does not download the binary again. Run the latest `setup` again to upgrade. For development, build the binary from the Root `soha/cli` source and add it to `PATH`:
 
 ```bash
 cd ../soha/cli

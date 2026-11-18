@@ -158,6 +158,8 @@ async function verifyNextraSetup() {
     docsLayout,
     docsPage,
     homePage,
+    marketingHome,
+    marketingCopy,
     rootMeta,
     enRootMeta,
     zhTutorialMeta,
@@ -165,11 +167,13 @@ async function verifyNextraSetup() {
     read('package.json'),
     read('next.config.mjs'),
     read('proxy.ts'),
-    read('app/layout.tsx'),
+    read('app/[locale]/layout.tsx'),
     read('app/theme-layout.tsx'),
     read('app/[locale]/docs/layout.tsx'),
     read('app/[locale]/docs/[[...mdxPath]]/page.tsx'),
     read('app/[locale]/page.tsx'),
+    read('app/marketing/MarketingHome.tsx'),
+    read('app/marketing/copy.ts'),
     read('content/zh/_meta.ts'),
     read('content/en/_meta.ts'),
     read('content/zh/tutorials/_meta.ts'),
@@ -192,13 +196,20 @@ async function verifyNextraSetup() {
     'matcher:',
   ])
   requireIncludes('Next root layout setup', rootLayout, [
+    '<html lang={htmlLang(locale)}',
     '<body>{children}</body>',
   ])
+  if (rootLayout.includes('LocaleDocumentLang') || rootLayout.includes('htmlLang(defaultLocale)')) {
+    throw new Error('locale root layout must render its own server-side language')
+  }
   requireIncludes('Nextra theme layout setup', themeLayout, [
     'nextra-theme-docs',
     '<Layout',
     '<Navbar',
     'projectLink="https://github.com/opensoha/soha"',
+    'docsRepositoryBase="https://github.com/opensoha/soha-docs/tree/main"',
+    "'Edit this page'",
+    "'Report a docs issue'",
     '<LocaleSwitch lite',
     'i18n=',
   ])
@@ -217,15 +228,21 @@ async function verifyNextraSetup() {
     '<MDXContent',
   ])
   requireIncludes('homepage CTA setup', homePage, [
-    'OpenSoha Documentation',
-    "getPageMap(`/${locale}/docs`)",
-    '开源、自托管、可审计的平台控制平面',
-    'An open control plane for platform teams',
-    'API 与 Contracts',
-    'API and Contracts',
-    '开始阅读文档',
-    'Read the docs',
-    'AI Gateway',
+    'MarketingHome',
+    'isLocale',
+    'generateStaticParams',
+  ])
+  requireIncludes('marketing homepage shell', marketingHome, [
+    'data-soha-home',
+    'data-soha-home-actions',
+    'main-content',
+  ])
+  requireIncludes('marketing homepage positioning and actions', marketingCopy, [
+    '中小企业',
+    '运维难题',
+    'small or medium-sized business',
+    '开始使用',
+    '阅读文档',
   ])
   requireIncludes('Nextra root navigation', rootMeta, [
     'docs:',
@@ -273,7 +290,7 @@ async function verifySingleDocumentShell() {
   for (const file of layoutFiles) {
     const text = await read(file)
     const hasDocumentElement = /<\/?(html|body)\b/i.test(text)
-    if (file === 'app/layout.tsx') {
+    if (file === 'app/[locale]/layout.tsx') {
       if (!hasDocumentElement) {
         problems.push(`${file}: root layout must render the document shell`)
       }
@@ -291,9 +308,10 @@ async function verifySingleDocumentShell() {
 
 async function verifyNoPrivateSaasExposure() {
   const publicFiles = [
-    'app/layout.tsx',
-    'app/page.tsx',
+    'app/[locale]/layout.tsx',
     'app/[locale]/page.tsx',
+    'app/marketing/MarketingHome.tsx',
+    'app/marketing/copy.ts',
     'content/zh/_meta.ts',
     'content/en/_meta.ts',
     ...(await listAllPublicSourceDocs()),
@@ -362,12 +380,17 @@ async function verifyNavigationDocsExist() {
 }
 
 async function verifyMarkdownLinks() {
-  const files = await listSourceDocs()
+  const files = await listAllPublicSourceDocs()
   const missing = []
+  const retiredRepoUrl = /github\.com\/opensoha\/soha-(contracts|web|cli|agent|skills|connectors)\b/
+  const retiredHits = []
   const linkPattern = /\[[^\]]+\]\(([^)]+)\)/g
 
   for (const file of files) {
     const text = await read(file)
+    if (retiredRepoUrl.test(text)) {
+      retiredHits.push(file)
+    }
     const baseDir = path.dirname(file)
     for (const match of text.matchAll(linkPattern)) {
       let target = match[1].trim().replace(/^<|>$/g, '')
@@ -393,6 +416,9 @@ async function verifyMarkdownLinks() {
 
   if (missing.length > 0) {
     throw new Error(`broken relative markdown links:\n${missing.map((item) => `- ${item}`).join('\n')}`)
+  }
+  if (retiredHits.length > 0) {
+    throw new Error(`public docs link to archived legacy component repositories:\n${retiredHits.map((item) => `- ${item}`).join('\n')}`)
   }
 }
 
@@ -469,7 +495,14 @@ async function verifyFrontMatter() {
 }
 
 async function verifyChangelogPage() {
-  const changelog = await read('release-notes/changelog.md')
+  const [changelog, enChangelog, zhReleaseNotes, enReleaseNotes, zhReleaseIndex, enReleaseIndex] = await Promise.all([
+    read('release-notes/changelog.md'),
+    read('content/en/release-notes/changelog.md'),
+    read('release-notes/v0-1-x.md'),
+    read('content/en/release-notes/v0-1-x.md'),
+    read('release-notes/index.md'),
+    read('content/en/release-notes/index.md'),
+  ])
 
   requireIncludes('release changelog page', changelog, [
     '# 更新日志',
@@ -477,8 +510,29 @@ async function verifyChangelogPage() {
     '## 0.1.x Beta',
     '不推断外部发布状态',
     '[`/docs/api/reference/generated/`](../api/reference.md)',
-    '[OpenSoha 0.1.x Beta 发布说明草案](./v0-1-x.md)',
+    '[OpenSoha 0.1.x 发布说明](./v0-1-x.md)',
   ])
+  requireIncludes('English release changelog page', enChangelog, [
+    '# Changelog',
+    '## Unreleased',
+    '## 0.1.x Beta',
+    'does not infer external deployment status',
+    '[`/docs/api/reference/generated/`](../api/reference.md)',
+    '[OpenSoha 0.1.x Releases](./v0-1-x.md)',
+  ])
+  const requiredReleaseRefs = [
+    'contracts/v0.2.0',
+    'v0.1.13',
+    'cli/v0.2.1',
+    'agent/v0.2.0',
+    'skills/v0.1.4',
+    'connectors/v0.1.1',
+    'v0.1.1',
+  ]
+  requireIncludes('Chinese 0.1.x release notes', zhReleaseNotes, requiredReleaseRefs)
+  requireIncludes('English 0.1.x release notes', enReleaseNotes, requiredReleaseRefs)
+  requireIncludes('Chinese release index contracts path', zhReleaseIndex, ['../soha/contracts'])
+  requireIncludes('English release index contracts path', enReleaseIndex, ['../soha/contracts'])
 }
 
 async function verifyVercelDeploymentDocs() {
@@ -807,6 +861,43 @@ async function verifyNetworkAccessRunbookCoverage() {
   requireIncludes('English network access runbook coverage', enRunbook, required)
 }
 
+async function verifyBilingualLocalizationHygiene() {
+  const enDocs = await listSourceDocs(path.join(root, 'content', 'en'))
+  const zhDocs = await listSourceDocs(path.join(root, 'content', 'zh'))
+  const problems = []
+  const cjkPattern = /[\u3400-\u9fff]/
+
+  for (const file of enDocs) {
+    const text = await read(file)
+    if (cjkPattern.test(text)) {
+      problems.push(`${file}: English documentation still contains CJK characters`)
+    }
+  }
+
+  for (const file of zhDocs) {
+    if (file.endsWith('/api/reference/generated/index.md')) {
+      continue
+    }
+    const text = await read(file)
+    if (!cjkPattern.test(text)) {
+      problems.push(`${file}: Chinese documentation has no CJK text`)
+    }
+  }
+
+  for (const redundantPath of ['FIXES_APPLIED.md', 'public/tutorials']) {
+    try {
+      await stat(fromRoot(redundantPath))
+      problems.push(`${redundantPath}: redundant file or duplicate fixture directory must not exist`)
+    } catch {
+      // Expected absent path.
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`bilingual localization or repository hygiene drift:\n${problems.map((item) => `- ${item}`).join('\n')}`)
+  }
+}
+
 await verifyNextraSetup()
 await verifySingleDocumentShell()
 await verifyNoPrivateSaasExposure()
@@ -822,6 +913,7 @@ await verifyPublishAcceptanceRecord()
 await verifyEnvironmentDocs()
 await verifyTutorialCoverage()
 await verifyChineseTutorialLocalization()
+await verifyBilingualLocalizationHygiene()
 await verifyGatewayEndpointStatus()
 await verifyOperatorRunbookCoverage()
 await verifyNetworkAccessRunbookCoverage()

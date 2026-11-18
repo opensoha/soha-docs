@@ -1,15 +1,15 @@
-# Event Model
+# 事件模型
 
-## Event Sources
+## 事件来源
 
-- Kubernetes events
-- release events
-- build events
-- alert events
-- integration callbacks
-- future MCP invocation events
+- Kubernetes 集群事件
+- 发布事件
+- 构建事件
+- 监控告警事件
+- 外部集成回调事件
+- 后续扩展的 MCP 调用事件
 
-## Unified Event Envelope
+## 统一事件信封
 
 ```json
 {
@@ -30,17 +30,17 @@
 }
 ```
 
-## Event Center Responsibilities
+## 事件中心职责
 
-- normalize source-specific events
-- persist durable event stream in PostgreSQL when historical search matters
-- keep hot delivery buffers process-local for SSE consumers
-- support correlation by cluster, namespace, project, release, or operation
+- 将不同来源的原始事件归一化为统一结构
+- 在需要历史回溯检索的场景下，将持久化事件流写入 PostgreSQL
+- 为 SSE 实时订阅客户端维护进程内热数据缓冲队列
+- 支持按集群、命名空间、项目、发布单或运维操作进行关联聚合
 
-## MVP Scope
+## 首阶段范围
 
-Phase 1 keeps event-center lightweight:
+首阶段保持事件中心轻量化实现：
 
-- consume Kubernetes events through resource access or watch cache
-- expose normalized list API
-- reserve schema for build and release events
+- 通过资源访问层或本地监听缓存消费 Kubernetes 集群事件
+- 暴露归一化后的标准事件列表接口
+- 预先保留面向构建与发布事件的统一 Schema 扩展空间

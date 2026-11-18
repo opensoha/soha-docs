@@ -2,7 +2,7 @@
   "schemaVersion": "opensoha.dev/docs-screenshot-baseline/v1",
   "routeId": "home",
   "routePath": "/zh/",
-  "source": "app/page.tsx",
+  "source": "app/[locale]/page.tsx",
   "viewport": {
     "name": "mobile",
     "width": 390,
@@ -10,10 +10,10 @@
   },
   "htmlPath": ".next/server/app/zh.html",
   "assertions": [
-    "navbar",
+    "marketing-navbar",
     "homepage-actions",
     "main-content"
   ],
   "assertionCount": 3,
-  "renderedLengthFloor": 100000
+  "renderedLengthFloor": 17000
 }

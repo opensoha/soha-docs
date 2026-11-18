@@ -59,7 +59,7 @@ Kubernetes 非查询操作在应用层完成授权并写入治理证据：
 
 公开 OpenAPI 契约是 SDK 和 HTTP 客户端的真实源。它覆盖经过评审的结构化只读面，包括集群清单、工作负载、配置元数据、RBAC、网络、存储、CRD、Helm 元数据、事件、日志和指标。Secret 原始数据、自定义资源原始 YAML、Helm Values、终端与流式传输，以及通用变更路由仍保持内部状态，除非独立契约明确开放了受保护工作流。
 
-`soha` CLI 不会复制一套 Kubernetes 子命令树。它负责安装官方 Skill 与 MCP 配置、发现实时 Gateway Manifest，并且只调用当前可见的工具：
+面向 AI 与 MCP 客户端时，`soha` CLI 负责安装官方 Skill 与 MCP 配置、发现实时 Gateway Manifest，并且只调用当前身份可见的受控工具（候选版本面向终端运维和脚本额外提供的有界 `soha k8s` 条件工作台命令见 [Soha CLI](./soha-cli.md#kubernetes-原生命令候选版本)）：
 
 ```bash
 soha setup --client codex --mode both --base-url https://soha.example.com

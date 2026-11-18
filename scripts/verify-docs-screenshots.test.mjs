@@ -36,6 +36,11 @@ test('content growth above the recorded floor does not rewrite the baseline', ()
   assert.equal(result.status, 0, result.stderr)
 })
 
+test('a marketing homepage can use its own document content shell', () => {
+  const result = verify({ content: '<main data-soha-home>Soha</main>' })
+  assert.equal(result.status, 0, result.stderr)
+})
+
 test('content below the recorded floor remains a failure', () => {
   const result = verify({ length: 100 })
   assert.notEqual(result.status, 0)

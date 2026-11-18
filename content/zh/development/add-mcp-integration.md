@@ -1,8 +1,8 @@
-# Add MCP Integration
+# 新增 MCP 集成
 
-1. Define adapter capability metadata in `internal/domain/mcp`.
-2. Implement adapter contract under the future MCP integration package.
-3. Register the adapter through `integration-service`.
-4. Map platform permissions to adapter capabilities.
-5. Emit audit and event records for each invocation.
-6. Document the adapter under operations and architecture docs.
+1. 在 `internal/domain/mcp` 中定义适配器能力与权限范围元数据。
+2. 在基础设施层 MCP 集成包下实现适配器协议契约。
+3. 通过应用层 `integration-service` 完成适配器注册。
+4. 将平台权限键与资源作用范围映射到对应的适配器能力。
+5. 为每次调用记录完整的审计日志，并按需发出集成事件。
+6. 在运维文档与架构文档中同步补充该适配器的配置与边界说明。

@@ -14,9 +14,9 @@ Install Docker with the Compose plugin. Run the commands below from the director
 ## Start The Stack
 
 ```bash
-git clone --branch v0.1.12 --depth 1 https://github.com/opensoha/soha.git
+git clone --branch v0.1.13 --depth 1 https://github.com/opensoha/soha.git
 cd soha
-SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.12 \
+SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.13 \
   docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha
 ```
 

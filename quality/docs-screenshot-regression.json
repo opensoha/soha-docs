@@ -18,9 +18,9 @@
     {
       "id": "home",
       "path": "/zh/",
-      "source": "app/page.tsx",
+      "source": "app/[locale]/page.tsx",
       "viewports": ["desktop", "mobile"],
-      "assertions": ["navbar", "homepage-actions", "main-content"]
+      "assertions": ["marketing-navbar", "homepage-actions", "main-content"]
     },
     {
       "id": "api-contracts",

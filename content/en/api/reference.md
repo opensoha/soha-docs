@@ -1,26 +1,26 @@
 ---
-title: API Reference 生成路径
-description: 定义 OpenSoha API reference 的生成输入、输出路径和发布验收边界。
+title: API Reference Generation Path
+description: Defines the source inputs, output paths, and release acceptance boundaries for the OpenSoha API reference.
 ---
 
-# API Reference 生成路径
+# API Reference Generation Path
 
-OpenSoha 当前 API 文档包含手写叙述页面和由 contracts artifact 生成的 reference index。手写页面用于重点说明；生成页面负责完整 operation 和 JSON Schema 覆盖。Docs tests 会对 `../soha/contracts` 做一致性校验，并检查两个 locale 的生成页面没有漂移。
+OpenSoha API documentation combines handwritten narrative pages with a reference index generated from contract artifacts. Handwritten pages focus on architectural context and key highlights, while the generated pages provide complete operation and JSON Schema coverage. Docs tests validate consistency against `../soha/contracts` and verify that the generated pages across both locales have no drift.
 
 - Generated reference: [`/docs/api/reference/generated/`](./reference/generated/index.md)
 - Source command: `npm run api:reference:generate`
 - Drift check: `npm run api:reference:check`
 
-生成命令会同时更新 `content/en` 和 `content/zh` 下的 reference index。
+Running the generation command updates the reference index under both `content/en` and `content/zh`.
 
 ## Source Inputs
 
-生成器只消费发布契约源：
+The generator consumes only published contract sources:
 
 - `../soha/contracts/openapi/soha-api.yaml`
 - `../soha/contracts/*/*.schema.json`
 - `../soha/contracts/examples/**`
-- `api/reference/route-metadata.overlay.json`，用于为已覆盖核心 route 补充实现状态、权限、scope、审计说明和 examples。
+- `api/reference/route-metadata.overlay.json`, which supplements covered core routes with implementation status, permissions, scopes, audit notes, and examples.
 
 The generator must not read Root `soha/web` or runtime implementations as the public API source of truth.
 
@@ -36,13 +36,13 @@ Server responses include `X-Soha-Contracts-Version` and `X-Soha-Contracts-SHA256
 
 ## Generated Output Contract
 
-当前生成产物包含：
+The generated output includes:
 
-- operation index。
-- request/response schema refs。
-- JSON Schema artifact index。
-- `api/reference/route-metadata.overlay.json` 中已落地的核心 route metadata overlay 切片，用于在 generated reference 中补充实现状态、权限、scope、审计说明和 examples。
+- An operation index.
+- Request and response schema references.
+- A JSON Schema artifact index.
+- Core route metadata overlay entries from `api/reference/route-metadata.overlay.json`, supplementing the generated reference with implementation status, permissions, scopes, audit notes, and examples.
 
-## 当前状态
+## Current Status
 
-当前 release 范围承诺稳定路径、source input contract、operation/schema index renderer，以及首批 AI Gateway 核心 route metadata overlay。后续可以继续扩展 overlay 覆盖率，用于补充更多 route 的 compatibility 和 deprecation notes。
+The current release scope commits to stable paths, the source input contract, the operation and schema index renderer, and the initial core route metadata overlay for AI Gateway. Overlay coverage can be expanded incrementally to add compatibility and deprecation notes for additional routes.

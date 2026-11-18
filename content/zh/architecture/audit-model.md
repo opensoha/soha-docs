@@ -1,39 +1,39 @@
-# Audit Model
+# 审计模型
 
-## Audit Categories
+## 审计分类
 
-- login audit
-- access audit
-- operation audit
-- permission deny audit
-- high-risk action audit
+- 登录审计
+- 访问审计
+- 操作审计
+- 权限拒绝审计
+- 高风险动作审计
 
-## Audit Dimensions
+## 审计维度
 
-Every audit record should capture:
+每条审计记录应统一记录以下关键维度：
 
-- actor: user id, roles, teams
-- request: path, method, source IP, user agent, request id
-- target: cluster, namespace, resource kind, resource name
-- action: view, list, update, delete, scale, restart, logs, exec
-- result: allow, deny, success, failure
-- summary: concise human-readable description
-- metadata: JSONB for policy match, changed fields, integration context
-- timestamp
+- 操作主体（`actor`）：用户 ID、所属角色、所属团队或组织
+- 请求上下文（`request`）：请求路径、HTTP 方法、来源 IP、User-Agent、请求唯一标识（`request_id`）
+- 目标对象（`target`）：集群、命名空间、资源类型、资源名称
+- 动作类型（`action`）：`view`、`list`、`update`、`delete`、`scale`、`restart`、`logs`、`exec`
+- 裁决与执行结果（`result`）：`allow`、`deny`、`success`、`failure`
+- 摘要（`summary`）：简明可读的操作描述
+- 扩展元数据（`metadata`）：使用 JSONB 记录命中的策略、变更字段摘要与外部集成上下文
+- 时间戳（`timestamp`）：事件发生的标准时间
 
-## Storage Strategy
+## 存储策略
 
-- PostgreSQL stores append-only records for retention and search
-- short-lived event fanout is process-local and not the source of truth
+- PostgreSQL 以只追加（append-only）方式持久化审计记录，用于合规留存与多维检索
+- 短生命周期的实时事件扇出仅保留在进程内存中，不作为审计真实源
 
-## High-Risk Actions
+## 高风险操作
 
-Examples:
+典型高风险操作包括：
 
-- delete workload in production
-- exec into privileged pod
-- scale stateful workloads in production
-- change access policy
-- modify cluster credentials
+- 删除生产环境工作负载
+- 进入特权 Pod 执行终端命令（`exec`）
+- 扩缩容生产环境有状态工作负载
+- 变更访问控制策略
+- 修改集群连接凭据
 
-High-risk operations should include expanded metadata and optional approval state.
+高风险操作记录应附带完整的上下文扩展元数据，并在启用审批机制时关联对应的审批状态。

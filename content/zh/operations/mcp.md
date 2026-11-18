@@ -1,36 +1,36 @@
 # MCP
 
-## Positioning
+## 定位
 
-MCP is not placed directly inside handlers or Kubernetes resource services. soha reserves MCP at the infrastructure and integration boundary so external tools can be connected without bypassing authorization, audit, or request tracing.
+MCP 不会直接放入 HTTP 处理器或 Kubernetes 资源服务内部。`soha` 在基础设施层与集成边界预留 MCP，以便在不绕过鉴权、审计和请求追踪的前提下接入外部工具。
 
-## Current Extension Point
+## 当前扩展点
 
-- infrastructure: `internal/infrastructure/mcp`
-- application facade: `internal/application/integration`
-- API surface: `GET /api/v1/mcp/capabilities`
+- 基础设施层：`internal/infrastructure/mcp`
+- 应用门面层：`internal/application/integration`
+- API 入口：`GET /api/v1/mcp/capabilities`
 
-## Registration Model
+## 注册模型
 
-1. Define adapter metadata in the MCP registry
-2. Expose adapter capabilities through the integration service
-3. Route calls through access checks and audit recording
-4. Keep each adapter's credential and permission boundary isolated from cluster credentials
+1. 在 MCP 注册表中定义适配器元数据
+2. 通过集成服务暴露适配器能力
+3. 将调用统一路由经过访问权限校验与审计记录
+4. 将每个适配器的凭据与权限边界同集群凭据保持隔离
 
-## Isolation Rules
+## 隔离规则
 
-- MCP adapters never read raw request headers directly
-- API middleware provides principal and request context
-- access service must evaluate adapter scope before invocation
-- audit service records adapter usage and deny decisions
-- adapter configuration must stay separate from Kubernetes kubeconfig metadata
+- MCP 适配器不得直接读取原始请求头
+- 由 API 中间件统一提供身份主体与请求上下文
+- 访问控制服务必须在调用前评估适配器的权限作用域
+- 审计服务统一记录适配器的调用情况与拒绝决策
+- 适配器配置必须与 Kubernetes `kubeconfig` 元数据分开保存
 
-## Documentation Expectation
+## 文档规范要求
 
-Every new MCP adapter should document:
+每新增一个 MCP 适配器，都应补充以下说明：
 
-- capability name and scope
-- required credentials or external endpoints
-- authorization boundary
-- audit fields emitted
-- failure and timeout behavior
+- 能力名称与作用域
+- 所需凭据或外部端点
+- 授权边界
+- 输出的审计字段
+- 失败与超时行为

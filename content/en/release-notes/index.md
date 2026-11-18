@@ -1,56 +1,58 @@
 ---
-title: 发布说明与版本策略
-description: 定义 OpenSoha 文档版本、发布说明、兼容矩阵、升级和回滚记录的维护规则。
+title: Release Notes And Versioning Policy
+description: Maintenance rules for OpenSoha documentation versions, release notes, compatibility matrices, upgrades, and rollbacks.
 ---
 
-# 发布说明与版本策略
+# Release Notes And Versioning Policy
 
-OpenSoha 的 release notes 是 beta 发布闭环的一部分。每个对外版本必须能回答四个问题：
+OpenSoha release notes are part of the release verification loop. Every public release set must answer four questions:
 
-- 发布了哪些仓库、tag、package、binary、image、chart 或文档产物。
-- 哪些契约、SDK、CLI、Agent、Skills、Connectors 和 Web artifact 是兼容组合。
-- 升级前需要确认什么，失败后如何回滚。
-- 哪些验证证据来自本地或 CI，哪些仍依赖真实 GitHub release、npm publish 或公网 smoke。
+- Which repositories, tags, packages, binaries, images, charts, or docs artifacts were published.
+- Which Contracts, SDK, Core (with same-commit embedded Web), CLI, Agent, Skills, Connectors, and Operator artifacts form a compatible set.
+- What operators must verify before upgrading and how to roll back safely on failure.
+- Which checks come from local or CI gates versus verified GitHub Releases, npm, GHCR, Helm indices, or public deployment smoke tests.
 
-## 文档版本策略
+## Documentation Versioning Policy
 
-当前文档站仍发布 current docs。Nextra 版本快照策略应在真实 release cut 时创建，而不是在普通开发变更中提前冻结。
+The site currently publishes current docs. Nextra version snapshots should be cut at real release milestones rather than frozen prematurely during routine development.
 
-创建版本快照时必须同时记录：
+When creating a documentation snapshot, record:
 
-- Git tag，例如 `docs-v0.1.0`。
-- 对应 core、web、contracts、CLI、Agent、Skills、Connectors 和外部扩展切片的版本或 commit。
-- `DOCS_SITE_URL`、`DOCS_BASE_URL` 和 locale routing 配置。
-- docs host deployment URL。
-- 发布后 smoke 结果。
+- The Git tag, such as `docs-v0.1.0`.
+- Matching tags or commits across `opensoha/soha` (Core, Web, Contracts, CLI, Agent, Skills, Connectors) and standalone repositories (`soha-operator`, `soha-helm`).
+- `DOCS_SITE_URL`, `DOCS_BASE_URL`, and locale routing settings.
+- The docs host deployment URL.
+- Post-publish smoke verification results.
 
-## Release Notes 规则
+## Release Notes Rules
 
-每个 release notes 页面必须包含：
+Every release notes page must cover:
 
-- Release scope。
-- Artifact matrix。
-- Compatibility matrix。
-- Upgrade notes。
-- Rollback notes。
-- Verification evidence。
-- Known gaps。
+- Release scope.
+- Artifact matrix.
+- Compatibility matrix.
+- Upgrade notes.
+- Rollback notes.
+- Verification evidence.
+- Known gaps.
 
-如果某项证据还没有真实远端记录，必须明确标为 pending，不得用本地测试替代真实发布证明。
+If a remote artifact or public deployment record does not exist yet (such as a pending Helm chart bump or external Vercel production cutover), mark it explicitly as pending rather than substituting local build checks for publication evidence.
 
-## 兼容矩阵形状
+## Compatibility Matrix Shape
 
-| Component | Version or ref | Required evidence |
+| Component | Version or tag form | Required evidence |
 | --- | --- | --- |
-| Contracts | npm version + Go tag | npm publish、Go module tag、GitHub release assets |
-| Web | GitHub release tag | dist tarball、checksum、post-download verify |
-| Core | GitHub release tag | pinned contracts/web inputs、binary checksum、manifest |
-| CLI | GitHub release tag | release binary smoke、checksum、`soha add` install smoke |
-| Agent | GitHub release tag | multi-arch binaries/images、checksum、release verify |
-| Skills | GitHub release tag | package、manifest、validation report、install smoke |
-| Connectors | package/release ref | package check、manifest registry、runtime smoke |
-| External extension slices | private release ref | contracts dependency mode、migration/readiness checks |
+| Contracts (`opensoha/soha` `contracts/`) | `contracts/v*` + npm version | Signed npm publish, Go submodule tag and proxy check, GitHub Release assets |
+| Core and embedded Web (`opensoha/soha`) | `v*` | Pinned published Contracts dependency, same-commit Web build and digest, binary checksum, public manifest, and GHCR image checks; Web dist is an Actions build artifact, not a promised standalone Release asset |
+| CLI (`opensoha/soha` `cli/`) | `cli/v*` + `@opensoha/cli` version | Multi-platform archives and checksums, signed npm launcher, fresh-cache `npx` smoke, GHCR image |
+| Agent and runtimes (`opensoha/soha` `agent/`) | `agent/v*` | Multi-platform archives and checksums, multi-arch Agent / DSH / Buildpacks / Volume Reader GHCR images |
+| Skills (`opensoha/soha` `skills/`) | `skills/v*` | Validated asset bundle, manifest, verification report, and signatures |
+| Connectors (`opensoha/soha` `connectors/`) | `connectors/v*` | Package checks, manifest registry, and signatures |
+| Operator (`opensoha/soha-operator`) | `v*` | Versioned Kustomize manifests, multi-arch GHCR image, and CRD/controller checks |
+| Helm Charts (`opensoha/soha-helm`) | `<chart>-*` | Referenced runtime image verification, OCI/GitHub Release packages, and `gh-pages` index |
 
-## 生成式 API Reference 路径
+The six former standalone component repositories are archived as read-only historical sources; new releases are qualified from the owning repositories above.
 
-Handwritten API docs remain checked against `../soha-contracts`, but generated reference output is reserved at [API Reference](../api/reference.md). The generated route is intentionally a publishing contract now; generator implementation can land independently once the release artifact shape is stable.
+## Generated API Reference Path
+
+Both handwritten API pages and the generated index at [`/docs/api/reference/generated/`](../api/reference.md) are checked against the pinned Root `../soha/contracts` source (`contracts/v0.2.0`). Run `npm run api:reference:generate` after contract updates and verify parity in CI with `npm run api:reference:check` and the contract consistency suite.

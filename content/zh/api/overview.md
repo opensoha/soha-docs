@@ -1,10 +1,10 @@
-# API Overview
+# API 总览
 
-## Versioning
+## 版本约定
 
-Phase 1 uses `/api/v1`.
+首阶段公开 HTTP 接口统一使用 `/api/v1` 路径前缀。
 
-## Domain Groups
+## 领域分组
 
 - `/healthz`
 - `/clusters`
@@ -13,9 +13,9 @@ Phase 1 uses `/api/v1`.
 - `/audit`
 - `/access`
 
-## Principles
+## 设计原则
 
-- frontend consumes aggregated DTOs
-- authorization happens server-side
-- audit is written for both reads and mutations where relevant
-- raw Kubernetes objects are hidden behind dedicated detail endpoints
+- 前端统一消费服务端聚合后的 DTO，不在浏览器侧拼装底层多源对象
+- 权限判定与资源范围校验全部在服务端执行
+- 涉及治理边界的读取操作与变更操作均按需写入审计记录
+- 原始 Kubernetes 对象收敛在专用详情端点之后，不直接暴露为通用列表结构

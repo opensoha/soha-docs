@@ -1,10 +1,10 @@
 # Agent Runtime
 
-## dsh deployment candidate
+## dsh and Hindsight deployment
 
-Core `v0.1.12` uses the runtime shipped with that release. The following dsh, Hindsight and runtime profile instructions apply to the source candidate. Before deploying it, verify a matching Core, Web, Contracts and dsh image combination. For Kubernetes, use the compatible chart from the [Soha Helm repository](https://github.com/opensoha/soha-helm).
+Core `v0.1.13` ships with `dsh_runtime` and `hindsight` disabled by default (Core `v0.1.12` and earlier used the legacy built-in runtime). Before deploying dsh, Hindsight, or runtime profiles, verify a matching combination of Core (`ghcr.io/opensoha/soha:v0.1.13` with its same-commit embedded Web), Contracts `v0.2.0`, and the dsh runtime image (`ghcr.io/opensoha/soha-dsh:v0.2.0`, published with `agent/v0.2.0`). For Kubernetes, use a compatible chart from the [Soha Helm repository](https://github.com/opensoha/soha-helm) (check each published chart's `appVersion` until chart updates targeting Core `v0.1.13` and Agent `v0.2.0` are published).
 
-The dsh image requires a compatible Contracts release containing `agent/dsh-runtime.schema.json`. This schema is absent from Contracts `v0.1.29`.
+Building the dsh image from source requires Contracts `v0.2.0` or a newer compatible release containing `agent/dsh-runtime.schema.json` (absent from Contracts `v0.1.29` and earlier).
 
 - New Chat and Heya require dsh. Deploy the dsh service on a private network, share its service-token file with Core and enable `dsh_runtime.enabled`. Enable `security.protected_durable_storage` only after all Core workers can read encrypted checkpoints. Keep the installation's active credential encryption key and protected storage while existing checkpoints need recovery.
 - Hindsight is optional. Before enabling it, apply Core migrations through `0145`. Use its own PostgreSQL database and credentials, the matching protection gateway and a Gateway token scoped to the configured models.
@@ -64,52 +64,52 @@ Quarantined memory remains inspectable with its server-owned `quarantined` and `
 
 With the candidate CLI, for uncertain chat submissions, inspect the original request rather than resending it: `soha ai chat request SESSION --request-id ID`. `native-request` is a compatibility alias. A missing lookup is not proof that the request cannot still commit; reconciliation remains server-authoritative.
 
-## 定位
+## Positioning
 
-soha 的 agent 进程同时承担两类运行时职责：
+The `soha` agent process serves two runtime responsibilities:
 
-- 远程集群 agent：为 `connectionMode=agent` 的 Kubernetes 集群提供资源读取和有限操作入口。
-- 控制平面 runner：从 soha 控制面领取 delivery、Docker 和 AI Agent Runtime 任务，通过回调写回状态和结果。
+- Remote cluster agent: provides resource reads and bounded operational actions for Kubernetes clusters configured with `connectionMode=agent`.
+- Control plane runner: claims delivery, Docker, and AI Agent Runtime tasks from the `soha` control plane and writes status and results back through callbacks.
 
-AI Agent Runtime 是 soha 面向 AI 工作台、自动化策略和业务诊断场景的统一执行抽象。页面和业务模块只面向 soha 的能力契约，不直接依赖 Hermes、OpenClaw 或任何具体 agent。
+AI Agent Runtime is Soha's unified execution abstraction for the AI workbench, automation policies, and operational diagnostics. Console pages and domain modules target Soha's capability contracts rather than coupling directly to Hermes, OpenClaw, or any specific agent implementation.
 
-核心抽象：
+Core abstractions:
 
-- `AgentProvider`：一个可插拔执行器，例如 `internal`、`hermes`，后续可以扩展 OpenClaw 或其它 provider。
-- `AgentCapability`：平台能力，例如 `root_cause`、`performance`、`trace`、`inspection_review`、`delivery_failure`、`docker_diagnosis`。
-- `AgentToolBinding`：capability 到 MCP adapter、平台只读工具或 provider 原生工具的绑定。
-- `AgentSkillBinding`：soha skill 到 Hermes skill、prompt template 或未来 provider skill 机制的映射。
-- `AgentRun`：一次 durable agent 执行，包含 provider、capability、skills、toolset、scope、状态、回调 token、工具记录和输出工件。
+- `AgentProvider`: a pluggable executor such as `internal` or `hermes`, extensible to OpenClaw or other providers.
+- `AgentCapability`: a platform capability such as `root_cause`, `performance`, `trace`, `inspection_review`, `delivery_failure`, or `docker_diagnosis`.
+- `AgentToolBinding`: a binding from a capability to an MCP adapter, a read-only platform tool, or a provider-native tool.
+- `AgentSkillBinding`: a mapping from a Soha skill to a Hermes skill, a prompt template, or a provider-native skill mechanism.
+- `AgentRun`: a durable agent execution containing the provider, capability, skills, toolset, scope, status, callback token, tool execution records, and output artifacts.
 
-Hermes Agent 是当前第一个外部 provider。它通过 soha agent runner 领取 `ai_agent_runs`，执行 Hermes CLI 或 Hermes Agent 能力，然后把结果统一回写为 `AnalysisArtifact`。
+Hermes Agent is the first external provider. It claims `ai_agent_runs` records through the Soha agent runner, executes Hermes CLI or Hermes Agent capabilities, and writes the normalized output back as an `AnalysisArtifact`.
 
-`AgentRun` 会保存创建时的 `toolBindings` 和 `skillBindings` 快照。runner claim 拿到的是一次完整的 soha capability contract：scope、toolset、预算、平台 playbook、provider skill 映射、MCP/internal tool 映射都会随任务一起下发。后续接 OpenClaw、internal agent 或其它 provider 时，应读取这份快照来实现 provider adapter，而不是在页面或业务模块里重新推导 Hermes/OpenClaw 私有参数。
+Each `AgentRun` snapshots `toolBindings` and `skillBindings` at creation time. A runner claim receives a self-contained Soha capability contract—including scope, toolset, budget, platform playbook, provider skill mappings, and MCP/internal tool mappings. Adapters for OpenClaw, internal agents, or additional providers consume this snapshot rather than re-deriving Hermes- or OpenClaw-specific parameters inside UI pages or domain modules.
 
-## 控制面合约
+## Control Plane Contracts
 
-AI 工作台的安全目录接口会返回 Agent Runtime 目录摘要：
+Authenticated AI workbench catalog endpoints return Agent Runtime directory summaries:
 
 - `GET /api/v1/copilot/workbench/catalog`
 - `GET /api/v1/copilot/agent-providers`
 - `GET /api/v1/copilot/agent-runs`
 
-这些接口面向已授权用户，返回 provider、capability、tool binding、skill binding、MCP adapter、data source、analysis profile 和 skill registry 摘要。全量 provider 密钥和数据源凭据仍由 Settings > AI 管理。
+These endpoints serve authorized users and return summaries of providers, capabilities, tool bindings, skill bindings, MCP adapters, data sources, analysis profiles, and the skill registry. Full provider API keys and data source credentials remain managed under Settings > AI.
 
-Agent 执行相关的 runner 接口使用 `runtime.execution_runner_token` 鉴权：
+Runner endpoints for Agent execution authenticate with `runtime.execution_runner_token`:
 
 - `POST /api/v1/copilot/agent-runs/claim`
 - `POST /api/v1/copilot/agent-runs/callback`
 - `POST /api/v1/copilot/agent-runs/tool-call`
 
-`tool-call` 是外部 provider 调用 soha 工具的受控网关。请求必须同时携带 runner bearer token 和当前 `AgentRun.callbackToken`，并且只能调用该 run 创建时快照到 `toolBindings` 的只读工具。控制面当前可执行日志、指标、链路、平台事件、交付发布、交付构建、执行任务、平台资源快照、Docker operation/service、虚拟化 operation、告警查询和 OnCall 路由解析，并把每次调用写入 `ToolExecution`，供最终 `AnalysisArtifact` 复用。Provider adapter 不应该绕过这个网关直接访问 soha 数据源或凭据。
+`tool-call` is the governed gateway through which external providers invoke Soha tools. Every request must carry both the runner bearer token and the active `AgentRun.callbackToken`, and may invoke only the read-only tools snapshotted in `toolBindings` when that run was created. The control plane currently executes queries for logs, metrics, traces, platform events, delivery releases, delivery builds, execution tasks, platform resource snapshots, Docker operations/services, virtualization operations, alerts, and OnCall route resolution, recording each invocation as a `ToolExecution` for reuse in the final `AnalysisArtifact`. Provider adapters must not bypass this gateway to access Soha data sources or credentials directly.
 
-当前 runner 的 Hermes/CLI provider POC 会在执行 provider 命令前预取最多 3 个可预取只读工具结果，例如 `events.query`、`logs.query`、`metrics.query`、`traces.query`、`delivery.releases.list`、`delivery.builds.list`、`delivery.execution_tasks.list`、`platform.resources.snapshot`、`docker.operations.list`、`docker.services.list`、`virtualization.operations.list`、`alerts.list`、`oncall.routes.resolve`，并把结果作为 `prefetchedToolResults` 注入 provider prompt 和最终 output。`traces.query` 路由为兼容性保留，但当前返回能力不可用；通用 `logs.query` 只查询持久化集群日志。这样即使 provider 还没有接入私有 tool-call 协议，也能消费 soha 受控工具上下文。后续如果 Hermes 或其它 agent 使用 MCP client 方式接入，应在 runner adapter 层把同一个 `tool-call` 网关包装成 provider 可识别的 MCP/tool server，仍然不暴露 soha 数据源凭据。
+Before running the provider command, the runner's Hermes/CLI provider POC prefetches up to three eligible read-only tool results—such as `events.query`, `logs.query`, `metrics.query`, `traces.query`, `delivery.releases.list`, `delivery.builds.list`, `delivery.execution_tasks.list`, `platform.resources.snapshot`, `docker.operations.list`, `docker.services.list`, `virtualization.operations.list`, `alerts.list`, and `oncall.routes.resolve`—and injects them as `prefetchedToolResults` into both the provider prompt and final output. The `traces.query` route is retained for compatibility and currently reports capability unavailable; generic `logs.query` queries persisted cluster logs only. This allows a provider to consume Soha's governed tool context even before integrating a native tool-call protocol. When Hermes or another agent connects as an MCP client, the runner adapter wraps this same `tool-call` gateway as an MCP/tool server without exposing Soha data source credentials.
 
-`AgentRun.toolBindings` 快照在创建时会按创建者或系统 principal 的运行时 permission keys 过滤。runner token 和 callback token 只允许执行这份已经过滤后的快照，不能扩展用户原本无权访问的数据源、工具或业务上下文。toolset 的 adapter 选择同时支持精确 adapter id（如 `logs.v1`）和 source-kind 别名（如 `logs`、`metrics`、`traces`），但匹配规则必须显式且有测试覆盖。
+The `AgentRun.toolBindings` snapshot is filtered at creation time against the runtime permission keys of the initiating user or system principal. Neither the runner token nor the callback token can expand access beyond that filtered snapshot to data sources, tools, or business contexts the caller was not authorized to read. Toolset adapter selection supports both exact adapter IDs (such as `logs.v1`) and source-kind aliases (such as `logs`, `metrics`, and `traces`), with explicit matching rules backed by test coverage.
 
-这些工具仍然只读且受 `AgentRun.toolBindings` 快照约束。后续新增其它 provider 或工具时，应继续通过 reader/adapter 接入 `executeAgentToolBindingOutput`，再加入 runner 预取白名单；高风险写操作不能直接成为聊天工具。
+All such tools remain read-only and bounded by the `AgentRun.toolBindings` snapshot. Additional providers or tools should integrate through a reader/adapter into `executeAgentToolBindingOutput` before joining the runner prefetch allowlist; high-risk write operations must never be exposed directly as chat tools.
 
-`ai_agent_runs` 是 AI Agent Runtime 的 durable 队列表。状态包括：
+`ai_agent_runs` is the durable queue table for AI Agent Runtime, with states:
 
 - `queued`
 - `running`
@@ -118,19 +118,19 @@ Agent 执行相关的 runner 接口使用 `runtime.execution_runner_token` 鉴�
 - `canceled`
 - `callback_timeout`
 
-## 平台能力矩阵
+## Platform Capability Matrix
 
-平台运行时能力通过 `GET /api/v1/clusters/capabilities` 暴露为稳定契约，用来描述同一个 capability 在 Direct 和 Agent 两种集群连接模式下的可用性。每个条目包含：
+Platform runtime capabilities are exposed as a stable contract at `GET /api/v1/clusters/capabilities`, describing each capability's availability across Direct and Agent cluster connection modes. Each entry includes:
 
-- `key`、`label`、`category`：稳定能力标识、展示名称和分类。
-- `direct.status`、`agent.status`：`available`、`partial` 或 `unsupported`。
-- `direct.reason`、`agent.reason`、`notes`：解释不可用或部分可用的真实产品约束。
-- `requiredScopes`、`riskLevel`、`requiresApproval`：调用前需要展示或诊断的 scope、风险和审批预期。
-- `docsUrl`：指向对应操作文档或限制说明。
+- `key`, `label`, `category`: stable capability identifier, display name, and category.
+- `direct.status`, `agent.status`: `available`, `partial`, or `unsupported`.
+- `direct.reason`, `agent.reason`, `notes`: concrete product constraints explaining partial or unsupported states.
+- `requiredScopes`, `riskLevel`, `requiresApproval`: required scopes, risk level, and approval expectations to surface or diagnose before invocation.
+- `docsUrl`: link to the corresponding operational documentation or limitation notes.
 
-Console、CLI、Skills 和外部集成不应自行推断 Agent/Direct parity；它们应消费这份 matrix 来决定按钮可用性、unsupported 态、降级文案和诊断输出。`unsupported` 与 `partial` 不是前端兜底状态，而是控制面暴露的真实能力边界。
+The Web console, CLI, Skills, and external integrations must not infer Agent/Direct parity on their own; they consume this matrix to drive action availability, unsupported states, degradation messaging, and diagnostic output. `unsupported` and `partial` are authoritative capability boundaries reported by the control plane rather than frontend fallback states.
 
-CLI 侧可以直接读取同一份平台能力矩阵：
+The CLI reads the same platform capability matrix directly:
 
 ```bash
 soha capabilities --domain platform --output names
@@ -138,40 +138,40 @@ soha capabilities --domain platform --output json
 soha diagnose --cluster-capability resource.yaml.apply
 ```
 
-`diagnose --cluster-capability` 会展示目标 capability 的 Direct/Agent 支持状态、风险等级、审批要求、required scopes 和文档链接，用于解释为什么 YAML apply、CRD、Helm、logs、exec、port-forward 或 Docker runtime 在某个连接模式下可用、部分可用或不可用。
+`diagnose --cluster-capability` displays Direct/Agent support status, risk level, approval requirements, required scopes, and documentation links for the target capability, explaining why YAML apply, CRD, Helm, logs, exec, port-forward, or Docker runtime actions are available, partially available, or unavailable in a given connection mode.
 
-## 分析链路
+## Analysis Flows
 
-AI 工作台显式分析链路：
+Explicit AI workbench analysis flow:
 
-1. 用户在 `/ai-workbench` 会话中选择 provider、analysis profile、toolset 和分析模式。
-2. 前端调用 `POST /api/v1/copilot/sessions/:sessionID/analyze`。
-3. `internal` provider 继续走 soha 内置同步分析路径。
-4. 外部 provider 通过 `AgentRun` 入队，assistant 消息先写入 queued 状态。
-5. agent runner 使用 claim 接口领取任务。
-6. Hermes provider runner 将 scope、toolset、skills、budget 和 prompt 转为 Hermes 调用。
-7. provider 如需查询日志、指标、链路、事件、交付发布/构建或告警，应由 runner adapter 通过 `agent-runs/tool-call` 调用 soha 受控工具。
-8. runner 通过 callback 回写 `running`、`completed` 或 `failed`。
-9. 控制面把 provider 输出转换为 soha `AnalysisArtifact`，继续沉淀证据、假设、建议、关系图、工具调用和数据源快照。
+1. A user selects a provider, analysis profile, toolset, and analysis mode in an `/ai-workbench` session.
+2. The frontend calls `POST /api/v1/copilot/sessions/:sessionID/analyze`.
+3. The `internal` provider runs synchronously through Soha's built-in analysis path.
+4. External providers enqueue an `AgentRun`, writing an initial `queued` assistant message.
+5. An agent runner claims the task via the claim endpoint.
+6. The Hermes provider runner translates scope, toolset, skills, budget, and prompt into a Hermes invocation.
+7. Whenever the provider needs logs, metrics, traces, events, delivery releases/builds, or alerts, the runner adapter invokes Soha's governed tools through `agent-runs/tool-call`.
+8. The runner reports `running`, `completed`, or `failed` via callback.
+9. The control plane normalizes the provider output into a Soha `AnalysisArtifact`, persisting evidence, hypotheses, recommendations, relationship graphs, tool executions, and data source snapshots.
 
-自动化策略链路：
+Automation policy flow:
 
-1. soha automation policy 仍是持续分析的主调度源。
-2. `alert_webhook` 告警进入后，由 automation policy 做匹配、去重窗口和冷却控制。
-3. `agentProviderId=internal` 时沿用内置分析。
-4. `agentProviderId=hermes` 或其它外部 provider 时创建 `AgentRun`，由 runner 异步执行。
-5. Hermes cron 只作为实验性 provider 原生能力，不作为 soha 平台主调度源。
+1. Soha automation policies remain the primary scheduler for continuous analysis.
+2. Incoming `alert_webhook` alerts are matched, deduplicated, and rate-limited by cooldown windows in the automation policy.
+3. Policies with `agentProviderId=internal` use the built-in analyzer.
+4. Policies with `agentProviderId=hermes` or another external provider create an `AgentRun` for asynchronous runner execution.
+5. Hermes cron is treated strictly as an experimental provider-native capability rather than Soha's primary platform scheduler.
 
-## Hermes Runner 配置
+## Hermes Runner Configuration
 
-服务端需要配置 runner token：
+Configure the runner token on the server:
 
 ```yaml
 runtime:
   execution_runner_token: demo-execution-runner-token
 ```
 
-agent 侧通过 `configs/agent.config.yaml` 启用 AI Agent Runtime：
+Enable AI Agent Runtime on the agent via `configs/agent.config.yaml`:
 
 ```yaml
 control_plane:
@@ -201,30 +201,30 @@ control_plane:
     poll_interval: 5s
 ```
 
-启动方式：
+Start the agent:
 
 ```bash
 cd ../soha/agent
 go run ./cmd/agent
 ```
 
-使用自定义配置文件：
+Start with a custom configuration file:
 
 ```bash
 SOHA_AGENT_CONFIG_FILE=/abs/path/to/agent.config.yaml go run ./cmd/agent
 ```
 
-当前 Hermes provider runner 的最小 POC 约定：
+Current Hermes provider runner POC conventions:
 
-- runner 只领取 provider id 或 kind 匹配 `hermes` 的 `AgentRun`。
-- 默认命令为 `hermes`，可通过 `control_plane.agent_runtime.hermes_command` 覆盖。
-- runner 会把 soha run 输入、tool binding 快照、skill binding 快照转换为 prompt，并优先把 `AgentSkillBinding.providerSkillRef` 作为 Hermes skill 参数传给 CLI；只有没有 provider skill ref 时才回退到 soha skill id。
-- runner 提供 `agent-runs/tool-call` 客户端 helper，provider adapter 可以用它执行 run 快照中授权的只读工具；默认 Hermes CLI POC 会预取一小批只读工具结果并注入 prompt，包括日志、指标、链路、事件、交付发布/构建和告警上下文，但不假设某个 Hermes 私有 tool-call 协议。
-- runner 在 provider 命令运行期间会周期性回调 `running` heartbeat，保持控制面的 `lastHeartbeatAt` 新鲜；如果控制面回调响应返回 `canceled`、`callback_timeout`、`failed` 或 `completed` 等终态，runner 会取消本地 provider 进程，不再提交最终 completed 回调。
-- `soha/agent/internal/agent/runner` 具备不依赖真实 Hermes 安装的 smoke 覆盖：fake control plane 可验证 claim -> running callback -> tool-call prefetch -> CLI provider -> completed callback -> `AnalysisArtifact` 的完整协议链路。真实环境仍应把 `hermes_command` 指向 Hermes CLI 做最后端到端验证。
-- runner 回调中的 `analysisArtifacts` 优先作为最终工件；如果缺失，runner 和控制面会用 provider 输出摘要合成基础 `AnalysisArtifact`，并保留 provider 返回的 evidence、hypotheses、recommendations、graph、toolExecutions、dataSourceSnapshot 以及 runner 自己的工具执行记录。
+- The runner claims only `AgentRun` tasks whose provider ID or kind matches `hermes`.
+- The default executable is `hermes`, overridable via `control_plane.agent_runtime.hermes_command`.
+- The runner serializes the Soha run input, tool binding snapshot, and skill binding snapshot into the prompt, passing `AgentSkillBinding.providerSkillRef` as the Hermes skill CLI argument first and falling back to the Soha skill ID only when no provider skill ref is set.
+- The runner provides an `agent-runs/tool-call` client helper so provider adapters can execute authorized read-only tools from the run snapshot; the default Hermes CLI POC prefetches a bounded batch of read-only tool results (logs, metrics, traces, events, delivery releases/builds, and alert context) into the prompt without assuming a proprietary Hermes tool-call protocol.
+- While the provider command runs, the runner sends periodic `running` heartbeat callbacks to keep `lastHeartbeatAt` fresh on the control plane; if a callback response returns a terminal state (`canceled`, `callback_timeout`, `failed`, or `completed`), the runner cancels the local provider process and suppresses any subsequent `completed` callback.
+- `soha/agent/internal/agent/runner` includes smoke test coverage without requiring a live Hermes installation: a fake control plane exercises the full protocol path from claim -> running callback -> tool-call prefetch -> CLI provider -> completed callback -> `AnalysisArtifact`. Production deployments should still point `hermes_command` at the real Hermes CLI for end-to-end verification.
+- `analysisArtifacts` supplied in the runner callback take precedence as the final artifact; when omitted, the runner and control plane synthesize a baseline `AnalysisArtifact` from the provider output summary while preserving provider-returned `evidence`, `hypotheses`, `recommendations`, `graph`, `toolExecutions`, `dataSourceSnapshot`, and the runner's own tool execution records.
 
-runner 侧已经按 provider 分发执行器。Hermes 是内置默认 executor；其它 CLI 型 provider 可以先通过 `control_plane.agent_runtime.providers.<providerKind>` 配置接入，例如：
+The runner dispatches executors by provider. Hermes is the built-in default executor; additional CLI-based providers can be wired through `control_plane.agent_runtime.providers.<providerKind>`, for example:
 
 ```yaml
 control_plane:
@@ -243,36 +243,29 @@ control_plane:
         provider_skill_arg: --skill
 ```
 
-这种 provider executor 仍然只接收 soha `AgentRun` 合约：prompt 内包含 scope、toolset、toolBindings、skillBindings 和 output schema；provider 原生 skill 参数来自 `AgentSkillBinding.providerSkillRef`。如果没有配置对应 provider executor，runner 会显式回调 failed，而不是把未知 provider 伪装成 Hermes 执行。
+Such a provider executor still consumes only the Soha `AgentRun` contract: the prompt carries the scope, toolset, `toolBindings`, `skillBindings`, and output schema, while provider-native skill arguments come from `AgentSkillBinding.providerSkillRef`. If no matching provider executor is configured, the runner explicitly reports `failed` via callback rather than masquerading an unknown provider as Hermes.
 
-## 扩展新 Provider
+## Extending With a New Provider
 
-新增 provider 时只扩 adapter，不重写 AI 工作台和业务分析流程：
+Adding a new provider extends only the adapter layer without rewriting the AI workbench or domain analysis workflows:
 
-1. 在 copilot service 的 provider catalog 中注册 `AgentProvider`。
-2. 声明 provider 支持的 `AgentCapability`。
-3. 为 capability 增加 `AgentToolBinding` 和 `AgentSkillBinding`。
-4. 在 runner 中实现 provider-specific 执行器，将 `AgentRun` 输入转换为该 provider 的调用。
-5. 保持 callback 输出为 soha `AnalysisArtifact` 或可被合成为 `AnalysisArtifact` 的结构。
+1. Register the `AgentProvider` in the copilot service provider catalog.
+2. Declare the `AgentCapability` entries supported by the provider.
+3. Add `AgentToolBinding` and `AgentSkillBinding` definitions for those capabilities.
+4. Implement a provider-specific executor in the runner that translates `AgentRun` inputs into provider invocations.
+5. Keep callback outputs formatted as a Soha `AnalysisArtifact` or a structure synthesizable into an `AnalysisArtifact`.
 
-硬性边界：
+Hard boundaries:
 
-- 页面、handler 和业务模块不得直接调用 Hermes。
-- 预算、权限、菜单、审计、数据源脱敏和操作边界由 soha 控制。
-- Agent 只作为可插拔执行器，不能绕过 soha 的 MCP adapter、scope、toolset、tool-call 网关和 analysis profile 合约。
-- 高风险写操作不能自动挂到聊天链路，必须先落到对应业务模块的 durable operation 或 approval 流程。
+- UI pages, HTTP handlers, and domain modules must never call Hermes directly.
+- Budgets, permissions, menus, auditing, data source redaction, and operational boundaries remain governed by Soha.
+- Agents operate strictly as pluggable executors and must not bypass Soha's MCP adapters, scopes, toolsets, `tool-call` gateway, or analysis profile contracts.
+- High-risk write operations must never be attached directly to chat execution; they must flow through durable operations or approval workflows in their owning domain modules.
 
-## 远程集群 Agent 范围
+## Remote Cluster Agent And AI Agent Runtime Boundaries
 
-同一个 `soha-agent` 二进制仍保留远程集群 agent 能力：
+The same `soha-agent` binary serves both as a remote cluster connector (`agent` mode) and as a control plane Runner executor, while strictly separating their protocols and authorization boundaries:
 
-- `GET /healthz`
-- `GET /api/v1/healthz`
-- `GET /api/v1/platform/summary`
-- `GET /api/v1/platform/namespaces`
-- `GET /api/v1/platform/workloads/pods?namespace=default`
-- `GET /api/v1/platform/workloads/deployments?namespace=default`
-- `POST /api/v1/platform/actions/deployments/restart`
-- `POST /api/v1/platform/actions/deployments/scale`
-
-当前远程集群 agent 仍是较小范围能力，日志、YAML、事件、exec 和 rollout history 需要继续按平台 agent 语义补齐，不能和 AI Agent Runtime 的 provider 执行链路混用。
+- **Remote Kubernetes cluster Agent**: establishes an outbound persistent reverse connection from a private cluster to Soha (see [Multi-Cluster Model](../architecture/multi-cluster-model.md) and [Kubernetes Workbench](./kubernetes-workbench.md)). Governed by installation presets (`read-only`, `workbench`, `legacy`), an explicit `security.allowed_actions` allowlist, and in-cluster RBAC, it provides resource reads and writes, bounded logs, YAML inspection and apply, events, workload operations, node drain, Pod exec, port forwarding, and optionally enabled Helm and CRD actions. Action readiness can be verified through the authenticated `GET /api/v1/diagnostics/actions` endpoint, while effective availability is defined by the platform capability matrix.
+- **Docker host runtime agent**: when the corresponding actions (such as `docker.runtime.logs.v1`, `docker.runtime.files.v1`, and `docker.runtime.terminal.v1`) and `control_plane.docker.operation_kinds` are explicitly configured, provides governed log streaming, safe volume browsing, container terminal sessions, and Runner operation callbacks for registered hosts and projects.
+- **AI Agent Runtime executor**: executes governed `AgentRun` tasks over the Runner polling and callback protocol. It cannot escalate privileges to invoke unauthorized cluster actions, nor mix the platform cluster Agent channel with the AI Provider execution pipeline.

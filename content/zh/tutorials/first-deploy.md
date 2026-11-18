@@ -14,9 +14,9 @@ description: 启动第一个自托管 Soha 控制平面，并验证 health、rea
 ## 启动 Stack
 
 ```bash
-git clone --branch v0.1.12 --depth 1 https://github.com/opensoha/soha.git
+git clone --branch v0.1.13 --depth 1 https://github.com/opensoha/soha.git
 cd soha
-SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.12 \
+SOHA_IMAGE=ghcr.io/opensoha/soha:v0.1.13 \
   docker compose -f deploy/docker-compose.yaml up -d --no-build --wait soha
 ```
 

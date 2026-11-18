@@ -32,7 +32,7 @@ Each MCP adapter should register:
 - transport configuration
 - timeout and isolation policy
 
-当前内置 adapter 至少包括：
+Built-in adapters currently include at least:
 
 - `platform-native.v1`
 - `logs.v1`
@@ -53,7 +53,7 @@ MCP must not bypass platform authorization. Every MCP capability maps to a platf
 - invocation audit
 - response filtering
 
-`delivery.v1` 当前首批 Gateway 工具使用 canonical tool name 暴露给 MCP client：
+`delivery.v1` currently exposes its Gateway tools to MCP clients using canonical tool names:
 
 - `delivery.applications.list`
 - `delivery.applications.detail`
@@ -69,13 +69,13 @@ MCP must not bypass platform authorization. Every MCP capability maps to a platf
 - `delivery.rollback.context`
 - `delivery.actions.trigger`
 
-这些能力必须仍然经过平台权限、scope、审计和操作日志边界；Gin handler 不得直接执行 repo 写入或长时 shell。
+These capabilities must still pass through platform permission, scope, audit, and operation-log boundaries; Gin handlers must never execute repository writes or long-running shell commands directly.
 
 ## Module Contract
 
-为了支持单二进制内置模块启停与未来外部模块协议预留，平台已引入模块注册契约。
+To support enabling and disabling built-in modules in the single binary while reserving extension points for future external module protocols, the platform defines a module registration contract.
 
-后端模块描述符最小字段：
+Minimum fields on a backend module descriptor:
 
 - `id`
 - `name`
@@ -85,4 +85,4 @@ MCP must not bypass platform authorization. Every MCP capability maps to a platf
 - `visiblePermissions`
 - `seedMenus`
 
-当前模块状态通过 `GET /api/v1/modules` 暴露。
+Current module status is exposed through `GET /api/v1/modules`.

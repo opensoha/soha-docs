@@ -11,7 +11,9 @@ export function MarketingHeader({ locale }: { locale: Locale }) {
   const menu = useRef<HTMLDetailsElement>(null)
   const links = [
     [copy.nav[0], '#capabilities'], [copy.nav[1], '#self-hosted'],
-    [copy.nav[2], withLocale(locale, '/docs')], ['GitHub', 'https://github.com/opensoha/soha'],
+    [copy.nav[2], withLocale(locale, '/docs')],
+    [locale === 'zh' ? '演示环境' : 'Live Demo', 'https://demo.opensoha.com/'],
+    ['GitHub', 'https://github.com/opensoha/soha'],
     [locale === 'zh' ? 'EN' : '中文', withLocale(locale === 'zh' ? 'en' : 'zh', '/')],
   ]
   const navigation = links.map(([label, href]) => (

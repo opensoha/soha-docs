@@ -13,15 +13,22 @@
 
 ## CLI
 
+从公开 GitHub 仓库直装请参阅[从 GitHub 仓库安装](./installing-from-repositories.md)。作者规范和目录要求见[发布插件仓库](./publishing-plugin-repositories.md)。
+
 ```bash
 soha plugin search
 soha plugin show <id>
-soha plugin install <id>
 soha plugin list
 soha plugin enable <id>
 soha plugin disable <id>
-soha plugin upgrade <id>
 soha plugin remove <id>
+```
+
+以下按 ID 安装和升级的命令适用于旧快照目录。正式默认市场中的仓库条目使用上方仓库安装和升级流程。
+
+```bash
+soha plugin install <id>
+soha plugin upgrade <id>
 ```
 
 ## Web

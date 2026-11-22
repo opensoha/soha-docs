@@ -13,15 +13,22 @@ Installing a plugin is a governed administrative operation. Before installation,
 
 ## CLI
 
+For direct installation from a public GitHub repository, follow [Install from a GitHub Repository](./installing-from-repositories.md). For authoring and catalog requirements, see [Publish a Plugin Repository](./publishing-plugin-repositories.md).
+
 ```bash
 soha plugin search
 soha plugin show <id>
-soha plugin install <id>
 soha plugin list
 soha plugin enable <id>
 soha plugin disable <id>
-soha plugin upgrade <id>
 soha plugin remove <id>
+```
+
+The following install and upgrade commands by ID are for legacy snapshot catalogs. For repository entries in the default marketplace, follow the repository guide above.
+
+```bash
+soha plugin install <id>
+soha plugin upgrade <id>
 ```
 
 ## Web

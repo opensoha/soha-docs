@@ -9,6 +9,7 @@ Plugin administration uses the following permission keys:
 ```text
 plugin.view
 plugin.install
+plugin.upgrade
 plugin.manage
 plugin.configure_secrets
 plugin.publish
@@ -46,7 +47,7 @@ Effective capabilities are evaluated jointly across:
 
 ## High-Risk Capabilities
 
-The Web installation flow provides a confirmation step showing declared permissions, required secrets, and risks. The current `soha plugin install` CLI submits the installation request directly without an interactive administrator confirmation. Review `soha plugin show <id>` and the manifest before using the CLI; do not depend on an additional confirmation prompt.
+The Web installation flow provides a confirmation step showing declared permissions, required secrets, and risks. Legacy snapshot-catalog and local-manifest installs through `soha plugin install` submit directly without an interactive administrator review. Repository installs (`--repository`) first show a preview and ask for confirmation; in non-interactive use, `--yes` skips the confirmation prompt for the current invocation. Review the manifest and requested capabilities before confirming either flow; see [Install from a GitHub Repository](./installing-from-repositories.md).
 
 Installation remains subject to server-side authorization and installation auditing. An installation audit event is not a separate human approval or CLI confirmation record. Review plugins declaring mutations, execution, privileged connectors, external provider keys, or high-cost model calls before installation; actual invocations remain governed by runtime authorization and policy.
 

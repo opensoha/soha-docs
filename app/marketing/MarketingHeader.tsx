@@ -10,7 +10,9 @@ export function MarketingHeader({ locale }: { locale: Locale }) {
   const copy = marketingCopy[locale]
   const menu = useRef<HTMLDetailsElement>(null)
   const links = [
-    [copy.nav[0], withLocale(locale, '/docs')], ['GitHub', 'https://github.com/opensoha/soha'],
+    [copy.nav[0], withLocale(locale, '/docs')],
+    [locale === 'zh' ? '演示环境' : 'Live Demo', 'https://demo.opensoha.com/'],
+    ['GitHub', 'https://github.com/opensoha/soha'],
     [locale === 'zh' ? 'EN' : '中文', withLocale(locale === 'zh' ? 'en' : 'zh', '/')],
   ]
   const navigation = links.map(([label, href]) => (

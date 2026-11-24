@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { openAPIOperations } from './openapi-operations.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const contentRoot = path.join(root, 'content', 'zh')
@@ -126,26 +127,6 @@ function parseFrontMatter(text) {
 
 function normalizeOpenAPIPath(value) {
   return value.replace(/\{([^}]+)\}/g, ':$1')
-}
-
-function parseOpenAPIOperations(raw) {
-  const operations = []
-  let currentPath = ''
-
-  for (const line of raw.split(/\r?\n/)) {
-    const pathMatch = line.match(/^  (\/[A-Za-z0-9_./{}-]+):\s*$/)
-    if (pathMatch) {
-      currentPath = pathMatch[1]
-      continue
-    }
-
-    const methodMatch = line.match(/^    (get|post|put|delete|patch):\s*$/)
-    if (currentPath && methodMatch) {
-      operations.push(`${methodMatch[1].toUpperCase()} /api/v1${normalizeOpenAPIPath(currentPath)}`)
-    }
-  }
-
-  return operations
 }
 
 async function verifyNextraSetup() {
@@ -281,6 +262,29 @@ async function verifyNextraSetup() {
     '第一次接入 AI Gateway MCP',
     '第一次安装插件',
   ])
+}
+
+async function verifyHomepageQuickStart() {
+  // The homepage quick start must stay identical to the first-deploy tutorial command.
+  const marketingCopy = await read('app/marketing/copy.ts')
+  const problems = []
+  for (const locale of ['zh', 'en']) {
+    const tutorial = await read(`content/${locale}/tutorials/first-deploy.md`)
+    const block = tutorial.match(/```bash\r?\n(git clone [\s\S]*?)\r?\n```/)
+    if (!block) {
+      problems.push(`content/${locale}/tutorials/first-deploy.md: missing git clone quick start block`)
+      continue
+    }
+    for (const line of block[1].split(/\r?\n/)) {
+      const literal = `'${line.replaceAll('\\', '\\\\')}'`
+      if (!marketingCopy.includes(literal)) {
+        problems.push(`app/marketing/copy.ts quickStartCommand is missing ${locale} first-deploy line: ${line}`)
+      }
+    }
+  }
+  if (problems.length > 0) {
+    throw new Error(`homepage quick start drifted from first-deploy:\n${problems.map((item) => `- ${item}`).join('\n')}`)
+  }
 }
 
 async function verifySingleDocumentShell() {
@@ -652,16 +656,16 @@ async function verifyPublishAcceptanceRecord() {
   requireIncludes('docs publish acceptance record', zhRecord, [
     'Vercel project',
     'GitHub integration',
-    'docs.opensoha.dev',
-    'DOCS_SITE_URL=https://docs.opensoha.dev',
+    'docs.opensoha.com',
+    'DOCS_SITE_URL=https://docs.opensoha.com',
     'NEXT_LOCALE',
     'Commit SHA',
     'Deployment URL',
     'DNS/custom domain',
     'Pending external Vercel publish',
-    'curl -I -s https://docs.opensoha.dev/zh/',
-    'curl -I -s https://docs.opensoha.dev/zh/docs/api/contracts/',
-    'curl -I -s https://docs.opensoha.dev/en/docs/',
+    'curl -I -s https://docs.opensoha.com/zh/',
+    'curl -I -s https://docs.opensoha.com/zh/docs/api/contracts/',
+    'curl -I -s https://docs.opensoha.com/en/docs/',
   ])
 }
 
@@ -677,14 +681,13 @@ async function verifyEnvironmentDocs() {
     'SOHA_DATABASE_NAME',
     'SOHA_DATABASE_USER',
     'SOHA_DATABASE_PASSWORD',
-    'SOHA_REDIS_ADDR',
     'SOHA_AUTH_ENABLE_DEV_AUTH',
     'SOHA_CONFIG',
     'SOHA_TOKEN',
     'SOHA_SERVER',
     'SOHA_SKILLS_SOURCE',
     'SOHA_SKILLS_DIR',
-    'HERMES_CONTROL_PLANE_URL',
+    'SOHA_CONTROL_PLANE_URL',
     'SOHA_EXECUTION_RUNNER_TOKEN',
     'SOHA_AI_GATEWAY_RATE_LIMIT_BACKEND',
     'SOHA_AI_GATEWAY_RATE_LIMIT_REDIS_ADDR',
@@ -778,8 +781,14 @@ async function verifyChineseTutorialLocalization() {
 }
 
 async function verifyGatewayEndpointStatus() {
-  const openapi = await readFile(new URL('../../soha/contracts/openapi/soha-api.yaml', import.meta.url), 'utf8')
-  const contracted = new Set(parseOpenAPIOperations(openapi))
+  const openapi = JSON.parse(
+    await readFile(new URL('../../soha/contracts/openapi/soha-api.json', import.meta.url), 'utf8'),
+  )
+  const contracted = new Set(
+    openAPIOperations(openapi).map(
+      (operation) => `${operation.method} /api/v1${normalizeOpenAPIPath(operation.path)}`,
+    ),
+  )
   const apiCore = await read('api/core-endpoints.md')
 
   const pendingManagementEndpoints = [
@@ -899,6 +908,7 @@ async function verifyBilingualLocalizationHygiene() {
 }
 
 await verifyNextraSetup()
+await verifyHomepageQuickStart()
 await verifySingleDocumentShell()
 await verifyNoPrivateSaasExposure()
 await verifyNavigationDocsExist()

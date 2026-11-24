@@ -18,7 +18,7 @@ Frontend runtime is currently code-first rather than env-first.
 Docs runtime is independent.
 
 - docs source lives in `soha-docs`
-- published docs should use an external URL, such as `https://docs.opensoha.dev/`
+- published docs should use an external URL, such as `https://docs.opensoha.com/`
 - `assets.docs.external_url` controls where `soha` redirects `/docs/`
 
 ## Configuration Ownership

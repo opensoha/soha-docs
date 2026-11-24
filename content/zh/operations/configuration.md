@@ -18,7 +18,7 @@
 文档站运行时相互独立：
 
 - 文档源码位于 `soha-docs` 仓库
-- 正式发布的文档站应使用独立的外部地址（如 `https://docs.opensoha.dev/`）
+- 正式发布的文档站应使用独立的外部地址（如 `https://docs.opensoha.com/`）
 - `assets.docs.external_url` 控制 `soha` 将 `/docs/` 重定向到的目标地址
 
 ## 配置归属

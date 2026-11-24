@@ -63,7 +63,7 @@ npm install
 npm run dev
 ```
 
-`soha-docs` 是独立的 Next.js 与 Nextra 文档站点。官方多语言路由使用 `/zh`、`/zh/docs/...`、`/en` 和 `/en/docs/...`；不带语言前缀的 `/` 与 `/docs/...` 会通过 `nextra/locales` 代理根据 `NEXT_LOCALE` Cookie 或浏览器语言偏好跳转。发布到 `https://docs.opensoha.dev/` 时应按实际挂载路径配置 `DOCS_BASE_URL`。
+`soha-docs` 是独立的 Next.js 与 Nextra 文档站点。官方多语言路由使用 `/zh`、`/zh/docs/...`、`/en` 和 `/en/docs/...`；不带语言前缀的 `/` 与 `/docs/...` 会通过 `nextra/locales` 代理根据 `NEXT_LOCALE` Cookie 或浏览器语言偏好跳转。发布到 `https://docs.opensoha.com/` 时应按实际挂载路径配置 `DOCS_BASE_URL`。
 
 ## 历史 MVP 运行背景
 

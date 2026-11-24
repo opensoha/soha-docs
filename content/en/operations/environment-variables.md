@@ -28,7 +28,6 @@ Typical overrides:
 - `SOHA_SECURITY_VAULT_KV2_NAMESPACE`
 - `SOHA_SECURITY_VAULT_KV2_TIMEOUT`
 - `SOHA_SECURITY_VAULT_KV2_MAX_RESPONSE_BYTES`
-- `SOHA_REDIS_ADDR`
 - `SOHA_AUTH_ENABLE_DEV_AUTH`
 
 The repository config and all deployment forms default the database password to `pgsql` and the initial `opensoha` administrator password to `opensoha`. Soha does not vary or reject these standard initial credentials based on an application environment label; both remain explicitly overridable.
@@ -40,7 +39,7 @@ Set `SOHA_SECURITY_SECRET_PROVIDER=vault_kv2` to enable Vault-backed Secret vers
 Runner and Gateway examples also use these operational variables:
 
 - `SOHA_EXECUTION_RUNNER_TOKEN`: shell/example helper used to pass the bearer token to runner or Helm commands; the backend Viper override is `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`.
-- `HERMES_CONTROL_PLANE_URL`: optional override for the Hermes runner control-plane URL in local compose examples.
+- `SOHA_CONTROL_PLANE_URL`: optional override for the Hermes runner control-plane URL (`SOHA_AGENT_CONTROL_PLANE_BASE_URL`) in local compose examples.
 - `SOHA_AI_GATEWAY_RATE_LIMIT_BACKEND`: optional AI Gateway rate-limit backend, for example `redis`.
 - `SOHA_AI_GATEWAY_RATE_LIMIT_REDIS_ADDR`: Redis address used by the AI Gateway rate limiter when Redis is selected.
 
@@ -65,11 +64,11 @@ For a prefixed production deployment, configure request and cookie-path rewrites
 
 `soha-docs` has its own build-time configuration.
 
-- `DOCS_SITE_URL`: published site origin, default `https://docs.opensoha.dev`
+- `DOCS_SITE_URL`: published site origin, default `https://docs.opensoha.com`
 - `DOCS_BASE_URL`: published path prefix, default `/`
 - `DOCS_SHOW_LAST_UPDATE_TIME`: retained for docs workflow compatibility; Nextra does not currently render it
 
-For `https://docs.opensoha.dev/`, build with `DOCS_BASE_URL=/`. For `https://opensoha.dev/docs/`, build with `DOCS_BASE_URL=/docs/`.
+For `https://docs.opensoha.com/`, build with `DOCS_BASE_URL=/`. For `https://docs.opensoha.com/docs/`, build with `DOCS_BASE_URL=/docs/`.
 
 ## CLI authentication isolation (pending release combination)
 

@@ -351,7 +351,7 @@ Planned relay contracts in the same OpenAPI artifact, not routed by the backend 
 
 `/ai-gateway/llm/*` exposes OpenAI-, Anthropic-, Gemini-, Cohere-, and OpenAI-compatible provider APIs for SDKs. These endpoints cover model discovery, chat/responses, embeddings, image and audio operations, realtime access, and reranking where the provider supports them. They accept existing `soha_pat_` and `soha_sat_` credentials through bearer auth or `x-api-key`, require explicit relay token metadata, and return native provider-shaped JSON or streaming responses without an OpenSoha envelope.
 
-Public OpenAPI contract status:
+### Public OpenAPI contract status
 
 - Contracted Gateway runtime, token, audit, approval, governance, and MCP capability endpoints are listed above and are checked against `../soha/contracts/openapi/soha-api.yaml`.
 - Pending contracts addition: the console management endpoints below are implemented by the core/web Gateway workbench, but are not yet included in the public OpenAPI artifact.

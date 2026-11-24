@@ -173,7 +173,7 @@ requireIncludes('docs publish env contract', docsPublishing + envDocs + configTs
   'DOCS_SITE_URL',
   'DOCS_BASE_URL',
   'DOCS_SHOW_LAST_UPDATE_TIME',
-  "process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.dev'",
+  "process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.com'",
   "process.env.DOCS_BASE_URL ?? '/'",
 ])
 

@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Pick<LayoutProps, 'params'>):
       template: '%s - OpenSoha',
     },
     description: siteDescription(resolvedLocale),
-    metadataBase: new URL(process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.dev'),
+    metadataBase: new URL(process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.com'),
     icons: {
       icon: '/logo.svg',
       shortcut: '/logo.svg',

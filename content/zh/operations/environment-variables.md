@@ -28,7 +28,6 @@
 - `SOHA_SECURITY_VAULT_KV2_NAMESPACE`
 - `SOHA_SECURITY_VAULT_KV2_TIMEOUT`
 - `SOHA_SECURITY_VAULT_KV2_MAX_RESPONSE_BYTES`
-- `SOHA_REDIS_ADDR`
 - `SOHA_AUTH_ENABLE_DEV_AUTH`
 
 仓库配置与所有部署方式默认使用数据库密码 `pgsql`，初始化的 `opensoha` 管理员密码为 `opensoha`。Soha 不根据应用环境标签区分或拒绝这组标准初始凭据；两者仍可通过环境变量显式覆盖。
@@ -40,7 +39,7 @@ JWT 签名密钥、执行 Runner 令牌、监控 Webhook 令牌和凭据加密�
 Runner 与 AI Gateway 运行示例还会用到以下运维变量：
 
 - `SOHA_EXECUTION_RUNNER_TOKEN`：Runner 或 Helm 命令示例中用于传递 Bearer Token 的 Shell 辅助变量；后端 Viper 实际读取的覆盖变量名为 `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`。
-- `HERMES_CONTROL_PLANE_URL`：本地 Compose 示例中用于覆盖 Hermes Runner 控制平面地址的可选变量。
+- `SOHA_CONTROL_PLANE_URL`：本地 Compose 示例中用于覆盖 Hermes Runner 控制平面地址（`SOHA_AGENT_CONTROL_PLANE_BASE_URL`）的可选变量。
 - `SOHA_AI_GATEWAY_RATE_LIMIT_BACKEND`：可选的 AI Gateway 限流后端（例如 `redis`）。
 - `SOHA_AI_GATEWAY_RATE_LIMIT_REDIS_ADDR`：当限流后端选择 Redis 时，AI Gateway 限流器连接的 Redis 地址。
 
@@ -65,11 +64,11 @@ CLI 与教程示例使用以下客户端环境变量：
 
 `soha-docs` 拥有独立的构建期环境变量配置：
 
-- `DOCS_SITE_URL`：已发布站点的源地址，默认值为 `https://docs.opensoha.dev`
+- `DOCS_SITE_URL`：已发布站点的源地址，默认值为 `https://docs.opensoha.com`
 - `DOCS_BASE_URL`：已发布站点的路径前缀，默认值为 `/`
 - `DOCS_SHOW_LAST_UPDATE_TIME`：为兼容文档发布工作流保留，当前 Nextra 暂不渲染该字段
 
-发布至 `https://docs.opensoha.dev/` 时使用 `DOCS_BASE_URL=/` 构建；发布至 `https://opensoha.dev/docs/` 时使用 `DOCS_BASE_URL=/docs/` 构建。
+发布至 `https://docs.opensoha.com/` 时使用 `DOCS_BASE_URL=/` 构建；发布至 `https://docs.opensoha.com/docs/` 时使用 `DOCS_BASE_URL=/docs/` 构建。
 
 ## CLI 认证隔离（待发布组合）
 

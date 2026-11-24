@@ -10,8 +10,7 @@ export function MarketingHeader({ locale }: { locale: Locale }) {
   const copy = marketingCopy[locale]
   const menu = useRef<HTMLDetailsElement>(null)
   const links = [
-    [copy.nav[0], '#capabilities'], [copy.nav[1], '#self-hosted'],
-    [copy.nav[2], withLocale(locale, '/docs')], ['GitHub', 'https://github.com/opensoha/soha'],
+    [copy.nav[0], withLocale(locale, '/docs')], ['GitHub', 'https://github.com/opensoha/soha'],
     [locale === 'zh' ? 'EN' : '中文', withLocale(locale === 'zh' ? 'en' : 'zh', '/')],
   ]
   const navigation = links.map(([label, href]) => (
@@ -21,7 +20,7 @@ export function MarketingHeader({ locale }: { locale: Locale }) {
   ))
   return (
     <header className={styles.header}>
-      <a className={styles.skip} href="#main-content">{copy.nav[4]}</a>
+      <a className={styles.skip} href="#main-content">{copy.nav[2]}</a>
       <div className={`${styles.container} ${styles.headerInner}`}>
         <Link className={styles.brand} href={withLocale(locale, '/')} aria-label="Soha">
           <img src="/logo.svg" alt="" width="32" height="32" />
@@ -34,7 +33,7 @@ export function MarketingHeader({ locale }: { locale: Locale }) {
             menu.current.querySelector('summary')?.focus()
           }
         }}>
-          <summary>{copy.nav[3]} <span aria-hidden="true">+</span></summary>
+          <summary>{copy.nav[1]} <span aria-hidden="true">+</span></summary>
           <nav aria-label={locale === 'zh' ? '移动导航' : 'Mobile navigation'} onClick={(event) => {
             if ((event.target as HTMLElement).closest('a') && menu.current) menu.current.open = false
           }}>{navigation}</nav>

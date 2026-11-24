@@ -52,13 +52,25 @@ MVP 只开放回环地址上的 mixed proxy。mihomo TUN、默认路由、LAN �
 
 ## 部署
 
-本地 Docker 运行完整软件栈：
+网络运行时在 Compose 中按 profile 显式启用，mTLS 私钥不得提交到版本库。先分别为各服务端与客户端身份准备包含 `tls.crt`、`tls.key`（权限 `0440` 或 `0600`）和 `ca.crt` 的目录，再启动 `network-access` profile：
 
 ```bash
+SOHA_NETWORK_CONTROL_TLS_DIR=/abs/path/network-control-tls \
+SOHA_INGEST_TLS_DIR=/abs/path/ingest-tls \
+SOHA_NETWORK_INGEST_QUERY_TLS_DIR=/abs/path/core-ingest-query-tls \
+SOHA_NETWORK_INGEST_QUERY_URL=https://ingest:8083 \
+SOHA_NETWORK_INGEST_QUERY_CA_FILE=/run/soha-network-ingest-query/ca.crt \
+SOHA_NETWORK_INGEST_QUERY_CERT_FILE=/run/soha-network-ingest-query/tls.crt \
+SOHA_NETWORK_INGEST_QUERY_KEY_FILE=/run/soha-network-ingest-query/tls.key \
+SOHA_NETWORK_INGEST_QUERY_SERVER_NAME=ingest \
+SOHA_NETWORK_GATEWAY_CONTROL_CLIENT_TLS_DIR=/abs/path/gateway-control-tls \
+SOHA_NETWORK_GATEWAY_INGEST_CLIENT_TLS_DIR=/abs/path/gateway-ingest-tls \
 docker compose -f deploy/docker-compose.yaml --profile network-access up -d --build
 ```
 
-原始 Kubernetes 清单位于 `deploy/network-runtime.yaml`，包含 control、ingest、WireGuard gateway 和所需持久卷。FreeRADIUS 配置位于 `deploy/freeradius/`。
+该 profile 启动 `8082` 端口的 `network-control`、`8083` 端口的 `ingest`、独立 ingest PostgreSQL，以及监听 UDP `51820` 的特权隔离 `network-gateway`。`/healthz` 表示进程存活；`network-control` 与 `network-gateway` 的 `/readyz` 仅在所需策略和配置发布后就绪。Core 访问 ingest 的查询客户端证书必须具备精确 URI SAN `spiffe://opensoha.local/network-ingest/core/soha-server`（不得复用网关的 ingest 证书身份），且只向 Core 返回有界的聚合摘要。
+
+原始 Kubernetes 清单位于 `deploy/network-runtime.yaml`，包含 control、ingest、WireGuard gateway 和所需持久卷（`kubectl apply -k deploy` 前需在 `soha` Namespace 创建包含上述各服务端与客户端密钥及 `network-core-ingest-query.*` 的 `soha-network-runtime-tls` Secret；本地构建网关镜像可使用 `docker build --target network-gateway-runtime -f deploy/Dockerfile -t ghcr.io/opensoha/soha-network-gateway:local .`）。FreeRADIUS 配置位于 `deploy/freeradius/`，本地组件冒烟与多站点实验参见主仓 [`deploy/network-test/README.md`](https://github.com/opensoha/soha/blob/main/deploy/network-test/README.md)。
 
 Helm Chart 默认不创建网络运行时。只启用非特权 control/ingest 平面时配置：
 

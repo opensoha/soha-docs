@@ -30,25 +30,25 @@ npm run serve
 
 `next.config.mjs` 在构建期读取以下环境变量：
 
-- `DOCS_SITE_URL`：已发布站点的源地址，默认值为 `https://docs.opensoha.dev`
+- `DOCS_SITE_URL`：已发布站点的源地址，默认值为 `https://docs.opensoha.com`
 - `DOCS_BASE_URL`：已发布站点的路径前缀，默认值为 `/`
 - `DOCS_SHOW_LAST_UPDATE_TIME`：为兼容发布工作流保留的变量，当前 Nextra 暂不渲染该字段
 
-发布至 `https://docs.opensoha.dev/` 时执行：
+发布至 `https://docs.opensoha.com/` 时执行：
 
 ```bash
-DOCS_SITE_URL=https://docs.opensoha.dev DOCS_BASE_URL=/ npm run build
+DOCS_SITE_URL=https://docs.opensoha.com DOCS_BASE_URL=/ npm run build
 ```
 
-发布至 `https://opensoha.dev/site/` 时执行：
+发布至 `https://docs.opensoha.com/site/` 时执行：
 
 ```bash
-DOCS_SITE_URL=https://opensoha.dev DOCS_BASE_URL=/site/ npm run build
+DOCS_SITE_URL=https://docs.opensoha.com DOCS_BASE_URL=/site/ npm run build
 ```
 
 ## 质量门禁
 
-搜索质量门禁（Search quality gate）基于 Nextra 内置的本地 Pagefind 搜索能力。`next.config.mjs` 默认启用搜索并将代码块排除在索引之外，`scripts/verify-docs-drift.mjs` 则负责检查发布说明与配置保持一致。正式构建无需配置外部 Algolia 凭据。
+搜索质量门禁（Search quality gate）基于 Nextra 的本地 Pagefind 搜索。`next.config.mjs` 启用搜索并将代码块排除在索引之外。`npm run build` 在 Next.js 渲染页面后调用 Pagefind，将索引生成到 `public/_pagefind/`。本地和 Vercel 使用相同的构建命令。`scripts/verify-docs-drift.mjs` 检查发布说明与配置是否一致。
 
 死链检查门禁分为两层：Nextra/Next 构建阶段会校验所有可路由页面，同时 `scripts/verify-docs-drift.mjs` 会在 `npm test` 期间扫描相对路径 Markdown 链接。
 
@@ -67,10 +67,10 @@ npm run screenshots:check
 正式文档采用托管平台的 Next.js 部署流程，不使用 GitHub Pages：
 
 - 将 `soha-docs` GitHub 仓库连接到目标 Next.js 托管平台（如 Vercel）。
-- 将项目根目录设为 `soha-docs`。
+- 使用 `soha-docs` 仓库根目录（Vercel 中为 `.`）。
 - 将构建命令设为 `npm run build`。
 - 输出目录保持留空或自动模式，由托管平台自动识别 Next.js 产物。
-- 在托管平台与 DNS 服务商处将生产域名配置为 `docs.opensoha.dev`。
+- 在 Vercel 项目中添加生产域名 `docs.opensoha.com`，并在 Cloudflare 用「仅 DNS」模式添加 Vercel 提供的 CNAME 记录。
 - 不要添加 `public/CNAME` 或 `.github/workflows/publish.yml`，二者均为 GitHub Pages 专用产物。
 - CI 工作流会在 `soha-docs` 同级检出固定版本的 `opensoha/soha` 主仓，并从 `../soha/contracts` 读取契约输入。
 - 部署前验证命令依次为：`npm ci`、`npm run typecheck`、`npm test` 和 `npm run build`。

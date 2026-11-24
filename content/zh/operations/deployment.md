@@ -4,9 +4,76 @@
 
 Core 镜像同时提供 API 和内嵌的 Web 控制台，应用数据存放在 PostgreSQL。文档站、远程集群 Agent 和可选的 Operator 分别发布。
 
-用 Compose 在本机安装 Core `v0.1.13` 时，按 [第一次部署](../tutorials/first-deploy.md) 操作。Kubernetes 可使用发行版本的 `deploy/deployment.yaml`，或从 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 选择兼容的 Chart（面向 Core `v0.1.13` 的新版 Chart 发布前，请核对已发布 Chart 的 `appVersion`）。升级时一并核对清单或 Chart 与镜像版本。开放外部访问前请更换初始凭据和系统密钥，详见 [配置指南](./configuration.md)。
+推荐交付边界：
+
+- **Docker Compose**：面向本机开发与单机试跑，按 [第一次部署](../tutorials/first-deploy.md) 启动 Core `v0.1.13`，不作为生产编排主路径。
+- **单容器 `docker run`**：外部 PostgreSQL 已可达、且不使用 Compose 的主机部署。
+- **Helm（Kubernetes 主推荐路径）**：由 [Soha Helm 仓库](https://github.com/opensoha/soha-helm) 发布 `soha`、`soha-agent`、`soha-operator` 和兼容的 `soha-hermes-agent` Chart（面向新版 Core 发布更新前，请核对已发布 Chart 的 `appVersion`）。
+- **原生 Kubernetes / Kustomize**：基于 `deploy/deployment.yaml` 与 `deploy/kustomization.yaml` 的轻量原生清单定制入口。
+- **原生 Linux 安装包**：提供二进制、迁移 SQL 与配置模板的离线归档包。
+- **镜像分工**：Core 使用 `ghcr.io/opensoha/soha`；Agent 与运行时使用 `ghcr.io/opensoha/soha-agent`、`ghcr.io/opensoha/soha-dsh` 及 Buildpacks 变体；CLI 工具镜像 `ghcr.io/opensoha/soha-cli` 仅用于多阶段构建与运维容器（如 `COPY --from=ghcr.io/opensoha/soha-cli:v0.2.1 /usr/local/bin/soha /usr/local/bin/soha`），不作为常驻工作负载部署。
+
+升级时一并核对清单或 Chart 与镜像版本。开放外部访问前请更换初始凭据和四项公开默认系统密钥，详见 [配置指南](./configuration.md)。
 
 Core `v0.1.13` 默认关闭 `dsh_runtime` 与 `hindsight`；如需启用新 Chat 和 Heya，需额外部署匹配的 `ghcr.io/opensoha/soha-dsh:v0.2.0` 并按 [Agent Runtime](./agent-runtime.md) 完成配置与切换（Core `v0.1.12` 及更早版本使用旧内置运行时）。
+
+## 单容器 Docker 部署（外部 PostgreSQL）
+
+外部 PostgreSQL 18 已提供 `vector` 和 `pg_trgm` 扩展且可达时，可直接启动单个应用容器。以下示例绑定回环地址，供本机使用。
+
+将 `SOHA_DOCKER_ENV_FILE` 指向权限为 `0600` 的私有 Docker 环境文件。填入数据库密码 `SOHA_DATABASE_PASSWORD`、独立的初始化密码 `SOHA_AUTH_DEV_PRINCIPAL_PASSWORD`，以及为 `SOHA_AUTH_JWT_SECRET`、`SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`、`SOHA_MONITORING_WEBHOOK_TOKEN` 和 `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY` 生成的新值。对外开放前使用这些自定义凭据和密钥，并在外部入口终止 TLS。
+
+```bash
+docker run -d \
+  --name soha \
+  --restart unless-stopped \
+  -p 127.0.0.1:8080:8080 \
+  --mount source=soha-data,target=/app/data \
+  --add-host host.docker.internal:host-gateway \
+  -e SOHA_DATABASE_HOST=host.docker.internal \
+  --env-file "${SOHA_DOCKER_ENV_FILE:?set the path to a private environment file}" \
+  ghcr.io/opensoha/soha:v0.1.13
+```
+
+Soha 启动不依赖 `SecretStore` 卷、secret bundle 或单写锁；多个 API 副本只要共享相同的配置和系统密钥，即可同时连接同一 PostgreSQL 实例并通过负载均衡对外提供服务。
+
+### 软件库对象存储与旧目录迁移
+
+`soha-data` 卷仅持久化附属运行数据；软件包必须存入已启用的 S3 兼容系统集成，不再写入应用本地卷。请在**内网工作台 → 软件库**中配置 AWS S3、MinIO、阿里云 OSS、腾讯云 COS 或自定义兼容端点（私网端点需显式开启**允许私网 Endpoint**，明文 HTTP 需额外开启**允许 HTTP**）。连接创建后 `endpoint` 与 `bucket` 不可原地修改，支持凭据轮换或多存储连接并存。
+
+若升级时仍检测到旧文件系统目录 `data/software/index.json`（或 `SOHA_SOFTWARE_STORAGE_DIR`），新版本会阻止启动并报告迁移错误。升级前请先停止旧实例并将完整旧目录移至备份位置；启动新版本并完成 S3 连接测试后，按原元数据和文件名重新上传各软件包，核对数量、字节数、SHA-256 与下载无误后再清理备份。
+
+## Kubernetes 部署（Helm 与 Kustomize）
+
+通过公开 Helm 仓库安装 Core 与远程 Agent：
+
+```bash
+helm repo add opensoha https://opensoha.github.io/soha-helm
+helm repo update
+helm install soha opensoha/soha --namespace soha --create-namespace
+helm install soha-agent opensoha/soha-agent \
+  --namespace soha \
+  --set-string config.controlPlane.baseUrl="https://soha.example.com"
+```
+
+`soha-agent` Chart 默认只读取 `soha-config/execution-runner-token`，并在需要时自行生成入站 Agent 令牌。跨 Namespace 部署 Agent 时，请通过 External Secrets 等机制仅同步该 Runner key，并配置 `secrets.controlPlaneExistingSecret.name` 与 `key`。
+
+Identity Outpost 可从 `soha/agent` 部署，也可使用 `soha-agent` Chart 的 `mode=outpost` 模式（固定支持 Identity Outpost `v1` 协议的发布镜像；NGINX Ingress 与 Traefik ForwardAuth 示例位于主仓 `agent/deploy/kubernetes/outpost/examples`）。
+
+不引入 Helm 时，可使用仓库 `deploy/` 目录下的 Kustomize 基线：
+
+```bash
+cd deploy
+kustomize edit set image ghcr.io/opensoha/soha=ghcr.io/opensoha/soha:v0.1.13
+cd ..
+kubectl apply -k deploy
+```
+
+原生 Kubernetes 清单与 Helm Chart 均使用 TCP liveness 和 `/readyz` startup/readiness 探针：数据库故障只会摘除就绪状态，不会触发容器反复重启；默认提供 5 分钟启动迁移窗口，存量库迁移耗时更长时请按环境调大。
+
+## 原生 Linux 安装包
+
+在具备安装包附件的发行版中下载 `soha-linux-amd64.tar.gz` 并用对应 `.sha256` 校验后解压到空目录。归档内包含 `soha` 二进制、完整 `migrations/postgres/` 目录与 `configs/config.example.yaml`，具体步骤参见主仓 [`deploy/native/README.md`](https://github.com/opensoha/soha/blob/main/deploy/native/README.md)。单独的 `soha-linux-amd64` 裸二进制附件仅保留给已具备匹配迁移目录的存量环境升级使用，不能单独完成全新安装。
 
 ## 从源码构建
 

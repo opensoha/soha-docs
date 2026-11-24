@@ -30,25 +30,25 @@ The `soha` core repository must not import this source tree. By default, `soha` 
 
 `next.config.mjs` reads these build-time variables:
 
-- `DOCS_SITE_URL`: published origin. Default: `https://docs.opensoha.dev`
+- `DOCS_SITE_URL`: published origin. Default: `https://docs.opensoha.com`
 - `DOCS_BASE_URL`: published path prefix. Default: `/`
 - `DOCS_SHOW_LAST_UPDATE_TIME`: retained as a workflow variable for release compatibility; Nextra does not currently render it.
 
-For `https://docs.opensoha.dev/`, use:
+For `https://docs.opensoha.com/`, use:
 
 ```bash
-DOCS_SITE_URL=https://docs.opensoha.dev DOCS_BASE_URL=/ npm run build
+DOCS_SITE_URL=https://docs.opensoha.com DOCS_BASE_URL=/ npm run build
 ```
 
-For `https://opensoha.dev/site/`, use:
+For `https://docs.opensoha.com/site/`, use:
 
 ```bash
-DOCS_SITE_URL=https://opensoha.dev DOCS_BASE_URL=/site/ npm run build
+DOCS_SITE_URL=https://docs.opensoha.com DOCS_BASE_URL=/site/ npm run build
 ```
 
 ## Quality Gates
 
-The Search quality gate is based on Nextra's local Pagefind-backed search. `next.config.mjs` keeps search enabled while excluding code blocks from the index, and `scripts/verify-docs-drift.mjs` checks that the publishing notes and config stay aligned. Release builds do not require external Algolia credentials.
+The Search quality gate is based on Nextra's local Pagefind-backed search. `next.config.mjs` enables search and excludes code blocks. `npm run build` runs Pagefind after Next.js renders the pages, writing the search index to `public/_pagefind/`. The same command builds the index locally and on Vercel. `scripts/verify-docs-drift.mjs` checks that the publishing notes and config stay aligned.
 
 The broken-link gate has two layers: the Nextra/Next build validates routable pages, and `scripts/verify-docs-drift.mjs` scans relative Markdown links during `npm test`.
 
@@ -80,10 +80,10 @@ interactive acceptance. Review actual pages separately for visual changes.
 The release publishing path is a host-managed Next.js deployment, not GitHub Pages.
 
 - Connect the `soha-docs` repository to the Next.js host.
-- Set the project root to `soha-docs`.
+- Use the `soha-docs` repository root (`.` in Vercel).
 - Use `npm run build` as the build command.
 - Leave the output directory empty or automatic so the host detects Next.js.
-- Configure the production domain as `docs.opensoha.dev` in the host and DNS provider.
+- Add `docs.opensoha.com` to the Vercel project's production domains and set the CNAME it provides in Cloudflare using DNS only.
 - Do not add `public/CNAME` or `.github/workflows/publish.yml`; those are GitHub Pages-specific artifacts.
 - The CI workflow checks out the pinned `opensoha/soha` Root revision next to `soha-docs`; contracts inputs are read from `../soha/contracts`.
 - Verification before deploy: `npm ci`, `npm run typecheck`, `npm test`, and `npm run build`.

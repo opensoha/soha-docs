@@ -15,7 +15,7 @@ function normalizeBasePath(value) {
   return withLeadingSlash.replace(/\/+$/, '')
 }
 
-const docsSiteUrl = process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.dev'
+const docsSiteUrl = process.env.DOCS_SITE_URL ?? 'https://docs.opensoha.com'
 const basePath = normalizeBasePath(process.env.DOCS_BASE_URL)
 
 const withNextra = nextra({

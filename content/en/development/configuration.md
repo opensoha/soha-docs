@@ -1,18 +1,18 @@
 # Configuration
 
-All runtime config is environment-variable based in phase 1.
+Backend runtime defaults live in `configs/config.yaml` and can be overridden through `SOHA_*` environment variables.
 
-## Required Local Values
+## Local Override Examples
 
-- `SOHA_POSTGRES_HOST=localhost`
-- `SOHA_POSTGRES_PORT=5432`
-- `SOHA_POSTGRES_DB=soha`
-- `SOHA_POSTGRES_USER=pgsql`
-- `SOHA_POSTGRES_PASSWORD=pgsql`
-- `SOHA_REDIS_ADDR=localhost:6379`
-- `SOHA_CLUSTER_LOCAL_KUBECONFIG=$HOME/.kube/config`
+- `SOHA_CONFIG_FILE=configs/config.yaml`
+- `SOHA_DATABASE_HOST=localhost`
+- `SOHA_DATABASE_PORT=5432`
+- `SOHA_DATABASE_NAME=soha`
+- `SOHA_DATABASE_USER=pgsql`
+- `SOHA_DATABASE_PASSWORD=pgsql`
+- `SOHA_AI_GATEWAY_RATE_LIMIT_BACKEND=memory` (or `redis` with `SOHA_AI_GATEWAY_RATE_LIMIT_REDIS_ADDR=localhost:6379`)
 
-## MCP Flags
+## AI Gateway & MCP
 
-- `SOHA_ENABLE_MCP=true`
-- future adapter configuration will be namespaced under `SOHA_MCP_*`
+- Built-in MCP capabilities are served under `/api/v1/ai-gateway/mcp` and governed by Gateway tokens, tool grants, and access policies rather than global `SOHA_ENABLE_MCP` flags.
+- See [Runtime Configuration](../operations/configuration.md) and [Environment Overrides](../operations/environment-variables.md) for the complete override reference.

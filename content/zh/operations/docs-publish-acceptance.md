@@ -11,35 +11,35 @@ description: 记录 soha-docs 外部发布开关、Next.js 托管配置和首次
 
 | 项目 | Release 目标值 | 验收状态 |
 | --- | --- | --- |
-| Published origin | `https://docs.opensoha.dev` | 已写入 `next.config.mjs` 默认值 |
+| Published origin | `https://docs.opensoha.com` | 已写入 `next.config.mjs` 默认值 |
 | Base URL | `/` | 已写入 `next.config.mjs` 默认值 |
 | i18n routing | `/zh`, `/zh/docs/...`, `/en`, `/en/docs/...` | 已切换到 `nextra/locales` 官方 i18n 代理 |
-| Vercel project | project root `soha-docs`, build `npm run build` | 待仓库管理员在 Vercel 项目设置中确认 |
+| Vercel project | 仓库根目录（`.`），构建命令为 `npm run build` | 待仓库管理员在 Vercel 项目设置中确认 |
 | GitHub integration | connected repository with automatic Next.js output detection | 待仓库管理员在 Vercel 项目设置中确认 |
 | First publish run | Vercel production deployment | 待首次远端 production deployment 成功后记录 |
 
-备用部署形态是 `https://opensoha.dev/site/`。只有 release 环境明确改为该形态时，才使用 `DOCS_SITE_URL=https://opensoha.dev` 和 `DOCS_BASE_URL=/site/` 覆盖默认值。
+备用部署形态是 `https://docs.opensoha.com/site/`。只有 release 环境明确改为该形态时，才使用 `DOCS_SITE_URL=https://docs.opensoha.com` 和 `DOCS_BASE_URL=/site/` 覆盖默认值。
 
 ## 开关验收
 
-- Vercel project root 必须是 `soha-docs`。
+- Vercel project root 必须是仓库根目录（`.`）。
 - Build command 必须是 `npm run build`。
 - Output directory 必须留空或使用自动检测，不能配置为 `out`。
-- 自定义域名必须与 release origin 一致：`docs.opensoha.dev`。
-- 默认 build 必须使用 `DOCS_SITE_URL=https://docs.opensoha.dev` 和 `DOCS_BASE_URL=/`。
+- 自定义域名必须与 release origin 一致：`docs.opensoha.com`。
+- 默认 build 必须使用 `DOCS_SITE_URL=https://docs.opensoha.com` 和 `DOCS_BASE_URL=/`。
 - 子路径部署只允许通过部署环境变量覆盖，不应修改默认 release 值。
 - Locale cookie 使用 `NEXT_LOCALE`，未带 locale 的 `/` 和 `/docs/...` 必须按官方 i18n 代理跳转到 `/zh` 或 `/en`。
 
 本地 release build 验证命令：
 
 ```bash
-DOCS_SITE_URL=https://docs.opensoha.dev DOCS_BASE_URL=/ npm run build
+DOCS_SITE_URL=https://docs.opensoha.com DOCS_BASE_URL=/ npm run build
 ```
 
 子路径兼容验证命令：
 
 ```bash
-DOCS_SITE_URL=https://opensoha.dev DOCS_BASE_URL=/site/ npm run build
+DOCS_SITE_URL=https://docs.opensoha.com DOCS_BASE_URL=/site/ npm run build
 ```
 
 ## 首次 publish 记录
@@ -50,7 +50,7 @@ DOCS_SITE_URL=https://opensoha.dev DOCS_BASE_URL=/site/ npm run build
 | --- | --- |
 | Run URL | 待补充 |
 | Commit SHA | 待补充 |
-| `DOCS_SITE_URL` | `https://docs.opensoha.dev` |
+| `DOCS_SITE_URL` | `https://docs.opensoha.com` |
 | `DOCS_BASE_URL` | `/` |
 | Deployment URL | 待补充 |
 | Vercel project screenshot or audit note | 待补充 |
@@ -61,14 +61,14 @@ DOCS_SITE_URL=https://opensoha.dev DOCS_BASE_URL=/site/ npm run build
 发布后 smoke 必须至少覆盖：
 
 ```bash
-curl -I -s https://docs.opensoha.dev/zh/
-curl -I -s https://docs.opensoha.dev/zh/docs/api/contracts/
-curl -I -s https://docs.opensoha.dev/en/docs/
+curl -I -s https://docs.opensoha.com/zh/
+curl -I -s https://docs.opensoha.com/zh/docs/api/contracts/
+curl -I -s https://docs.opensoha.com/en/docs/
 ```
 
 验收完成条件：
 
 - Vercel production deployment 成功。
-- Production deployment URL 指向 `https://docs.opensoha.dev/`。
+- Production deployment URL 指向 `https://docs.opensoha.com/`。
 - 上述三个 URL 返回 `200` 或等价成功状态。
 - 本文的 Run URL、Commit SHA、Deployment URL、Vercel project、GitHub integration 和 DNS/custom domain 记录已补齐。

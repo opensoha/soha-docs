@@ -4,9 +4,76 @@
 
 The Core image embeds the Web console and serves it alongside the API. PostgreSQL stores application data. The docs site, the remote cluster Agent and the optional Operator have their own release cycles.
 
-For a local Compose install with Core `v0.1.13`, follow [First Deploy](../tutorials/first-deploy.md). For Kubernetes, use the released `deploy/deployment.yaml` or a compatible chart version from the [Soha Helm repository](https://github.com/opensoha/soha-helm) (check each published chart's `appVersion` until a chart update targeting Core `v0.1.13` is published). Keep the manifest or chart and the image versions together when you upgrade. Replace the initial credentials and system keys before exposing the installation. [Configuration](./configuration.md)
+Recommended delivery boundaries:
+
+- **Docker Compose**: local development and single-host trials; follow [First Deploy](../tutorials/first-deploy.md) for Core `v0.1.13` rather than treating Compose as the primary production orchestrator.
+- **Standalone `docker run`**: single-container host deployment when an external PostgreSQL server is already reachable.
+- **Helm (primary Kubernetes path)**: the [Soha Helm repository](https://github.com/opensoha/soha-helm) publishes `soha`, `soha-agent`, `soha-operator`, and compatible `soha-hermes-agent` charts (check each published chart's `appVersion` before upgrading).
+- **Raw Kubernetes / Kustomize**: lightweight manifest customization entrypoint under `deploy/deployment.yaml` and `deploy/kustomization.yaml`.
+- **Native Linux archive**: self-contained tarball bundling the binary, SQL migrations, and configuration template.
+- **Image roles**: Core uses `ghcr.io/opensoha/soha`; Agent and runtime workloads use `ghcr.io/opensoha/soha-agent`, `ghcr.io/opensoha/soha-dsh`, and Buildpacks variants; the CLI tool image `ghcr.io/opensoha/soha-cli` is an artifact for multi-stage builds and operational containers (for example, `COPY --from=ghcr.io/opensoha/soha-cli:v0.2.1 /usr/local/bin/soha /usr/local/bin/soha`), not a long-running workload.
+
+Keep the manifest or chart and the image versions aligned when you upgrade. Replace the initial credentials and all four public system keys before exposing the installation; see [Configuration](./configuration.md).
 
 Core `v0.1.13` ships with `dsh_runtime` and `hindsight` disabled by default. Enabling new Chat and Heya requires deploying the matching `ghcr.io/opensoha/soha-dsh:v0.2.0` service and completing the setup in [Agent Runtime](./agent-runtime.md) (Core `v0.1.12` and earlier used the legacy built-in runtime).
+
+## Standalone Docker Container (External PostgreSQL)
+
+Run the application container directly without Compose when an external PostgreSQL 18 instance with `vector` and `pg_trgm` is reachable. This example binds to loopback for local use.
+
+Set `SOHA_DOCKER_ENV_FILE` to the path of a private Docker environment file. Populate it with the database password (`SOHA_DATABASE_PASSWORD`), a unique bootstrap password (`SOHA_AUTH_DEV_PRINCIPAL_PASSWORD`), and fresh values for `SOHA_AUTH_JWT_SECRET`, `SOHA_RUNTIME_EXECUTION_RUNNER_TOKEN`, `SOHA_MONITORING_WEBHOOK_TOKEN`, and `SOHA_SECURITY_CREDENTIAL_ENCRYPTION_KEY`. Set file permissions to `0600`. Before exposing the service, use these custom credentials and keys and terminate TLS at the external ingress.
+
+```bash
+docker run -d \
+  --name soha \
+  --restart unless-stopped \
+  -p 127.0.0.1:8080:8080 \
+  --mount source=soha-data,target=/app/data \
+  --add-host host.docker.internal:host-gateway \
+  -e SOHA_DATABASE_HOST=host.docker.internal \
+  --env-file "${SOHA_DOCKER_ENV_FILE:?set the path to a private environment file}" \
+  ghcr.io/opensoha/soha:v0.1.13
+```
+
+Soha does not require a `SecretStore` volume, secret bundle, or single-writer lease. Multiple API replicas may connect to the same PostgreSQL database behind a load balancer when they share identical configuration and system keys.
+
+### Software Library Object Storage And Legacy Migration
+
+The `soha-data` volume persists companion runtime data only; Software Library packages require an enabled S3-compatible integration (**Internal Workbench -> Software Library**) rather than local container storage. Supported endpoints include AWS S3, MinIO, Alibaba Cloud OSS, Tencent Cloud COS, and custom S3-compatible stores (private endpoints require **Allow private endpoint**; plain HTTP additionally requires **Allow HTTP**). Endpoint and bucket settings are immutable after creation; rotate credentials in place or add a new integration when migrating storage.
+
+Upgrades stop with a migration error if `data/software/index.json` (or `SOHA_SOFTWARE_STORAGE_DIR`) is still present. Before upgrading, stop the previous release and move the legacy directory to a backup location; start the new release, configure and test S3-compatible storage, re-upload each indexed package with its original metadata and file name, and verify counts, byte totals, SHA-256 digests, and downloads before removing the backup.
+
+## Kubernetes Deployment (Helm And Kustomize)
+
+Install Core and the remote cluster Agent from the public Helm repository:
+
+```bash
+helm repo add opensoha https://opensoha.github.io/soha-helm
+helm repo update
+helm install soha opensoha/soha --namespace soha --create-namespace
+helm install soha-agent opensoha/soha-agent \
+  --namespace soha \
+  --set-string config.controlPlane.baseUrl="https://soha.example.com"
+```
+
+The `soha-agent` chart reads only `soha-config/execution-runner-token` by default and generates its own inbound agent token when needed. When deploying the agent in a separate namespace, sync only that runner key with an External Secrets controller and set `secrets.controlPlaneExistingSecret.name` and `key`.
+
+Identity Outpost can be deployed from `soha/agent` or via the `soha-agent` Helm chart with `mode=outpost` (pin a released agent image supporting Identity Outpost protocol `v1`; NGINX Ingress and Traefik ForwardAuth examples live under `agent/deploy/kubernetes/outpost/examples` in the Core repository).
+
+Without Helm, customize and apply the raw Kustomize baseline under `deploy/`:
+
+```bash
+cd deploy
+kustomize edit set image ghcr.io/opensoha/soha=ghcr.io/opensoha/soha:v0.1.13
+cd ..
+kubectl apply -k deploy
+```
+
+Raw Kubernetes manifests and Helm charts use TCP liveness and `/readyz` startup/readiness probes. A database outage removes readiness without restarting Core for that dependency failure alone; startup allows five minutes for migrations and can be extended for large existing databases.
+
+## Native Linux Archive
+
+Download `soha-linux-amd64.tar.gz` from a release that provides the installation archive, verify its `.sha256` checksum, and extract it into a new empty directory. The archive includes the `soha` binary, all `migrations/postgres/` SQL files, and `configs/config.example.yaml`; follow [`deploy/native/README.md`](https://github.com/opensoha/soha/blob/main/deploy/native/README.md). The standalone `soha-linux-amd64` binary asset is retained only for existing installations that already hold matching migration files and is not sufficient for a fresh install by itself.
 
 ## Build from source
 

@@ -1,5 +1,6 @@
 .DS_Store
 .next/
+/public/_pagefind/
 node_modules/
 tsconfig.tsbuildinfo
 graphify-out/

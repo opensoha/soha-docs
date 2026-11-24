@@ -164,6 +164,7 @@ function operationLines(operation, routeMetadata) {
   const lines = [`- \`${route}\` - \`${operation.operationId || 'operation'}\`.${summary}${refs}`]
   const metadata = routeMetadata.get(route)
   if (!metadata) {
+    if (operation.implementationStatus === 'planned') lines.push('  - Status: `planned`')
     return lines
   }
 

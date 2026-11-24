@@ -18,6 +18,7 @@ export function openAPIOperations(document) {
         tag: operation.tags?.[0] ?? '',
         operationId: operation.operationId ?? '',
         summary: operation.summary ?? '',
+        implementationStatus: operation['x-soha-implementation-status'] ?? '',
         schemaRefs: [...schemaRefs].sort(),
       })
     }

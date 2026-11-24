@@ -63,7 +63,7 @@ npm install
 npm run dev
 ```
 
-`soha-docs` is a standalone Next.js/Nextra site. Official i18n routes use `/zh`, `/zh/docs/...`, `/en`, and `/en/docs/...`; unprefixed `/` and `/docs/...` requests redirect through the `nextra/locales` proxy based on `NEXT_LOCALE` or browser language preferences. When publishing to `https://docs.opensoha.dev/`, set `DOCS_BASE_URL` to match the target deployment path.
+`soha-docs` is a standalone Next.js/Nextra site. Official i18n routes use `/zh`, `/zh/docs/...`, `/en`, and `/en/docs/...`; unprefixed `/` and `/docs/...` requests redirect through the `nextra/locales` proxy based on `NEXT_LOCALE` or browser language preferences. When publishing to `https://docs.opensoha.com/`, set `DOCS_BASE_URL` to match the target deployment path.
 
 ## Historical MVP Runtime Notes
 

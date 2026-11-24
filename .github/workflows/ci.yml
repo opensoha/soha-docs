@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -21,6 +24,7 @@ jobs:
           repository: opensoha/soha
           ref: f160aa3ae7fc0d7e9215cc0f330f88cabad084d8 # Published SDK contracts/v0.2.0
           path: soha
+          sparse-checkout: contracts
       - uses: actions/setup-node@v6
         with:
           node-version: "22"

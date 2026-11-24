@@ -52,13 +52,25 @@ The MVP exposes only a loopback mixed proxy. mihomo TUN, default routes, LAN lis
 
 ## Deployment
 
-Run the complete software stack locally with Docker:
+Network runtimes are opt-in in Compose because mTLS private keys must stay outside source control. Prepare separate server and client-identity directories containing `tls.crt`, `tls.key` (mode `0440` or `0600`), and `ca.crt`, then start the `network-access` profile:
 
 ```bash
+SOHA_NETWORK_CONTROL_TLS_DIR=/abs/path/network-control-tls \
+SOHA_INGEST_TLS_DIR=/abs/path/ingest-tls \
+SOHA_NETWORK_INGEST_QUERY_TLS_DIR=/abs/path/core-ingest-query-tls \
+SOHA_NETWORK_INGEST_QUERY_URL=https://ingest:8083 \
+SOHA_NETWORK_INGEST_QUERY_CA_FILE=/run/soha-network-ingest-query/ca.crt \
+SOHA_NETWORK_INGEST_QUERY_CERT_FILE=/run/soha-network-ingest-query/tls.crt \
+SOHA_NETWORK_INGEST_QUERY_KEY_FILE=/run/soha-network-ingest-query/tls.key \
+SOHA_NETWORK_INGEST_QUERY_SERVER_NAME=ingest \
+SOHA_NETWORK_GATEWAY_CONTROL_CLIENT_TLS_DIR=/abs/path/gateway-control-tls \
+SOHA_NETWORK_GATEWAY_INGEST_CLIENT_TLS_DIR=/abs/path/gateway-ingest-tls \
 docker compose -f deploy/docker-compose.yaml --profile network-access up -d --build
 ```
 
-The raw Kubernetes baseline is `deploy/network-runtime.yaml`; it includes control, ingest, the WireGuard gateway, and required persistent volumes. FreeRADIUS configuration is under `deploy/freeradius/`.
+This starts `network-control` on `8082`, `ingest` on `8083`, an isolated ingest PostgreSQL instance, and the privileged `network-gateway` on UDP `51820`. `/healthz` reports process liveness; `network-control` and `network-gateway` report `/readyz` only after required policy and configuration have been published. The Core ingest-query client certificate must carry the exact URI SAN `spiffe://opensoha.local/network-ingest/core/soha-server` (do not reuse the gateway ingest identity), and only bounded aggregate summaries return to Core.
+
+The raw Kubernetes baseline is `deploy/network-runtime.yaml`; it includes control, ingest, the WireGuard gateway, and required persistent volumes (create `soha-network-runtime-tls` in namespace `soha` including `network-core-ingest-query.*` before `kubectl apply -k deploy`; build a local gateway image with `docker build --target network-gateway-runtime -f deploy/Dockerfile -t ghcr.io/opensoha/soha-network-gateway:local .`). FreeRADIUS configuration is under `deploy/freeradius/`, and disposable component smoke/multi-site labs are documented in [`deploy/network-test/README.md`](https://github.com/opensoha/soha/blob/main/deploy/network-test/README.md).
 
 The Helm Chart creates no network runtime by default. Enable only the unprivileged control/ingest plane with:
 
